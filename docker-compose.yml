@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    container_name: musiccopilot
+    ports:
+      # 对外端口默认 17716，可在 .env 里用 MC_PORT 覆盖
+      - "${MC_PORT:-17716}:80"
+    # .env 的 MC_API_BASE_URL 为空（同源开发模式）时，容器反代目标回退到 MC_DEV_PROXY_TARGET
+    environment:
+      MC_API_BASE_URL: ${MC_API_BASE_URL:-${MC_DEV_PROXY_TARGET:-}}
+    # 让容器内 host.docker.internal 指向宿主机（后端与 Docker 同机时可用该地址）
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 与开发期同一套 .env（MC_ 前缀变量注入容器；MC_DEV_PROXY_TARGET 在容器内被忽略）
+    env_file:
+      - .env
+    restart: unless-stopped

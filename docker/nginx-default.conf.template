@@ -1,0 +1,23 @@
+# 模板由 nginx 官方镜像启动时做 envsubst（仅替换已定义的环境变量，
+# $host / $uri 等 nginx 变量不受影响），MC_API_BASE_URL 由容器环境注入。
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 后端反代：浏览器同源访问 /api，规避 CORS
+    location /api {
+        proxy_pass ${MC_API_BASE_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 300s;
+    }
+
+    # SPA 兜底
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

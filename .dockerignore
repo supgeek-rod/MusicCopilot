@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.zcode
+
+# 本机环境配置不进镜像（运行时由 compose env_file / docker run -e 注入）
+.env
+.env.*
+.env.example
