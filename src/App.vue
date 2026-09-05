@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { LoaderCircleIcon } from '@lucide/vue'
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import PlayerBar from '@/components/PlayerBar.vue'
 import { Toaster } from '@/components/ui/sonner'
+import { startTaskToasts } from '@/lib/taskToaster'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -11,6 +12,15 @@ const app = useAppStore()
 onMounted(() => {
   app.init()
 })
+
+// 登录成功后启动全局下载完成 toast 通知（幂等）
+watch(
+  () => app.ready && app.loggedIn,
+  (ok) => {
+    if (ok) startTaskToasts()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
