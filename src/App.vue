@@ -17,7 +17,7 @@ onMounted(() => {
   <div v-if="!app.ready" class="flex min-h-screen flex-col items-center justify-center gap-3">
     <LoaderCircleIcon class="size-6 animate-spin text-muted-foreground" />
     <p class="text-sm text-muted-foreground">{{ app.statusMsg }}</p>
-    <p class="text-xs text-muted-foreground/70">可修改 public/config.json 中的后端地址与账号</p>
+    <p class="text-xs text-muted-foreground/70">可通过 .env / config.json 配置后端地址与账号</p>
   </div>
 
   <div v-else class="flex min-h-screen flex-col">
@@ -26,7 +26,7 @@ onMounted(() => {
       v-if="!app.connected"
       class="bg-destructive/10 px-4 py-1.5 text-center text-xs text-destructive"
     >
-      {{ app.statusMsg }}：请检查后端服务与 config.json 的 baseUrl 配置
+      {{ app.statusMsg }}：请检查后端服务与 .env / config.json 的 baseUrl 配置
     </div>
     <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
       <RouterView />

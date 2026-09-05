@@ -9,7 +9,7 @@ export interface HttpRuntime {
   /** 后端基地址，空串表示同源（走 vite 代理或同域部署） */
   apiBase: string
   getToken: () => { tokenName: string; tokenValue: string } | null
-  /** 403 时用 config.json 里的账号密码自动重登 */
+  /** 403 时用运行时配置（.env / config.json）里的账号密码自动重登 */
   relogin: () => Promise<boolean>
 }
 
@@ -58,10 +58,10 @@ http.interceptors.response.use(
       cfg.__retried403 = true
       const ok = await httpRuntime.relogin()
       if (ok) return http.request(cfg)
-      return Promise.reject(new ApiError('登录已失效，自动重新登录失败，请检查 config.json 中的账号密码', 403))
+      return Promise.reject(new ApiError('登录已失效，自动重新登录失败，请检查 .env / config.json 中的账号密码', 403))
     }
     if (!error.response) {
-      return Promise.reject(new ApiError('无法连接后端服务，请检查 config.json 的 baseUrl 与网络'))
+      return Promise.reject(new ApiError('无法连接后端服务，请检查 .env / config.json 的 baseUrl 与网络'))
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = error.response.data as any

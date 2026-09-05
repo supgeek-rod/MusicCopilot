@@ -73,6 +73,8 @@ export const useAppStore = defineStore('app', {
     },
 
     async init() {
+      // 运行时配置：dev/preview 由 Vite 中间件从 .env 虚拟生成，
+      // 生产为部署目录下的 config.json（Docker 由容器入口脚本从环境变量生成）
       try {
         const res = await fetch(`${import.meta.env.BASE_URL}config.json`, { cache: 'no-store' })
         if (res.ok) this.config = (await res.json()) as AppConfig

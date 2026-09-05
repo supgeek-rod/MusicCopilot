@@ -6,3 +6,8 @@ dist-ssr
 npm-debug.log*
 
 .zcode
+
+# 本地环境配置（模板见 .env.example）
+.env
+.env.local
+.env.*.local

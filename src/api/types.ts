@@ -98,10 +98,9 @@ export interface TaskPage {
   pages: number
 }
 
-/** public/config.json 运行时配置 */
+/** 应用运行时配置（dev 由 Vite 从 .env 生成；生产为运行时 config.json 文件） */
 export interface AppConfig {
   baseUrl?: string
-  devProxyTarget?: string
   username?: string
   password?: string
   autoLogin?: boolean
