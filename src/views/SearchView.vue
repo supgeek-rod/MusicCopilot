@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Music2Icon, SearchIcon } from '@lucide/vue'
+import { HistoryIcon, Music2Icon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
 import { onClickOutside, watchDebounced } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -16,11 +16,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  clearSearchHistory,
+  loadSearchHistory,
+  recordSearchHistory,
+  removeSearchHistory,
+} from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
 import { usePlayerStore } from '@/stores/player'
+import { useRoute, useRouter } from 'vue-router'
 
 const app = useAppStore()
 const player = usePlayerStore()
+const route = useRoute()
+const router = useRouter()
 
 const PAGE_SIZE = 30
 
@@ -35,6 +44,9 @@ const loading = ref(false)
 const tips = ref<string[]>([])
 const tipsOpen = ref(false)
 const searchBoxRef = ref<HTMLElement | null>(null)
+
+// 搜索历史（localStorage 持久化，最新在前）
+const history = ref<string[]>(loadSearchHistory())
 
 const lyricOpen = ref(false)
 const lyricSong = ref<SongRecord | null>(null)
@@ -106,6 +118,9 @@ async function doSearch(page = 1) {
     total.value = data.searchTotal ?? results.value.length
     pageIndex.value = page
     submitted.value = { kw, plug: plug.value }
+    history.value = recordSearchHistory(kw)
+    // 搜索条件同步进 URL（replace 不新增历史记录，可刷新恢复/分享）
+    if (route.query.q !== kw) router.replace({ query: { q: kw } }).catch(() => {})
     if (!results.value.length) toast.info('没有找到相关歌曲')
   } catch (e) {
     if (disposed) return
@@ -118,11 +133,20 @@ async function doSearch(page = 1) {
   }
 }
 
-function pickTip(tip: string) {
-  keyword.value = tip
+/** 点击联想词 / 历史词条：回填并以当前音源搜索 */
+function searchTerm(term: string) {
+  keyword.value = term
   tipsOpen.value = false
   tips.value = []
   doSearch(1)
+}
+
+function dropHistory(kw: string) {
+  history.value = removeSearchHistory(kw)
+}
+
+function clearHistory() {
+  history.value = clearSearchHistory()
 }
 
 function goPage(page: number) {
@@ -134,6 +158,18 @@ function goPage(page: number) {
 watch(plug, () => {
   if (submitted.value) doSearch(1)
 })
+
+// 顶部导航栏快捷搜索 / 链接直达：读取并监听 ?q=
+// （跳过与当前已提交关键词相同的值，避免 doSearch 内 router.replace 触发循环）
+function searchFromRoute() {
+  const q = route.query.q
+  if (typeof q === 'string' && q && q !== submitted.value?.kw) {
+    keyword.value = q
+    doSearch(1)
+  }
+}
+searchFromRoute()
+watch(() => route.query.q, searchFromRoute)
 
 async function onPlay(song: SongRecord) {
   try {
@@ -186,10 +222,50 @@ function onLyrics(song: SongRecord) {
             type="button"
             class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
             @mousedown.prevent
-            @click="pickTip(t)"
+            @click="searchTerm(t)"
           >
             <SearchIcon class="size-3.5 shrink-0 text-muted-foreground" />
             <span class="truncate">{{ t }}</span>
+          </button>
+        </div>
+        <!-- 搜索历史：聚焦且未输入关键词时展示 -->
+        <div
+          v-else-if="tipsOpen && !keyword.trim() && history.length"
+          class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
+        >
+          <div
+            v-for="h in history"
+            :key="h"
+            class="group flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 items-center gap-2"
+              title="点击重新搜索"
+              @mousedown.prevent
+              @click="searchTerm(h)"
+            >
+              <HistoryIcon class="size-3.5 shrink-0 text-muted-foreground" />
+              <span class="truncate">{{ h }}</span>
+            </button>
+            <button
+              type="button"
+              class="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+              title="删除该条"
+              @mousedown.prevent
+              @click.stop="dropHistory(h)"
+            >
+              <XIcon class="size-3.5" />
+            </button>
+          </div>
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 border-t px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            @mousedown.prevent
+            @click="clearHistory"
+          >
+            <TrashIcon class="size-3.5 shrink-0" />
+            清空搜索历史
           </button>
         </div>
       </div>

@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ListMusicIcon, MoonIcon, Music2Icon, SearchIcon, SunIcon } from '@lucide/vue'
 import { useDark, useToggle } from '@vueuse/core'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
 const route = useRoute()
+const router = useRouter()
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
 
@@ -17,6 +19,17 @@ const navs = [
   { path: '/search', label: '搜索', icon: SearchIcon },
   { path: '/downloads', label: '下载任务', icon: ListMusicIcon },
 ]
+
+const keyword = ref('')
+
+/** 快捷搜索：跳转搜索页，由 SearchView 读取 ?q= 触发搜索 */
+function submitQuickSearch() {
+  const q = keyword.value.trim()
+  keyword.value = ''
+  if (!q) return
+  if (route.path === '/search' && route.query.q === q) return
+  router.push({ path: '/search', query: { q } })
+}
 </script>
 
 <template>
@@ -42,6 +55,19 @@ const navs = [
       </div>
 
       <nav class="ml-auto flex items-center gap-1">
+        <div class="relative mr-2 hidden md:block">
+          <SearchIcon
+            class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            v-model="keyword"
+            class="h-8 w-32 pl-8 pr-2 text-sm transition-[width] focus:w-48"
+            placeholder="快捷搜索…"
+            title="快捷搜索（回车跳转搜索页）"
+            @keydown.enter.prevent="submitQuickSearch"
+          />
+        </div>
+
         <Button
           v-for="nav in navs"
           :key="nav.path"
