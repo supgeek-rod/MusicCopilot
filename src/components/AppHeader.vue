@@ -35,7 +35,11 @@ function submitQuickSearch() {
 <template>
   <header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
     <div class="mx-auto flex h-14 w-full max-w-5xl items-center gap-3 px-4">
-      <div class="flex items-center gap-2">
+      <RouterLink
+        to="/search"
+        class="flex items-center gap-2 rounded-md transition-opacity hover:opacity-75"
+        title="回到搜索页"
+      >
         <div class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Music2Icon class="size-4.5" />
         </div>
@@ -52,7 +56,7 @@ function submitQuickSearch() {
             {{ app.connected ? '已连接' : app.statusMsg }}
           </div>
         </div>
-      </div>
+      </RouterLink>
 
       <nav class="ml-auto flex items-center gap-1">
         <div class="relative mr-2 hidden md:block">
