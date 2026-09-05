@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
+import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 
 const DEFAULT_PROXY_TARGET = 'http://192.168.31.170:8096'
@@ -78,7 +79,46 @@ export default defineConfig(({ mode }) => {
     .split(/[,\s]+/)
     .filter((h) => h.length > 0)
   return {
-    plugins: [vue(), tailwindcss(), runtimeConfigPlugin(env)],
+    plugins: [
+      vue(),
+      tailwindcss(),
+      runtimeConfigPlugin(env),
+      // PWA：autoUpdate 静默更新；/api 与 config.json 永不入缓存（后者容器内运行时生成）
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+        manifest: {
+          name: 'MusicCopilot',
+          short_name: 'MusicCopilot',
+          description: '音乐搜索、试听与下载客户端',
+          lang: 'zh-CN',
+          theme_color: '#7c3aed',
+          background_color: '#ffffff',
+          display: 'standalone',
+          start_url: '/',
+          icons: [
+            { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+            { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
+            { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
+        },
+        workbox: {
+          navigateFallback: 'index.html',
+          navigateFallbackDenylist: [/^\/api\//, /\/config\.json$/],
+          runtimeCaching: [
+            {
+              // 专辑/歌手封面等图片：SWR 缓存（含外链 CDN），限额防膨胀
+              urlPattern: ({ request }) => request.destination === 'image',
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'mc-images',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 14 },
+              },
+            },
+          ],
+        },
+      }),
+    ],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
