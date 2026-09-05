@@ -5,6 +5,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import SettingsDialog from '@/components/SettingsDialog.vue'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -84,6 +85,8 @@ function submitQuickSearch() {
             {{ nav.label }}
           </RouterLink>
         </Button>
+
+        <SettingsDialog />
 
         <Button variant="ghost" size="icon-sm" :title="isDark ? '切换浅色' : '切换深色'" @click="toggleDark()">
           <SunIcon v-if="isDark" class="size-4" />

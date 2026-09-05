@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { authApi } from '@/api/auth'
 import { httpRuntime } from '@/api/http'
 import type { AppConfig, BrTypeInfo, PlugOption } from '@/api/types'
+import { loadDownloadQuality, saveDownloadQuality } from '@/lib/settings'
 
 interface AuthToken {
   tokenName: string
@@ -18,6 +19,8 @@ export const useAppStore = defineStore('app', {
     token: null as AuthToken | null,
     plugOptions: [] as PlugOption[],
     brTypeList: [] as BrTypeInfo[],
+    /** 偏好下载音质（brType），空串表示自动选最高 */
+    downloadBrType: loadDownloadQuality(),
   }),
 
   getters: {
@@ -64,12 +67,23 @@ export const useAppStore = defineStore('app', {
     loadMeta() {
       authApi
         .getOption()
-        .then((v) => (this.plugOptions = v ?? []))
+        .then((v) => {
+          // 仅保留酷我音源（kw 为搜索默认值，前端不暴露其余插件）；后端标签将「酷我」打码为「某我」，展示时还原
+          this.plugOptions = (v ?? [])
+            .filter((p) => p.value === 'kw')
+            .map((p) => ({ ...p, label: p.label.replace('某我', '酷我') }))
+        })
         .catch(() => {})
       authApi
         .getPlugBrTypeList()
         .then((v) => (this.brTypeList = v ?? []))
         .catch(() => {})
+    },
+
+    /** 设置偏好下载音质（空串表示自动选最高），立即持久化 */
+    setDownloadBrType(brType: string) {
+      this.downloadBrType = brType
+      saveDownloadQuality(brType)
     },
 
     async init() {

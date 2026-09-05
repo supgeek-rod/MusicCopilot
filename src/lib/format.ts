@@ -87,6 +87,27 @@ export function sortBrTypes(list: string[]): string[] {
   return [...list].sort((a, b) => brBit(b) - brBit(a))
 }
 
+/**
+ * 按偏好音质解析实际下载音质：
+ * 偏好为空取最高；偏好可用则原样返回；不同音源同码率命名不同，视为同档可用；
+ * 否则先降档（低于偏好的最近一档）、再升档（高于偏好的最近一档），仍无则取最高。
+ * brTypes 为空时返回空串（由后端自动选择）。
+ */
+export function resolveBrType(preferred: string, brTypes: string[]): string {
+  const sorted = sortBrTypes(brTypes)
+  if (!sorted.length) return ''
+  if (!preferred) return sorted[0]
+  if (sorted.includes(preferred)) return preferred
+  const bit = brBit(preferred)
+  const sameBit = sorted.find((bt) => brBit(bt) === bit)
+  if (sameBit) return sameBit
+  const lower = sorted.filter((bt) => brBit(bt) < bit)
+  if (lower.length) return lower[0]
+  const higher = sorted.filter((bt) => brBit(bt) > bit)
+  if (higher.length) return higher[higher.length - 1]
+  return sorted[0]
+}
+
 const LOSSLESS = ['FLAC', 'APE', 'ALAC', 'HIRES', 'HI_RES', 'HR', 'DSF', 'MASTER', 'ATMOS', 'JYMASTER']
 
 export function qualityTier(brType: string): 'lossless' | 'high' | 'standard' {
