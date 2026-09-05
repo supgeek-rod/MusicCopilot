@@ -80,6 +80,8 @@ export interface TaskInfo {
   downloadArtistname?: string | null
   downloadAlbumname?: string | null
   downloadMsg?: string | null
+  /** 入队时的原始歌曲信息（JSON 字符串，各插件结构不同；kw 含 MINFO 音质清单可估大小） */
+  downloadMusicInfo?: string | null
   downloadStatus: TaskStatus
   springName?: string | null
   audioBook?: string | null

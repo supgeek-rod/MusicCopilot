@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner'
 import { taskApi } from '@/api/task'
 import type { TaskInfo, TaskStatus } from '@/api/types'
 import QualityBadge from '@/components/QualityBadge.vue'
+import { formatSize, taskSizeBytes } from '@/lib/format'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,6 +81,11 @@ function statusView(s: TaskStatus): { label: string; class: string } {
     default:
       return { label: String(s), class: 'bg-muted text-muted-foreground' }
   }
+}
+
+// 大小为按入队音质的本地估算值（downloadMusicInfo），不产生额外请求
+function sizeText(t: TaskInfo): string {
+  return formatSize(taskSizeBytes(t.downloadBrType, t.downloadMusicInfo)) || '—'
 }
 
 // 组件卸载后丢弃迟到的响应，避免对已卸载实例的状态写入与路由切换竞态
@@ -237,6 +243,7 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
           <TableRow class="bg-muted/50 hover:bg-muted/50">
             <TableHead>歌曲</TableHead>
             <TableHead class="w-[110px]">音质</TableHead>
+            <TableHead class="hidden w-[80px] md:table-cell">大小</TableHead>
             <TableHead class="w-[90px]">状态</TableHead>
             <TableHead class="hidden md:table-cell">消息</TableHead>
             <TableHead class="hidden lg:table-cell lg:w-[80px]">插件</TableHead>
@@ -247,11 +254,11 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
         <TableBody>
           <template v-if="loading">
             <TableRow v-for="i in 5" :key="i">
-              <TableCell :colspan="7" class="h-10 animate-pulse bg-muted/40" />
+              <TableCell :colspan="8" class="h-10 animate-pulse bg-muted/40" />
             </TableRow>
           </template>
           <TableRow v-else-if="!tasks.length">
-            <TableCell colspan="7" class="h-28 text-center text-sm text-muted-foreground">
+            <TableCell colspan="8" class="h-28 text-center text-sm text-muted-foreground">
               暂无下载任务，去搜索页添加吧
             </TableCell>
           </TableRow>
@@ -267,6 +274,9 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
             <TableCell>
               <QualityBadge v-if="t.downloadBrType" :br-type="t.downloadBrType" />
               <span v-else class="text-xs text-muted-foreground">—</span>
+            </TableCell>
+            <TableCell class="hidden text-xs text-muted-foreground md:table-cell">
+              {{ sizeText(t) }}
             </TableCell>
             <TableCell>
               <span

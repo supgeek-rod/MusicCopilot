@@ -25,6 +25,42 @@ export function formatSize(bytes?: number | null): string {
   return `${n} B`
 }
 
+/**
+ * 估算下载任务文件大小（零请求）：解析任务自带 downloadMusicInfo 里的音质清单。
+ * kw 源的 MINFO 形如 "level:ff,bitrate:2000,format:flac,size:25.35Mb;..."（Mb 实为 MB），
+ * 按 brType 尾部码率匹配，格式相同时优先；其他音源结构不同，解析不出返回 null。
+ */
+export function taskSizeBytes(brType?: string | null, musicInfo?: string | null): number | null {
+  if (!brType || !musicInfo) return null
+  const { bit, codec } = parseBrType(brType)
+  if (!bit) return null
+  let info: { MINFO?: unknown; N_MINFO?: unknown }
+  try {
+    info = JSON.parse(musicInfo)
+  } catch {
+    return null
+  }
+  const minfo = [info.MINFO, info.N_MINFO].find(
+    (v) => typeof v === 'string' && v,
+  ) as string | undefined
+  if (!minfo) return null
+  const entries = minfo.split(';').map((seg) => {
+    const fields: Record<string, string> = {}
+    for (const pair of seg.split(',')) {
+      const idx = pair.indexOf(':')
+      if (idx > 0) fields[pair.slice(0, idx).trim().toLowerCase()] = pair.slice(idx + 1).trim()
+    }
+    return fields
+  })
+  const matched = entries.filter((f) => Number(f.bitrate) === bit)
+  const hit = matched.find((f) => f.format?.toLowerCase() === codec.toLowerCase()) ?? matched[0]
+  const m = hit?.size?.match(/^([\d.]+)\s*([KMG]?)B?$/i)
+  if (!m) return null
+  const unit: Record<string, number> = { '': 1, K: 1024, M: 1024 ** 2, G: 1024 ** 3 }
+  const n = Number(m[1]) * (unit[m[2].toUpperCase()] ?? 1)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 /** 解析 brType 字符串，如 KW_FLAC_2000 / QQ_Flac_2000 → { codec: 'FLAC', bit: 2000 } */
 export function parseBrType(brType: string): { codec: string; bit: number } {
   const parts = String(brType ?? '')
