@@ -6,8 +6,10 @@ import PlayerBar from '@/components/PlayerBar.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { startTaskToasts } from '@/lib/taskToaster'
 import { useAppStore } from '@/stores/app'
+import { usePlayerStore } from '@/stores/player'
 
 const app = useAppStore()
+const player = usePlayerStore()
 
 onMounted(() => {
   app.init()
@@ -38,7 +40,8 @@ watch(
     >
       {{ app.statusMsg }}：请检查后端服务与 .env / config.json 的 baseUrl 配置
     </div>
-    <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+    <!-- 播放条（64px 高）可见时预留底部空间，避免遮挡页尾内容（如分页按钮） -->
+    <main class="mx-auto w-full max-w-5xl flex-1 px-4 pt-6" :class="player.song ? 'pb-24' : 'pb-6'">
       <RouterView />
     </main>
     <PlayerBar />
