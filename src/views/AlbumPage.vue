@@ -86,16 +86,11 @@ async function load() {
   }
 }
 
-function onPlay(song: SongRecord) {
-  const index = songs.value.findIndex((s) => s.id === song.id)
-  player.playAll(songs.value, Math.max(0, index)).catch((e) =>
-    toast.error('获取试听链接失败', { description: e instanceof Error ? e.message : String(e) }),
-  )
-}
-
 function playAll() {
   if (!songs.value.length) return
-  onPlay(songs.value[0]!)
+  player.playAll(songs.value, 0).catch((e) =>
+    toast.error('获取试听链接失败', { description: e instanceof Error ? e.message : String(e) }),
+  )
 }
 
 function hideImg(e: Event) {
@@ -232,7 +227,7 @@ function queueAlbum(bit?: number) {
       <!-- 曲目列表 -->
       <section class="mt-8">
         <div class="rounded-lg border py-1">
-          <SongList :songs="songs" :loading="false" @play="onPlay" />
+          <SongList :songs="songs" :loading="false" />
           <div v-if="!songs.length" class="py-12 text-center text-sm text-muted-foreground">
             暂无曲目
           </div>

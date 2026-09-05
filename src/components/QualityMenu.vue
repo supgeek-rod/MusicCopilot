@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DownloadIcon, HardDriveDownloadIcon } from '@lucide/vue'
+import { DownloadIcon, EllipsisIcon, HardDriveDownloadIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
@@ -75,12 +75,12 @@ async function direct(brType: string) {
 <template>
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
-      <Button variant="ghost" size="icon-sm" title="下载" :disabled="busy || !qualities.length">
-        <DownloadIcon class="size-4" />
+      <Button variant="ghost" size="icon-sm" title="更多操作" :disabled="busy || !qualities.length">
+        <EllipsisIcon class="size-4" />
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-52">
-      <DropdownMenuLabel>加入服务器下载队列</DropdownMenuLabel>
+      <DropdownMenuLabel>下载到服务器</DropdownMenuLabel>
       <DropdownMenuItem @select="queue()">
         <HardDriveDownloadIcon class="size-4" />
         最高音质

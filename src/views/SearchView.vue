@@ -23,11 +23,9 @@ import {
   removeSearchHistory,
 } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
-import { usePlayerStore } from '@/stores/player'
 import { useRoute, useRouter } from 'vue-router'
 
 const app = useAppStore()
-const player = usePlayerStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -171,14 +169,6 @@ function searchFromRoute() {
 searchFromRoute()
 watch(() => route.query.q, searchFromRoute)
 
-async function onPlay(song: SongRecord) {
-  try {
-    await player.play(song)
-  } catch (e) {
-    toast.error('获取试听链接失败', { description: e instanceof Error ? e.message : String(e) })
-  }
-}
-
 function onLyrics(song: SongRecord) {
   lyricSong.value = song
   lyricOpen.value = true
@@ -295,7 +285,7 @@ function onLyrics(song: SongRecord) {
       </div>
 
       <div class="rounded-lg border py-1">
-        <SongList :songs="results" :loading="loading" @play="onPlay" @lyrics="onLyrics" />
+        <SongList :songs="results" :loading="loading" @lyrics="onLyrics" />
         <div v-if="!loading && !results.length" class="py-16 text-center text-sm text-muted-foreground">
           没有找到相关歌曲
         </div>

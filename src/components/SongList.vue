@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { FileTextIcon, Music2Icon, PlayIcon } from '@lucide/vue'
+import { DownloadIcon, FileTextIcon, ListPlusIcon, Music2Icon, PlayIcon } from '@lucide/vue'
+import { ref } from 'vue'
+import { toast } from 'vue-sonner'
+import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import QualityBadge from '@/components/QualityBadge.vue'
 import QualityMenu from '@/components/QualityMenu.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDuration, sortBrTypes } from '@/lib/format'
+import { brTypeLabel, formatDuration, resolveBrType, sortBrTypes } from '@/lib/format'
+import { useAppStore } from '@/stores/app'
 import { usePlayerStore } from '@/stores/player'
 
 const props = defineProps<{
@@ -15,11 +19,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  play: [song: SongRecord]
   lyrics: [song: SongRecord]
 }>()
 
+const app = useAppStore()
 const player = usePlayerStore()
+const downloadBusy = ref(false)
 
 function artists(song: SongRecord): string {
   return song.artistName?.join(' / ') || '未知歌手'
@@ -31,6 +36,48 @@ function artistIdOf(song: SongRecord): string | null {
 
 function topQuality(song: SongRecord): string[] {
   return sortBrTypes(song.brTypes ?? []).slice(0, 3)
+}
+
+/** 一键下载到服务器：按设置的偏好音质，无则自动降档/升档/取最高 */
+async function quickDownload(song: SongRecord) {
+  if (downloadBusy.value) return
+  downloadBusy.value = true
+  const brType = resolveBrType(app.downloadBrType, song.brTypes ?? [])
+  try {
+    await musicApi.downloadSong(song, brType || undefined)
+    toast.success('已加入服务器下载队列', {
+      description: `${song.name}（${brType ? brTypeLabel(brType, app.brTypeList) : '最高音质'}）`,
+    })
+  } catch (e) {
+    toast.error('加入下载队列失败', { description: e instanceof Error ? e.message : String(e) })
+  } finally {
+    downloadBusy.value = false
+  }
+}
+
+/** 立即播放：已在队列则切到该首，否则追加到队尾并播放（不替换队列） */
+async function playNow(song: SongRecord) {
+  try {
+    await player.playNow(song)
+  } catch (e) {
+    toast.error('播放失败', { description: e instanceof Error ? e.message : String(e) })
+  }
+}
+
+/** 双击歌曲行播放；双击行内按钮/链接时忽略，避免与单击操作冲突 */
+function onRowDblClick(e: MouseEvent, song: SongRecord) {
+  if ((e.target as HTMLElement).closest('button, a')) return
+  playNow(song)
+}
+
+/** 追加到播放队列末尾；若当前没有播放中的歌曲则直接开始播放 */
+async function enqueue(song: SongRecord) {
+  try {
+    await player.addToQueue(song)
+    toast.success('已加入播放队列', { description: song.name })
+  } catch (e) {
+    toast.error('加入播放队列失败', { description: e instanceof Error ? e.message : String(e) })
+  }
 }
 </script>
 
@@ -53,6 +100,8 @@ function topQuality(song: SongRecord): string[] {
         v-for="song in songs"
         :key="`${song.plugName}-${song.id}`"
         class="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/60"
+        title="双击播放"
+        @dblclick="onRowDblClick($event, song)"
       >
         <Avatar class="size-11 rounded-md">
           <AvatarImage v-if="song.pic" :src="song.pic" :alt="song.name" />
@@ -103,14 +152,26 @@ function topQuality(song: SongRecord): string[] {
           <Button
             variant="ghost"
             size="icon-sm"
-            title="试听"
+            title="播放"
             :disabled="player.loading"
-            @click="emit('play', song)"
+            @click="playNow(song)"
           >
             <PlayIcon class="size-4" />
           </Button>
+          <Button variant="ghost" size="icon-sm" title="加入播放队列" @click="enqueue(song)">
+            <ListPlusIcon class="size-4" />
+          </Button>
           <Button variant="ghost" size="icon-sm" title="歌词" @click="emit('lyrics', song)">
             <FileTextIcon class="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="下载到服务器"
+            :disabled="downloadBusy"
+            @click="quickDownload(song)"
+          >
+            <DownloadIcon class="size-4" />
           </Button>
           <QualityMenu :song="song" />
         </div>
