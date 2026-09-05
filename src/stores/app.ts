@@ -32,7 +32,7 @@ export const useAppStore = defineStore('app', {
 
   actions: {
     storageKey(): string {
-      return `musiccopilot:auth:${this.apiBase || 'same-origin'}`
+      return `music-copilot:auth:${this.apiBase || 'same-origin'}`
     },
 
     loadToken() {

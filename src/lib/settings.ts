@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'musiccopilot:download-quality'
+const STORAGE_KEY = 'music-copilot:download-quality'
 
 /** 常见音质档位（后端音质枚举接口不可用时兜底；解析按码率匹配，与音源命名无关） */
 export const FALLBACK_QUALITY_OPTIONS = [

@@ -1,6 +1,6 @@
 import type { SongRecord } from '@/api/types'
 
-const STORAGE_KEY = 'musiccopilot:play-queue'
+const STORAGE_KEY = 'music-copilot:play-queue'
 const MAX_ITEMS = 200
 
 export interface PersistedQueue {

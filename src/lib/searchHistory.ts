@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'musiccopilot:search-history'
+const STORAGE_KEY = 'music-copilot:search-history'
 const MAX_ITEMS = 10
 
 /** 读取本地搜索历史（最新在前），缺失或损坏时返回空数组 */
