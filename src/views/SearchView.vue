@@ -1,0 +1,244 @@
+<script setup lang="ts">
+import { Music2Icon, SearchIcon } from '@lucide/vue'
+import { onClickOutside, watchDebounced } from '@vueuse/core'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
+import { musicApi } from '@/api/music'
+import type { SongRecord } from '@/api/types'
+import LyricDialog from '@/components/LyricDialog.vue'
+import SongList from '@/components/SongList.vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useAppStore } from '@/stores/app'
+import { usePlayerStore } from '@/stores/player'
+
+const app = useAppStore()
+const player = usePlayerStore()
+
+const PAGE_SIZE = 30
+
+const plug = ref('kw')
+const keyword = ref('')
+const submitted = ref<{ kw: string; plug: string } | null>(null)
+const results = ref<SongRecord[]>([])
+const total = ref(0)
+const pageIndex = ref(1)
+const loading = ref(false)
+
+const tips = ref<string[]>([])
+const tipsOpen = ref(false)
+const searchBoxRef = ref<HTMLElement | null>(null)
+
+const lyricOpen = ref(false)
+const lyricSong = ref<SongRecord | null>(null)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+
+// 卸载后丢弃迟到响应，避免与路由切换产生更新竞态
+let disposed = false
+onBeforeUnmount(() => {
+  disposed = true
+})
+
+// 联想面板：聚焦打开，失焦/Esc/搜索完成关闭；联想项用 mousedown.prevent 保持输入框焦点
+function onInputFocus() {
+  tipsOpen.value = true
+}
+function onInputBlur() {
+  tipsOpen.value = false
+}
+
+// 音源下拉：优先用后端返回的启用插件列表
+watch(
+  () => app.plugOptions,
+  (options) => {
+    if (options.length && !options.some((o) => o.value === plug.value)) {
+      plug.value = options[0]!.value
+    }
+  },
+  { immediate: true },
+)
+
+// 搜索联想（防抖）
+watchDebounced(
+  keyword,
+  async (kw) => {
+    const q = kw.trim()
+    if (!q) {
+      tips.value = []
+      return
+    }
+    try {
+      const data = await musicApi.searchTips(plug.value, q)
+      if (disposed) return
+      tips.value = Array.isArray(data) ? data.slice(0, 8) : []
+    } catch {
+      tips.value = []
+    }
+  },
+  { debounce: 300 },
+)
+
+onClickOutside(searchBoxRef, () => (tipsOpen.value = false))
+
+function cleanLabel(label: string): string {
+  const clean = label.replace(/\s*[（(].*$/, '').trim()
+  return clean || label
+}
+
+async function doSearch(page = 1) {
+  const kw = keyword.value.trim()
+  if (!kw) return
+  loading.value = true
+  tipsOpen.value = false
+  tips.value = []
+  try {
+    const data = await musicApi.searchSong(plug.value, kw, page, PAGE_SIZE)
+    if (disposed) return
+    results.value = data.records ?? []
+    total.value = data.searchTotal ?? results.value.length
+    pageIndex.value = page
+    submitted.value = { kw, plug: plug.value }
+    if (!results.value.length) toast.info('没有找到相关歌曲')
+  } catch (e) {
+    if (disposed) return
+    results.value = []
+    total.value = 0
+    toast.error('搜索失败', { description: e instanceof Error ? e.message : String(e) })
+  } finally {
+    if (!disposed) loading.value = false
+    tipsOpen.value = false
+  }
+}
+
+function pickTip(tip: string) {
+  keyword.value = tip
+  tipsOpen.value = false
+  tips.value = []
+  doSearch(1)
+}
+
+function goPage(page: number) {
+  if (page < 1 || page > totalPages.value) return
+  doSearch(page)
+}
+
+// 切换音源后重搜
+watch(plug, () => {
+  if (submitted.value) doSearch(1)
+})
+
+async function onPlay(song: SongRecord) {
+  try {
+    await player.play(song)
+  } catch (e) {
+    toast.error('获取试听链接失败', { description: e instanceof Error ? e.message : String(e) })
+  }
+}
+
+function onLyrics(song: SongRecord) {
+  lyricSong.value = song
+  lyricOpen.value = true
+}
+</script>
+
+<template>
+  <div>
+    <!-- 搜索区 -->
+    <form class="flex gap-2" @submit.prevent="doSearch(1)">
+      <Select v-model="plug">
+        <SelectTrigger class="w-[120px] shrink-0" title="选择音源">
+          <SelectValue placeholder="音源" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="o in app.plugOptions" :key="o.value" :value="o.value" :title="o.label">
+            {{ cleanLabel(o.label) }}
+          </SelectItem>
+          <SelectItem v-if="!app.plugOptions.length" value="kw">酷我</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <div ref="searchBoxRef" class="relative flex-1">
+        <Input
+          v-model="keyword"
+          placeholder="搜索歌曲 / 歌手 / 专辑，回车搜索"
+          class="h-9 pr-9"
+          @focus="onInputFocus"
+          @blur="onInputBlur"
+          @keydown.enter.prevent="doSearch(1)"
+          @keydown.esc="tipsOpen = false"
+        />
+        <SearchIcon class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <div
+          v-if="tipsOpen && tips.length"
+          class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
+        >
+          <button
+            v-for="t in tips"
+            :key="t"
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+            @mousedown.prevent
+            @click="pickTip(t)"
+          >
+            <SearchIcon class="size-3.5 shrink-0 text-muted-foreground" />
+            <span class="truncate">{{ t }}</span>
+          </button>
+        </div>
+      </div>
+
+      <Button type="submit" :disabled="loading || !keyword.trim()">
+        <SearchIcon class="size-4" />
+        搜索
+      </Button>
+    </form>
+
+    <!-- 空态引导 -->
+    <div v-if="!submitted && !loading" class="flex flex-col items-center justify-center py-28 text-center">
+      <div class="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <Music2Icon class="size-8" />
+      </div>
+      <h1 class="mt-4 text-xl font-semibold">搜索你想听的音乐</h1>
+      <p class="mt-1 text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
+    </div>
+
+    <!-- 结果区 -->
+    <template v-else>
+      <div class="mb-2 mt-6 flex items-center justify-between text-sm text-muted-foreground">
+        <span>
+          音源「{{ submitted?.plug }}」找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
+        </span>
+        <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
+      </div>
+
+      <div class="rounded-lg border py-1">
+        <SongList :songs="results" :loading="loading" @play="onPlay" @lyrics="onLyrics" />
+        <div v-if="!loading && !results.length" class="py-16 text-center text-sm text-muted-foreground">
+          没有找到相关歌曲
+        </div>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="total > 0" class="mt-4 flex items-center justify-center gap-3">
+        <Button variant="outline" size="sm" :disabled="pageIndex <= 1 || loading" @click="goPage(pageIndex - 1)">
+          上一页
+        </Button>
+        <span class="text-sm text-muted-foreground">
+          第 {{ pageIndex }} / {{ totalPages }} 页
+        </span>
+        <Button variant="outline" size="sm" :disabled="pageIndex >= totalPages || loading" @click="goPage(pageIndex + 1)">
+          下一页
+        </Button>
+      </div>
+    </template>
+
+    <LyricDialog v-model:open="lyricOpen" :song="lyricSong" />
+  </div>
+</template>

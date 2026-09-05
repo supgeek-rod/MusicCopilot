@@ -1,0 +1,7 @@
+{
+  "baseUrl": "http://192.168.31.170:8096",
+  "devProxyTarget": "http://192.168.31.170:8096",
+  "username": "admin",
+  "password": "admin",
+  "autoLogin": true
+}
