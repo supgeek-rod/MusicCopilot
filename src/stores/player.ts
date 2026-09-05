@@ -2,21 +2,26 @@ import { defineStore } from 'pinia'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import { sortBrTypes } from '@/lib/format'
+import { loadPersistedQueue, persistQueue } from '@/lib/playQueue'
 
 export const usePlayerStore = defineStore('player', {
-  state: () => ({
-    queue: [] as SongRecord[],
-    queueIndex: -1,
-    url: '',
-    brType: '',
-    /** 自增序号：切歌时触发 PlayerBar 重新加载音频 */
-    playSeq: 0,
-    loading: false,
-    isPlaying: false,
-    currentTime: 0,
-    duration: 0,
-    volume: 1,
-  }),
+  // 启动时恢复上次退出时的队列（url 不恢复，点播放时重新取链）
+  state: () => {
+    const persisted = loadPersistedQueue()
+    return {
+      queue: persisted.queue,
+      queueIndex: persisted.index,
+      url: '',
+      brType: '',
+      /** 自增序号：切歌时触发 PlayerBar 重新加载音频 */
+      playSeq: 0,
+      loading: false,
+      isPlaying: false,
+      currentTime: 0,
+      duration: 0,
+      volume: 1,
+    }
+  },
 
   getters: {
     song(state): SongRecord | null {
@@ -39,11 +44,47 @@ export const usePlayerStore = defineStore('player', {
       return this.playAll([song], 0)
     },
 
-    /** 播放一组歌曲（如整张专辑），从 startIndex 开始 */
+    /** 播放一组歌曲（如整张专辑），从 startIndex 开始（替换整个队列） */
     async playAll(songs: SongRecord[], startIndex = 0) {
       if (!songs.length) return
       this.queue = [...songs]
+      this.persist()
       await this.jump(startIndex < 0 || startIndex >= songs.length ? 0 : startIndex)
+    },
+
+    /** 歌曲行「播放」：已在队列则直接切到该首，否则追加到队尾并立即播放（不替换队列） */
+    async playNow(song: SongRecord) {
+      const idx = this.queue.findIndex((s) => s.id === song.id && s.plugName === song.plugName)
+      if (idx >= 0) return this.jump(idx)
+      this.queue.push(song)
+      return this.jump(this.queue.length - 1)
+    },
+
+    /** 把歌曲追加到队列末尾；当前没有播放中的歌曲时直接开始播放这首 */
+    async addToQueue(song: SongRecord) {
+      if (this.queueIndex < 0) return this.playAll([song], 0)
+      this.queue.push(song)
+      this.persist()
+    },
+
+    /** 移除队列中第 index 首；若移除的是当前播放歌曲则自动接播相邻一首 */
+    async removeFromQueue(index: number) {
+      if (index < 0 || index >= this.queue.length) return
+      const removingCurrent = index === this.queueIndex
+      this.queue.splice(index, 1)
+      if (index < this.queueIndex) {
+        // 当前播放歌曲不受影响，仅修正索引
+        this.queueIndex--
+      } else if (removingCurrent) {
+        if (!this.queue.length) {
+          this.stop()
+          return
+        }
+        // 同位置接播原下一首；被移除的是最后一首时接播前一首
+        await this.jump(Math.min(index, this.queue.length - 1))
+        return
+      }
+      this.persist()
     },
 
     /** 切到队列中第 index 首并立即播放 */
@@ -51,6 +92,7 @@ export const usePlayerStore = defineStore('player', {
       const song = this.queue[index]
       if (!song) return
       this.queueIndex = index
+      this.persist()
       this.loading = true
       try {
         const brType = sortBrTypes(song.brTypes ?? [])[0] ?? ''
@@ -85,6 +127,12 @@ export const usePlayerStore = defineStore('player', {
       this.isPlaying = false
       this.currentTime = 0
       this.duration = 0
+      this.persist()
+    },
+
+    /** 队列或当前索引变更后写入 localStorage */
+    persist() {
+      persistQueue(this.queue, this.queueIndex)
     },
   },
 })

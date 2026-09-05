@@ -13,6 +13,7 @@ import { computed, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import QueuePanel from '@/components/QueuePanel.vue'
 import { Slider } from '@/components/ui/slider'
 import { formatSeconds } from '@/lib/format'
 import { usePlayerStore } from '@/stores/player'
@@ -68,8 +69,20 @@ function onError() {
 function togglePlay() {
   const audio = audioRef.value
   if (!audio) return
-  if (player.isPlaying) audio.pause()
-  else audio.play().catch(() => toast.error('播放失败'))
+  if (player.isPlaying) {
+    audio.pause()
+    return
+  }
+  // 刷新恢复的队列尚未加载音频，先重新取链再播
+  if (!player.url) {
+    player
+      .jump(player.queueIndex)
+      .catch((e) =>
+        toast.error('播放失败', { description: e instanceof Error ? e.message : String(e) }),
+      )
+    return
+  }
+  audio.play().catch(() => toast.error('播放失败'))
 }
 
 function onSeek(value: number[] | undefined) {
@@ -188,6 +201,8 @@ function close() {
             @update:model-value="onVolume"
           />
         </div>
+
+        <QueuePanel />
 
         <Button variant="ghost" size="icon-sm" title="关闭播放器" @click="close">
           <XIcon class="size-4" />
