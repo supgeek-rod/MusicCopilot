@@ -138,6 +138,29 @@ export function getGenreList(page: number, size: number): Promise<FnosPage<FnosG
   return get<FnosPage<FnosGenre>>('/genre/list', { page, size })
 }
 
+// ── 详情（列表页二级跳转用）──
+
+export function getAlbumDetail(guid: string): Promise<FnosAlbum> {
+  return get<FnosAlbum>('/album/detail', { guid })
+}
+
+export function getArtistDetail(guid: string): Promise<FnosArtist> {
+  return get<FnosArtist>('/artist/detail', { guid })
+}
+
+export function getGenreDetail(guid: string): Promise<FnosGenre> {
+  return get<FnosGenre>('/genre/detail', { guid })
+}
+
+export function getPlaylistDetail(guid: string): Promise<FnosPlaylist> {
+  return get<FnosPlaylist>('/playlist/detail', { guid })
+}
+
+/** 歌手的专辑列表 */
+export function getAlbumsByArtist(artistGuid: string, page: number, size: number): Promise<FnosPage<FnosAlbum>> {
+  return get<FnosPage<FnosAlbum>>('/album/artist-detail/list', { artistGUID: artistGuid, page, size })
+}
+
 export function getTracksByAlbum(albumGuid: string, page: number, size: number): Promise<FnosPage<FnosTrack>> {
   return get<FnosPage<FnosTrack>>('/track/album-detail/list', { albumGUID: albumGuid, page, size })
 }

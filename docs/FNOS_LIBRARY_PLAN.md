@@ -60,13 +60,15 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | `src/stores/fnos.ts`：登录态 + deviceId 持久化 | ✅ |
 | 端到端验证：经 Vite 代理登录 `code=0`、`track/list` `code=0`（51 首） | ✅ |
 
-### M2 曲库浏览页 ⬜
+### M2 曲库浏览页 ✅（2026-09-06）
 
 | 任务 | 状态 |
 | --- | --- |
-| `router` 加 `/library` + `AppHeader` 导航「音乐库」 | ⬜ |
-| `LibraryView.vue`：Tabs（歌曲/专辑/歌手/流派）+ 分页 + 封面 | ⬜ |
-| 专辑/歌手页内二级浏览（不新建路由） | ⬜ |
+| `router` 加 `/library` 与 `/library/collection/:kind/:guid` + `AppHeader` 导航「音乐库」（fnos.enabled 时显示） | ✅ |
+| `LibraryView.vue`：Tabs（歌曲/专辑/歌手/流派）+ 分页 + 封面网格 | ✅ |
+| 专辑/歌手/流派二级浏览：`FnosCollectionView.vue`（detail 头部 + 按碟/曲号排序曲目 + 播放全部） | ✅ |
+| SongList：fnos 记录歌手/专辑链接映射到音乐库路由，隐藏下载与音质菜单 | ✅ |
+| 播放器 fnos 分流（`fnosStreamUrl` 直链）提前落地，浏览器实测音频推进（duration 272s） | ✅ |
 
 ### M3 库内搜索 ⬜
 
