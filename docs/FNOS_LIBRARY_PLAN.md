@@ -77,13 +77,14 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | LibraryView 搜索框（歌曲/专辑/歌手走 `search/*`，防抖 300ms；流派无搜索接口，客户端过滤） | ✅ |
 | 实测：「周杰伦」返回 12 结果，空态与结果计数正常 | ✅ |
 
-### M4 播放与歌词集成 ⬜
+### M4 播放与歌词集成 ✅（2026-09-06）
 
 | 任务 | 状态 |
 | --- | --- |
-| `stores/player.ts` 按 `plugName` 分流取流地址（fnos 直链） | ⬜ |
-| 歌词（`lyric/list` 取 preferred）与封面分流 | ⬜ |
-| SongList / PlayerBar：fnos 记录隐藏下载按钮与音质徽章；队列持久化照旧 | ⬜ |
+| `stores/player.ts` 按 `plugName` 分流取流地址（fnos 直链） | ✅（M2 提前落地，浏览器实测推进正常） |
+| 歌词（`lyric/list` 取 preferred）与封面分流 | ✅ 封面经 adapter pic 直链；歌词 LyricDialog 内分流 |
+| SongList / PlayerBar：fnos 记录隐藏下载按钮与音质徽章；队列持久化照旧 | ✅ |
+| LibraryView / FnosCollectionView 接入歌词弹窗；实测 52 行 LRC 正确解析 | ✅ |
 
 ### M5 歌单 ⬜
 

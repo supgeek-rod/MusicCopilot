@@ -15,6 +15,7 @@ import {
 } from '@/api/fnos'
 import type { FnosAlbum, FnosArtist, FnosGenre, FnosTrack } from '@/api/fnosTypes'
 import type { SongRecord } from '@/api/types'
+import LyricDialog from '@/components/LyricDialog.vue'
 import SongList from '@/components/SongList.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -80,6 +81,15 @@ watchDebounced(
 
 function clearSearch() {
   keyword.value = ''
+}
+
+// 歌词弹窗（fnOS 曲目由 LyricDialog 内部分流取词）
+const lyricOpen = ref(false)
+const lyricSong = ref<SongRecord | null>(null)
+
+function showLyrics(song: SongRecord) {
+  lyricSong.value = song
+  lyricOpen.value = true
 }
 
 async function load(page: number) {
@@ -230,7 +240,7 @@ function hideImg(e: Event) {
         <!-- 歌曲 -->
         <template v-else-if="activeTab === 'tracks'">
           <div class="rounded-lg border py-1">
-            <SongList :songs="tracks" :loading="loading" />
+            <SongList :songs="tracks" :loading="loading" @lyrics="showLyrics" />
           </div>
           <p
             v-if="!loading && !tracks.length"
@@ -369,6 +379,8 @@ function hideImg(e: Event) {
           下一页
         </Button>
       </div>
+
+      <LyricDialog v-model:open="lyricOpen" :song="lyricSong" />
     </template>
   </div>
 </template>

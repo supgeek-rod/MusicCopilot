@@ -15,6 +15,7 @@ import {
 } from '@/api/fnos'
 import type { FnosAlbum, FnosArtist, FnosGenre, FnosPlaylist, FnosTrack } from '@/api/fnosTypes'
 import type { SongRecord } from '@/api/types'
+import LyricDialog from '@/components/LyricDialog.vue'
 import SongList from '@/components/SongList.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -128,6 +129,15 @@ function playAll() {
     )
 }
 
+// 歌词弹窗（fnOS 曲目由 LyricDialog 内部分流取词）
+const lyricOpen = ref(false)
+const lyricSong = ref<SongRecord | null>(null)
+
+function showLyrics(song: SongRecord) {
+  lyricSong.value = song
+  lyricOpen.value = true
+}
+
 function hideImg(e: Event) {
   ;(e.target as HTMLImageElement).style.visibility = 'hidden'
 }
@@ -200,7 +210,7 @@ function hideImg(e: Event) {
       <!-- 曲目列表 -->
       <section class="mt-8">
         <div class="rounded-lg border py-1">
-          <SongList :songs="tracks" :loading="loading && !tracks.length" />
+          <SongList :songs="tracks" :loading="loading && !tracks.length" @lyrics="showLyrics" />
         </div>
         <p v-if="!loading && !tracks.length && !error" class="py-12 text-center text-sm text-muted-foreground">
           暂无曲目
@@ -211,6 +221,8 @@ function hideImg(e: Event) {
           </Button>
         </div>
       </section>
+
+      <LyricDialog v-model:open="lyricOpen" :song="lyricSong" />
     </template>
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { LoaderCircleIcon } from '@lucide/vue'
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { getLyric as getFnosLyric } from '@/api/fnos'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import {
@@ -32,7 +33,11 @@ watch(
     error.value = ''
     lines.value = []
     try {
-      const text = await musicApi.getLyric(props.song.plugName, props.song.id)
+      // fnOS 本地曲目走音乐库歌词接口（/lyric/list 取 preferred），在线源走 SQ Music
+      const text =
+        props.song.plugName === 'fnos'
+          ? await getFnosLyric(props.song.id)
+          : await musicApi.getLyric(props.song.plugName, props.song.id)
       if (disposed) return
       const parsed = String(text ?? '')
         .split(/\r?\n/)
