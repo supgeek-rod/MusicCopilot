@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { SettingsIcon } from '@lucide/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -55,25 +55,25 @@ const password = ref('')
 const saving = ref(false)
 const hasOverride = computed(() => !!app.localOverride)
 
-// 每次打开面板回填当前生效配置
-watch(open, (v) => {
-  if (!v) return
-  baseUrl.value = app.config.baseUrl ?? ''
-  username.value = app.config.username ?? ''
-  password.value = app.config.password ?? ''
-})
+// 默认值提示：部署配置（config.json）中的硬编码值
+const defaultBaseUrl = computed(() => app.fileConfig?.baseUrl?.trim() ?? '')
+const defaultUsername = computed(() => app.fileConfig?.username ?? '')
+const defaultPassword = computed(() => app.fileConfig?.password ?? '')
 
-/** 保存连接配置：仅写入本设备浏览器存储并立即重连生效 */
+/** 保存连接配置：仅写入本设备浏览器存储并立即重连生效；留空的字段跟随默认值 */
 async function saveConnection() {
   const url = baseUrl.value.trim()
   if (url && !/^https?:\/\//i.test(url)) {
-    toast.error('后端地址无效', { description: '需以 http:// 或 https:// 开头，留空表示同源' })
+    toast.error('后端地址无效', { description: '需以 http:// 或 https:// 开头，留空表示跟随默认值' })
     return
   }
   saving.value = true
   try {
-    const cfg = { baseUrl: url, username: username.value.trim(), password: password.value }
-    const loggedIn = await app.applyConnection(cfg)
+    const loggedIn = await app.applyConnection({
+      baseUrl: url,
+      username: username.value.trim(),
+      password: password.value,
+    })
     if (loggedIn) {
       toast.success('连接设置已保存', { description: '已在本设备生效' })
     } else {
@@ -130,9 +130,11 @@ async function resetConnection() {
 
       <div class="space-y-3">
         <div>
-          <h3 class="text-sm font-medium">后端连接</h3>
+          <h3 class="text-sm font-medium">自定义 MC_API_BASE_URL</h3>
           <p class="mt-0.5 text-xs text-muted-foreground">
-            仅保存在本设备浏览器中，立即重连生效；清除浏览器数据后需重新配置。账号用于 token 失效后静默重登。
+            Docker / Vite 启动时，后端地址由 .env 的 MC_API_BASE_URL 提供，经 nginx / Vite
+            反向代理转发，规避 CORS 问题。若在此手动指定，该设备浏览器将直连后端，可能存在 CORS
+            限制；全部留空则跟随默认值，账号用于 token 失效后静默重登。
           </p>
         </div>
 
@@ -140,7 +142,7 @@ async function resetConnection() {
           <span class="text-muted-foreground">后端地址</span>
           <Input
             v-model="baseUrl"
-            placeholder="留空表示同源，如 http://192.168.31.170:8096"
+            :placeholder="defaultBaseUrl ? `默认值：${defaultBaseUrl}` : '默认值：（空，同源）'"
             autocomplete="url"
             spellcheck="false"
           />
@@ -149,11 +151,21 @@ async function resetConnection() {
         <div class="grid grid-cols-2 gap-3">
           <label class="block space-y-1 text-sm">
             <span class="text-muted-foreground">用户名</span>
-            <Input v-model="username" autocomplete="username" spellcheck="false" />
+            <Input
+              v-model="username"
+              :placeholder="defaultUsername ? `默认值：${defaultUsername}` : '默认值：（未配置）'"
+              autocomplete="username"
+              spellcheck="false"
+            />
           </label>
           <label class="block space-y-1 text-sm">
             <span class="text-muted-foreground">密码</span>
-            <Input v-model="password" type="password" autocomplete="new-password" />
+            <Input
+              v-model="password"
+              type="password"
+              :placeholder="defaultPassword ? `默认值：${defaultPassword}` : '默认值：（未配置）'"
+              autocomplete="new-password"
+            />
           </label>
         </div>
 

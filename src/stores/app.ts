@@ -153,8 +153,8 @@ export const useAppStore = defineStore('app', {
       this.ready = true
     },
 
-    /** 应用设置面板保存的连接配置：持久化本设备覆盖层并立即重连，返回是否登录成功 */
-    async applyConnection(cfg: ConnectionConfig): Promise<boolean> {
+    /** 应用设置面板保存的连接配置：持久化本设备覆盖层（留空字段跟随默认值）并立即重连，返回是否登录成功 */
+    async applyConnection(cfg: Partial<ConnectionConfig>): Promise<boolean> {
       saveConfigOverride(cfg)
       this.localOverride = loadConfigOverride()
       await this.connect()
