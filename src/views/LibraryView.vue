@@ -375,7 +375,7 @@ function hideImg(e: Event) {
               </button>
             </div>
 
-            <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div v-else-if="activeTab === 'genres'" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               <button
                 v-for="g in genres"
                 :key="g.guid"
