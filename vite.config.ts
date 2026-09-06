@@ -28,15 +28,25 @@ function requireMcApiBaseUrl(env: Record<string, string>): string {
 /** 应用运行时配置，与 config.json 同构。
  *  baseUrl 恒为空串（同源）：后端地址 MC_API_BASE_URL 只供服务端转发层使用
  *  （dev/preview 的 Vite 代理、Docker 的 nginx），浏览器直连后端可用设置面板按设备覆盖。
- *  proxyTarget 为信息性字段：把转发目标带给浏览器，供设置面板展示默认值。 */
+ *  proxyTarget 为信息性字段：把转发目标带给浏览器，供设置面板展示。
+ *  fnos 块为飞牛音乐库接入配置（未配置 MC_FNOS_BASE_URL 时 enabled=false）。 */
 function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
   const autoLoginRaw = mcEnv(env, 'MC_AUTO_LOGIN')
+  const fnosAutoLoginRaw = mcEnv(env, 'MC_FNOS_AUTO_LOGIN')
+  const fnosBaseUrl = mcEnv(env, 'MC_FNOS_BASE_URL') ?? ''
   return {
     baseUrl: '',
     username: mcEnv(env, 'MC_API_USERNAME') ?? '',
     password: mcEnv(env, 'MC_API_PASSWORD') ?? '',
     autoLogin: autoLoginRaw === undefined ? true : autoLoginRaw.toLowerCase() !== 'false',
     proxyTarget,
+    fnos: {
+      enabled: Boolean(fnosBaseUrl),
+      username: mcEnv(env, 'MC_FNOS_USERNAME') ?? '',
+      password: mcEnv(env, 'MC_FNOS_PASSWORD') ?? '',
+      autoLogin: fnosAutoLoginRaw === undefined ? true : fnosAutoLoginRaw.toLowerCase() !== 'false',
+      proxyTarget: fnosBaseUrl,
+    },
   }
 }
 
@@ -97,6 +107,17 @@ export default defineConfig(({ command, mode }) => {
   const apiProxy = proxyTarget
     ? { '/api': { target: proxyTarget, changeOrigin: true } }
     : undefined
+  // 飞牛音乐库反代（可选）：/fnos/* → fnOS 网关，剥掉 /fnos 前缀
+  const fnosProxyTarget = mcEnv(env, 'MC_FNOS_BASE_URL') ?? ''
+  const fnosProxy = fnosProxyTarget
+    ? {
+        '/fnos': {
+          target: fnosProxyTarget,
+          changeOrigin: true,
+          rewrite: (p: string) => p.replace(/^\/fnos/, ''),
+        },
+      }
+    : undefined
   return {
     plugins: [
       vue(),
@@ -123,7 +144,7 @@ export default defineConfig(({ command, mode }) => {
         },
         workbox: {
           navigateFallback: 'index.html',
-          navigateFallbackDenylist: [/^\/api\//, /\/config\.json$/],
+          navigateFallbackDenylist: [/^\/api\//, /^\/fnos\//, /\/config\.json$/],
           runtimeCaching: [
             {
               // 专辑/歌手封面等图片：SWR 缓存（含外链 CDN），限额防膨胀
@@ -146,11 +167,11 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       ...(allowedHosts.length ? { allowedHosts } : {}),
-      ...(apiProxy ? { proxy: apiProxy } : {}),
+      ...(apiProxy || fnosProxy ? { proxy: { ...apiProxy, ...fnosProxy } } : {}),
     },
     preview: {
       ...(allowedHosts.length ? { allowedHosts } : {}),
-      ...(apiProxy ? { proxy: apiProxy } : {}),
+      ...(apiProxy || fnosProxy ? { proxy: { ...apiProxy, ...fnosProxy } } : {}),
     },
   }
 })

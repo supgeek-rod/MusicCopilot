@@ -25,6 +25,7 @@ description: MusicCopilot 整体架构：演进总览、模块边界、关键决
 ```
 
 - **第 1-2 期**：SPA 直连 SQMusic 后端，专注把前端能力做完。
+- **当前（第 2 期进行中）**：fnOS 音乐库以**同源反代直连**方式提前接入（`/fnos` 前缀，无 Node 服务）；第 3 期 Companion 的 `server/fnos` 模块接管同一前缀，前端零改动。
 - **第 3-4 期**：引入 **Companion 伴生服务**（Node.js），补齐 SQMusic 不具备的 NAS 侧能力（fnOS 对接、文件扫描、标签写入）。
 - **第 5-6 期**：自建 **MusicCopilot Server** 按相同接口契约替换 SQMusic 后端，Docker 一键交付。Companion 与自建后端**合并为同一个 Node 服务**（按模块启停），避免维护两套进程。
 
@@ -68,8 +69,9 @@ MusicCopilot/
 | 模块 | 期数 | 职责 | 依赖 |
 | --- | --- | --- | --- |
 | `web` | 1 | SPA 全部界面与交互 | api-contract |
+| `web/api/fnos` | 2.5 | fnOS 音乐库前端接入：登录（SHA-256 + Cookie）、曲库/搜索/歌单/歌词封装、媒体直链；经同源 `/fnos` 反代直连 fnOS 网关 | — |
 | `server/auth` | 2 | 登录框模式：签发/校验 JWT，替代明文密码配置 | infra |
-| `server/fnos` | 3 | fnOS 登录代理、曲库/歌单接口转发（社区逆向接口收敛在此） | infra |
+| `server/fnos` | 3 | fnOS 登录代理、曲库/歌单接口转发（社区逆向接口收敛在此），接管 `/fnos` 前缀 | infra |
 | `server/library` | 3 | 扫描音乐目录，产出歌曲清单（路径/标签/码率） | infra |
 | `server/playlist` | 3 | 歌单与本地库对比，缺失曲目调下载模块补全 | fnos/library/download |
 | `server/healthcheck` | 4 | 缺失数据体检、在线匹配、标签写入与重命名（music-metadata、ffmpeg） | library/music |
@@ -89,6 +91,7 @@ MusicCopilot/
 | 5 | **数据闭环**：下载目录 = fnOS 音乐目录（Docker 卷映射同一路径） | 新下载自动被 fnOS 扫描入库，歌单补全/音质升级无需搬运文件 |
 | 6 | **同源部署**：生产由 nginx 反代 `/api`、`/mc`，开发用 Vite proxy | 彻底规避 CORS；`config.json` 只需留空 baseUrl |
 | 7 | **技术栈**：server 用 Fastify + better-sqlite3；构建产物单进程 | 轻量、TS 友好、NAS 资源占用低 |
+| 8 | **fnOS 同源反代直连**：`/fnos` 前缀固定为「fnOS 音乐 API 同源代理」（dev 走 Vite proxy，生产走 nginx），前端登录后以 `document.cookie` 写入 `music-token`，封面/音频流用相对路径自动携带 Cookie；第 3 期由 Companion `server/fnos` 模块接管同一前缀 | fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行；前缀语义固定后伴生服务接管零改动 |
 
 ## 5. 部署拓扑（第 6 期目标）
 
@@ -99,6 +102,7 @@ MusicCopilot/
 ┌────────────────────── nginx (web 容器) ────────────────────┐
 │  /            → SPA 静态文件                                │
 │  /api/*       → SQMusic 后端（过渡期） / MusicCopilot Server │
+│  /fnos/*      → fnOS 网关 5666（第 3 期起改指 Companion）    │
 │  /mc/*        → MusicCopilot Server（Companion 模块）        │
 └──────────────────────────────┬─────────────────────────────┘
                                ▼
@@ -119,6 +123,7 @@ MusicCopilot/
 src/api/
 ├─ http.ts        # 请求实例工厂：createClient({ baseURL, authMode })
 ├─ sqmusic.ts     # SQMusic 后端（现有 music/auth/task/download 封装）
+├─ fnos.ts        # 2.5 期：fnOS 音乐 API（/fnos 反代直连，code==0 信封 + Cookie 鉴权）
 ├─ companion.ts   # 第3期：/mc 曲库、歌单、体检接口
 └─ selfhosted.ts  # 第5期：自建后端（与 sqmusic.ts 同契约，直接替换指向）
 ```
@@ -129,6 +134,20 @@ src/api/
 {
   "baseUrl": "",              // 留空 = 同源（nginx 反代）
   "auth": { "mode": "login" } // 第2期：login 弹窗模式，token 存 localStorage
+}
+```
+
+fnOS 接入配置（`MC_FNOS_*` 变量生成，`enabled` 控制音乐库入口显隐）：
+
+```json
+{
+  "fnos": {
+    "enabled": true,
+    "username": "",
+    "password": "",
+    "autoLogin": true,
+    "proxyTarget": "http://192.168.31.31:5666"  // 信息性字段，供设置面板展示
+  }
 }
 ```
 

@@ -46,18 +46,19 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | `GET /album/list` / `artist/list` / `genre/list` | ✅ |
 | `GET /playlist/list` | ✅（当前为空，UI 需空态） |
 
-### M1 配置与接入层 🚧
+### M1 配置与接入层 ✅（2026-09-06）
 
 | 任务 | 状态 |
 | --- | --- |
-| 更新 `docs/architecture.md`（模块边界：/fnos 代理路径 + 前端 fnos 接入层） | ⬜ |
-| `.env.example` / `.env`：`MC_FNOS_BASE_URL` / `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | ⬜ |
-| `vite.config.ts`：proxy `'/fnos'`（changeOrigin）；PWA `navigateFallbackDenylist` 加 `/fnos` | ⬜ |
-| `docker/nginx-default.conf.template` + `generate-config.sh`：`location /fnos` | ⬜ |
-| `src/lib/sha256.ts`：纯 JS SHA-256（HTTP 局域网下 `crypto.subtle` 不可用） | ⬜ |
-| `src/api/fnosTypes.ts` + `src/api/fnos.ts`：登录/重登、曲库、搜索、歌单、歌词、媒体 URL | ⬜ |
-| `src/lib/adapter.ts`：`fnosTrackToRecord` 等（`plugName='fnos'`） | ⬜ |
-| `src/stores/fnos.ts`：登录态 + deviceId 持久化 | ⬜ |
+| 更新 `docs/architecture.md`（模块边界：/fnos 代理路径 + 前端 fnos 接入层） | ✅ |
+| `.env.example` / `.env`：`MC_FNOS_BASE_URL` / `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | ✅ |
+| `vite.config.ts`：proxy `'/fnos'`（changeOrigin + rewrite）；PWA `navigateFallbackDenylist` 加 `/fnos` | ✅ |
+| `docker/nginx-default.conf.template` + `generate-config.sh`：`location /fnos`（按需生成） | ✅ |
+| `src/lib/sha256.ts`：纯 JS SHA-256（HTTP 局域网下 `crypto.subtle` 不可用；已对照 Node crypto 验证 7 用例） | ✅ |
+| `src/api/fnosTypes.ts` + `src/api/fnos.ts`：登录/重登、曲库、搜索、歌单、歌词、媒体 URL | ✅ |
+| `src/lib/adapter.ts`：`fnosTrackToRecord`（`plugName='fnos'`） | ✅ |
+| `src/stores/fnos.ts`：登录态 + deviceId 持久化 | ✅ |
+| 端到端验证：经 Vite 代理登录 `code=0`、`track/list` `code=0`（51 首） | ✅ |
 
 ### M2 曲库浏览页 ⬜
 
@@ -109,3 +110,4 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 ## 7. 进度日志
 
 - 2026-09-06：M0 真机验证通过（9 项实测）；本文档建立
+- 2026-09-06：M1 接入层完成；经 Vite 代理端到端验证（登录/曲库 code=0）；分支已快进到 development 最新（docs 站重构后路径为小写文件名）
