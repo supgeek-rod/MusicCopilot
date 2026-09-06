@@ -94,8 +94,8 @@
 
 | 变量 | 说明 |
 | --- | --- |
-| `MC_API_BASE_URL` | SQ Music 后端地址：dev/preview 的 Vite 代理与 Docker 容器 nginx 共用的转发目标（容器部署必填） |
-| `MC_USERNAME` / `MC_PASSWORD` | 自动登录账号（内网明文，改进计划见 README 前置建议） |
+| `MC_API_BASE_URL` | SQ Music 后端地址：dev/preview 的 Vite 代理与 Docker 容器 nginx 共用的转发目标（`npm run dev` / `preview` 与容器部署必填） |
+| `MC_API_USERNAME` / `MC_API_PASSWORD` | 自动登录账号（内网明文，改进计划见 README 前置建议） |
 | `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
 
 应用侧始终 `fetch /config.json`：dev/preview 由 Vite 中间件虚拟生成（`baseUrl` 恒为空串即同源）；`npm run build` 时若配置了账号则生成 `dist/config.json`（也可手动修改，运行时读取）；Docker 由容器入口脚本从环境变量生成。连接配置也可在应用设置面板按设备覆盖，仅存于该设备浏览器。
