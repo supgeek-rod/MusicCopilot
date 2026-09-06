@@ -175,7 +175,7 @@ async function resetConnection() {
           <Button size="sm" :disabled="saving" @click="saveConnection">
             {{ saving ? '保存中…' : '保存并重连' }}
           </Button>
-          <Button v-if="hasOverride" variant="ghost" size="sm" @click="resetConnection">
+          <Button variant="ghost" size="sm" :disabled="saving" @click="resetConnection">
             恢复跟随文件
           </Button>
           <span v-if="hasOverride" class="text-xs text-muted-foreground">当前使用本设备覆盖配置</span>
