@@ -19,6 +19,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # configure-pages 的 enablement 需要仓库管理权限，用于首次自动启用 Pages
+  administration: write
 
 jobs:
   build:
