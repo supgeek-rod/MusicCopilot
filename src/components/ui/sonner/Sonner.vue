@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+// vue-sonner v2 起样式不再自动注入，必须显式导入，否则 toast 完全不可见
+import 'vue-sonner/style.css'
 import type { ToasterProps } from 'vue-sonner'
 
 import {
@@ -25,7 +27,7 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
       '--normal-text': 'var(--popover-foreground)',
       '--normal-border': 'var(--border)',
       '--border-radius': 'var(--radius)',
-      '--gray2': 'hsl(var(--popover) / 0.9)',
+      '--gray2': 'color-mix(in oklab, var(--popover) 90%, transparent)',
       '--gray3': 'var(--border)',
       '--gray4': 'var(--border)',
       '--gray5': 'var(--border)',
