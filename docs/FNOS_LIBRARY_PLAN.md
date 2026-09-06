@@ -86,11 +86,12 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | SongList / PlayerBar：fnos 记录隐藏下载按钮与音质徽章；队列持久化照旧 | ✅ |
 | LibraryView / FnosCollectionView 接入歌词弹窗；实测 52 行 LRC 正确解析 | ✅ |
 
-### M5 歌单 ⬜
+### M5 歌单 ✅（2026-09-06）
 
 | 任务 | 状态 |
 | --- | --- |
-| 歌单 Tab：列表 → 详情曲目 → 加入队列/整单播放 | ⬜ |
+| 歌单 Tab：列表卡片 → `/library/collection/playlist/:guid`（detail + 曲目 + 播放全部），支持库内歌单搜索 | ✅ |
+| 空态验证通过（当前 NAS 暂无歌单；详情接口失败时头部降级为基础信息） | ✅ |
 
 ### M6 收尾验收 ⬜
 

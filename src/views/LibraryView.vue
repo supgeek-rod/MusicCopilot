@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DiscIcon, LibraryIcon, Music2Icon, SearchIcon, UserRoundIcon, XIcon } from '@lucide/vue'
+import { DiscIcon, LibraryIcon, ListMusicIcon, Music2Icon, SearchIcon, UserRoundIcon, XIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
@@ -7,13 +7,15 @@ import {
   getAlbumList,
   getArtistList,
   getGenreList,
+  getPlaylists,
   getTrackList,
   searchAlbums,
   searchArtists,
+  searchPlaylists,
   searchTracks,
   fnosCoverUrl,
 } from '@/api/fnos'
-import type { FnosAlbum, FnosArtist, FnosGenre, FnosTrack } from '@/api/fnosTypes'
+import type { FnosAlbum, FnosArtist, FnosGenre, FnosPlaylist, FnosTrack } from '@/api/fnosTypes'
 import type { SongRecord } from '@/api/types'
 import LyricDialog from '@/components/LyricDialog.vue'
 import SongList from '@/components/SongList.vue'
@@ -26,7 +28,7 @@ import { useFnosStore } from '@/stores/fnos'
 
 const PAGE_SIZE = 30
 
-type TabKey = 'tracks' | 'albums' | 'artists' | 'genres'
+type TabKey = 'tracks' | 'albums' | 'artists' | 'genres' | 'playlists'
 
 const router = useRouter()
 const fnos = useFnosStore()
@@ -43,6 +45,7 @@ const tracks = ref<SongRecord[]>([])
 const albums = ref<FnosAlbum[]>([])
 const artists = ref<FnosArtist[]>([])
 const genres = ref<FnosGenre[]>([])
+const playlists = ref<FnosPlaylist[]>([])
 
 const pageIndex = ref(1)
 const total = ref(0)
@@ -120,6 +123,13 @@ async function load(page: number) {
       list = data.list ?? []
       total.value = data.total ?? 0
       if (!disposed) artists.value = list as FnosArtist[]
+    } else if (tab === 'playlists') {
+      const data = query.value
+        ? await searchPlaylists(query.value, page, PAGE_SIZE)
+        : await getPlaylists(page, PAGE_SIZE)
+      list = data.list ?? []
+      total.value = data.total ?? 0
+      if (!disposed) playlists.value = list as FnosPlaylist[]
     } else {
       const data = await getGenreList(page, PAGE_SIZE)
       let list = (data.list ?? []) as FnosGenre[]
@@ -148,9 +158,22 @@ function goPage(page: number) {
   load(page)
 }
 
-function openCollection(kind: 'album' | 'artist' | 'genre', guid: string) {
+function openCollection(kind: 'album' | 'artist' | 'genre' | 'playlist', guid: string) {
   router.push(`/library/collection/${kind}/${guid}`)
 }
+
+/** 当前 Tab 的网格数据（专辑/歌手/流派/歌单共用空态判断） */
+const gridItems = computed<unknown[]>(() =>
+  activeTab.value === 'albums'
+    ? albums.value
+    : activeTab.value === 'artists'
+      ? artists.value
+      : activeTab.value === 'genres'
+        ? genres.value
+        : activeTab.value === 'playlists'
+          ? playlists.value
+          : [],
+)
 
 function artistNames(a: FnosAlbum): string {
   return (a.artists ?? []).map((x) => x.name).join(' / ') || '未知歌手'
@@ -197,6 +220,7 @@ function hideImg(e: Event) {
             <TabsTrigger value="albums">专辑</TabsTrigger>
             <TabsTrigger value="artists">歌手</TabsTrigger>
             <TabsTrigger value="genres">流派</TabsTrigger>
+            <TabsTrigger value="playlists">歌单</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -217,7 +241,9 @@ function hideImg(e: Event) {
                   ? '搜索曲库中的专辑'
                   : activeTab === 'artists'
                     ? '搜索曲库中的歌手'
-                    : '搜索流派'
+                    : activeTab === 'genres'
+                      ? '搜索流派'
+                      : '搜索歌单'
             "
           />
           <button
@@ -351,11 +377,43 @@ function hideImg(e: Event) {
               </button>
             </div>
 
+            <!-- 歌单 -->
+            <div
+              v-if="activeTab === 'playlists'"
+              class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+            >
+              <button
+                v-for="p in playlists"
+                :key="p.guid"
+                type="button"
+                class="group rounded-lg border p-3 text-left transition-colors hover:bg-muted/60"
+                @click="openCollection('playlist', p.guid)"
+              >
+                <div class="aspect-square w-full overflow-hidden rounded-md bg-muted">
+                  <img
+                    v-if="fnosCoverUrl(p.coverId)"
+                    :src="fnosCoverUrl(p.coverId)!"
+                    :alt="p.name"
+                    class="size-full object-cover"
+                    loading="lazy"
+                    @error="hideImg"
+                  />
+                  <div v-else class="flex size-full items-center justify-center">
+                    <ListMusicIcon class="size-8 text-muted-foreground" />
+                  </div>
+                </div>
+                <div class="mt-2 truncate text-sm font-medium" :title="p.name">{{ p.name }}</div>
+                <div class="truncate text-xs text-muted-foreground">
+                  {{ p.trackCount ?? '?' }} 首歌曲
+                </div>
+              </button>
+            </div>
+
             <p
-              v-if="!(activeTab === 'albums' ? albums : activeTab === 'artists' ? artists : genres).length"
+              v-if="!gridItems.length"
               class="py-12 text-center text-sm text-muted-foreground"
             >
-              暂无内容
+              {{ query ? '未找到匹配内容' : '暂无内容' }}
             </p>
           </template>
         </template>
