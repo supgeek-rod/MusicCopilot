@@ -14,10 +14,12 @@ case "${MC_AUTO_LOGIN:-true}" in
   *) AUTO_LOGIN=true ;;
 esac
 
-# 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端
+# 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端；
+# proxyTarget 为信息性字段，把反代目标带给浏览器供设置面板展示
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
+  "proxyTarget": "${MC_API_BASE_URL}",
   "username": "${MC_USERNAME:-}",
   "password": "${MC_PASSWORD:-}",
   "autoLogin": ${AUTO_LOGIN}

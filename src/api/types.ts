@@ -106,6 +106,8 @@ export interface AppConfig {
   username?: string
   password?: string
   autoLogin?: boolean
+  /** 信息性字段：服务端转发层（Vite / nginx）使用的后端地址，仅供设置面板展示，应用行为不读取 */
+  proxyTarget?: string
 }
 
 /** 搜索歌手返回的记录 */

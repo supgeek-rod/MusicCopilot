@@ -55,8 +55,10 @@ const password = ref('')
 const saving = ref(false)
 const hasOverride = computed(() => !!app.localOverride)
 
-// 默认值提示：部署配置（config.json）中的硬编码值
-const defaultBaseUrl = computed(() => app.fileConfig?.baseUrl?.trim() ?? '')
+// 默认值提示：部署配置（config.json）中的值——proxyTarget 为服务端转发层实际使用的后端地址
+const defaultBaseUrl = computed(
+  () => app.fileConfig?.proxyTarget?.trim() || app.fileConfig?.baseUrl?.trim() || '',
+)
 const defaultUsername = computed(() => app.fileConfig?.username ?? '')
 const defaultPassword = computed(() => app.fileConfig?.password ?? '')
 
@@ -142,7 +144,7 @@ async function resetConnection() {
           <span class="text-muted-foreground">后端地址</span>
           <Input
             v-model="baseUrl"
-            :placeholder="defaultBaseUrl ? `默认值：${defaultBaseUrl}` : '默认值：（空，同源）'"
+            :placeholder="defaultBaseUrl ? `默认值：${defaultBaseUrl}` : '默认值：（同源反代）'"
             autocomplete="url"
             spellcheck="false"
           />

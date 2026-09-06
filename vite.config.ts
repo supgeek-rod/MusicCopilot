@@ -6,8 +6,6 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 
-const DEFAULT_PROXY_TARGET = 'http://192.168.31.31:8096'
-
 /**
  * 运行配置统一以 MC_ 前缀变量提供（.env 文件或真实环境变量，后者优先）。
  * 应用侧不感知来源：启动时仍 fetch /config.json（见 stores/app.ts）。
@@ -17,16 +15,28 @@ function mcEnv(env: Record<string, string>, key: string): string | undefined {
   return value === undefined ? undefined : value.trim()
 }
 
+function requireMcApiBaseUrl(env: Record<string, string>): string {
+  const value = mcEnv(env, 'MC_API_BASE_URL')
+  if (!value) {
+    throw new Error(
+      '缺少 MC_API_BASE_URL（Vite 将把 /api 反代到该地址）。请复制 .env.example 为 .env 并填写后端地址。',
+    )
+  }
+  return value
+}
+
 /** 应用运行时配置，与 config.json 同构。
  *  baseUrl 恒为空串（同源）：后端地址 MC_API_BASE_URL 只供服务端转发层使用
- *  （dev/preview 的 Vite 代理、Docker 的 nginx），浏览器直连后端可用设置面板按设备覆盖。 */
-function buildAppConfig(env: Record<string, string>) {
+ *  （dev/preview 的 Vite 代理、Docker 的 nginx），浏览器直连后端可用设置面板按设备覆盖。
+ *  proxyTarget 为信息性字段：把转发目标带给浏览器，供设置面板展示默认值。 */
+function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
   const autoLoginRaw = mcEnv(env, 'MC_AUTO_LOGIN')
   return {
     baseUrl: '',
     username: mcEnv(env, 'MC_USERNAME') ?? '',
     password: mcEnv(env, 'MC_PASSWORD') ?? '',
     autoLogin: autoLoginRaw === undefined ? true : autoLoginRaw.toLowerCase() !== 'false',
+    proxyTarget,
   }
 }
 
@@ -41,7 +51,7 @@ function buildAppConfig(env: Record<string, string>) {
  * 该机制仅服务于手动放置/编辑的部署配置；设置面板的连接配置只写浏览器存储，
  * 不会生成这个文件。
  */
-function runtimeConfigPlugin(env: Record<string, string>): Plugin {
+function runtimeConfigPlugin(env: Record<string, string>, proxyTarget: string): Plugin {
   let root = process.cwd()
   let outDir = 'dist'
   const makeServeConfig =
@@ -52,7 +62,7 @@ function runtimeConfigPlugin(env: Record<string, string>): Plugin {
       if (fs.existsSync(realFile)) return next()
       res.setHeader('Content-Type', 'application/json; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
-      res.end(JSON.stringify(buildAppConfig(env), null, 2))
+      res.end(JSON.stringify(buildAppConfig(env, proxyTarget), null, 2))
     }
   return {
     name: 'mc-runtime-config',
@@ -67,27 +77,31 @@ function runtimeConfigPlugin(env: Record<string, string>): Plugin {
       server.middlewares.use(makeServeConfig(path.resolve(outDir, 'config.json')))
     },
     closeBundle() {
-      const cfg = buildAppConfig(env)
+      const cfg = buildAppConfig(env, proxyTarget)
       if (!cfg.username) return
       fs.writeFileSync(path.join(outDir, 'config.json'), JSON.stringify(cfg, null, 2))
     },
   }
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // 后端地址：dev/preview 的 Vite 代理与 Docker nginx 共用同一个变量
+  // 后端地址只来自环境：dev/preview 必填（与 Docker 入口脚本一致）；build 可不填，
+  // 由容器启动时注入。不在源码里写死局域网 IP。
   const proxyTarget =
-    mcEnv(env, 'MC_API_BASE_URL') || DEFAULT_PROXY_TARGET
+    command === 'serve' ? requireMcApiBaseUrl(env) : (mcEnv(env, 'MC_API_BASE_URL') ?? '')
   // 反向代理 / 域名访问 dev、preview 时需放行 Host（逗号分隔，如 MC_ALLOWED_HOSTS=a.com,b.com）
   const allowedHosts = (mcEnv(env, 'MC_ALLOWED_HOSTS') ?? '')
     .split(/[,\s]+/)
     .filter((h) => h.length > 0)
+  const apiProxy = proxyTarget
+    ? { '/api': { target: proxyTarget, changeOrigin: true } }
+    : undefined
   return {
     plugins: [
       vue(),
       tailwindcss(),
-      runtimeConfigPlugin(env),
+      runtimeConfigPlugin(env, proxyTarget),
       // PWA：autoUpdate 静默更新；/api 与 config.json 永不入缓存（后者容器内运行时生成）
       VitePWA({
         registerType: 'autoUpdate',
@@ -132,15 +146,11 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       ...(allowedHosts.length ? { allowedHosts } : {}),
-      proxy: {
-        '/api': {
-          target: proxyTarget,
-          changeOrigin: true,
-        },
-      },
+      ...(apiProxy ? { proxy: apiProxy } : {}),
     },
     preview: {
       ...(allowedHosts.length ? { allowedHosts } : {}),
+      ...(apiProxy ? { proxy: apiProxy } : {}),
     },
   }
 })
