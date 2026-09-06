@@ -16,7 +16,6 @@ import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { brBit, brTypeLabel } from '@/lib/format'
 import { FALLBACK_QUALITY_OPTIONS } from '@/lib/settings'
-import { persistConnectionConfig } from '@/lib/runtimeConfig'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -64,7 +63,7 @@ watch(open, (v) => {
   password.value = app.config.password ?? ''
 })
 
-/** 保存连接配置：写入 config.json 文件（不支持写入时降级为下载），并立即重连生效 */
+/** 保存连接配置：仅写入本设备浏览器存储并立即重连生效 */
 async function saveConnection() {
   const url = baseUrl.value.trim()
   if (url && !/^https?:\/\//i.test(url)) {
@@ -74,15 +73,9 @@ async function saveConnection() {
   saving.value = true
   try {
     const cfg = { baseUrl: url, username: username.value.trim(), password: password.value }
-    const mode = await persistConnectionConfig(cfg)
     const loggedIn = await app.applyConnection(cfg)
     if (loggedIn) {
-      toast.success('连接设置已保存', {
-        description:
-          mode === 'written'
-            ? '已写入部署的 config.json，多端访问共用该配置'
-            : '已在本设备生效；浏览器已下载 config.json，替换部署目录中的同名文件即可多端共用',
-      })
+      toast.success('连接设置已保存', { description: '已在本设备生效' })
     } else {
       toast.warning('配置已保存，但重连失败', {
         description: `请检查后端地址与账号密码（${app.statusMsg}）`,
@@ -139,7 +132,7 @@ async function resetConnection() {
         <div>
           <h3 class="text-sm font-medium">后端连接</h3>
           <p class="mt-0.5 text-xs text-muted-foreground">
-            保存后写入 config.json 文件供多端共用；本设备立即生效，无需重启。账号用于 token 失效后静默重登。
+            仅保存在本设备浏览器中，立即重连生效；清除浏览器数据后需重新配置。账号用于 token 失效后静默重登。
           </p>
         </div>
 
