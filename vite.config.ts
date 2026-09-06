@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 
-const DEFAULT_PROXY_TARGET = 'http://192.168.31.170:8096'
+const DEFAULT_PROXY_TARGET = 'http://192.168.31.31:8096'
 
 /**
  * 运行配置统一以 MC_ 前缀变量提供（.env 文件或真实环境变量，后者优先）。

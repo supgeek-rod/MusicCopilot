@@ -70,7 +70,7 @@ docker compose up -d --build
 # 方式二：docker run
 docker build -t music-copilot .
 docker run -d -p 17016:80 \
-  -e MC_API_BASE_URL=http://192.168.31.170:8096 \
+  -e MC_API_BASE_URL=http://192.168.31.31:8096 \
   -e MC_USERNAME=admin -e MC_PASSWORD=admin \
   music-copilot
 ```

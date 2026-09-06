@@ -5,7 +5,7 @@
 
 ## 环境与认证
 
-- **服务地址**: `http://192.168.31.170:8096`（前端 + API 同源，API 前缀 `/api`）
+- **服务地址**: `http://192.168.31.31:8096`（前端 + API 同源，API 前缀 `/api`）
 - **服务端版本**: 3.1.20（`GET /api/config/version`）
 - **账号/密码**: admin / admin
 - **登录**: `POST /api/config/login`，body `{"username":"admin","password":"admin","device":"web"}`
@@ -125,4 +125,4 @@
 - 服务器响应为 UTF-8，Git Bash 控制台直接输出中文可能乱码（GBK 显示问题，数据本身正常），验证时看 `code` 字段
 - 用 Node(v22, 自带 fetch) 发 JSON 请求比 curl+bash 变量拼接可靠（避免 UTF-8 传参被 shell 破坏）；Node 路径 `/c/Users/superod/AppData/Local/hermes/node/node`
 - curl 的 `-F file=@路径` 不能用 `/c/tmp/...` 形式（MSYS 不转换），用 `/tmp/...`
-- 前端 JS bundle 是最可靠的接口契约来源: `curl http://192.168.31.170:8096/assets/index-*.js` 后 grep `url:ue+` / `/api/`
+- 前端 JS bundle 是最可靠的接口契约来源: `curl http://192.168.31.31:8096/assets/index-*.js` 后 grep `url:ue+` / `/api/`

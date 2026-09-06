@@ -4,7 +4,7 @@
 
 **MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA，对接 **SQ Music**（simple_sq_music_plus，自部署音乐下载与管理服务）。项目按 README「开发路线图」演进：第 3 期起新增 Node 伴生服务，第 5 期自建后端替换 SQMusic（架构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)）。
 
-- 后端服务地址: http://192.168.31.170:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
+- 后端服务地址: http://192.168.31.31:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
 - 官方接口文档: https://59799517.github.io/simple_sq_music_plus/#/README
 - 前端开发服务器: http://localhost:5173 （`npm run dev`，`/api` 走 Vite 代理，目标读 `.env` 的 `MC_DEV_PROXY_TARGET`，缺省取 `MC_API_BASE_URL`）
 
