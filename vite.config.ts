@@ -33,8 +33,8 @@ function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
   const autoLoginRaw = mcEnv(env, 'MC_AUTO_LOGIN')
   return {
     baseUrl: '',
-    username: mcEnv(env, 'MC_USERNAME') ?? '',
-    password: mcEnv(env, 'MC_PASSWORD') ?? '',
+    username: mcEnv(env, 'MC_API_USERNAME') ?? '',
+    password: mcEnv(env, 'MC_API_PASSWORD') ?? '',
     autoLogin: autoLoginRaw === undefined ? true : autoLoginRaw.toLowerCase() !== 'false',
     proxyTarget,
   }

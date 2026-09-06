@@ -20,8 +20,8 @@ cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
   "proxyTarget": "${MC_API_BASE_URL}",
-  "username": "${MC_USERNAME:-}",
-  "password": "${MC_PASSWORD:-}",
+  "username": "${MC_API_USERNAME:-}",
+  "password": "${MC_API_PASSWORD:-}",
   "autoLogin": ${AUTO_LOGIN}
 }
 EOF

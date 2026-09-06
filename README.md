@@ -38,8 +38,8 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 | 变量 | 说明 |
 | --- | --- |
-| `MC_API_BASE_URL` | SQ Music 后端地址：dev/preview 下作为 Vite 代理的转发目标，Docker 下作为容器内 nginx 的反代目标（容器部署必填） |
-| `MC_USERNAME` / `MC_PASSWORD` | 登录账号密码，启动时自动登录（token 失效也会自动重登） |
+| `MC_API_BASE_URL` | SQ Music 后端地址：dev/preview 的 Vite 代理与 Docker nginx 的反代目标（`npm run dev` / `preview` 与容器部署必填，勿把局域网 IP 写进源码） |
+| `MC_API_USERNAME` / `MC_API_PASSWORD` | 登录账号密码，启动时自动登录（token 失效也会自动重登） |
 | `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
 
@@ -70,7 +70,7 @@ docker compose up -d --build
 docker build -t music-copilot .
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://192.168.31.31:8096 \
-  -e MC_USERNAME=admin -e MC_PASSWORD=admin \
+  -e MC_API_USERNAME=admin -e MC_API_PASSWORD=admin \
   music-copilot
 ```
 
