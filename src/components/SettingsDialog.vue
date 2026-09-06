@@ -132,7 +132,7 @@ async function resetConnection() {
 
       <div class="space-y-3">
         <div>
-          <h3 class="text-sm font-medium">自定义 MC_API_BASE_URL</h3>
+          <h3 class="text-sm font-medium">自定义 MC_API</h3>
           <p class="mt-0.5 text-xs text-muted-foreground">
             Docker / Vite 启动时，后端地址由 .env 的 MC_API_BASE_URL 提供，经 nginx / Vite
             反向代理转发，规避 CORS 问题。若在此手动指定，该设备浏览器将直连后端，可能存在 CORS
@@ -141,7 +141,7 @@ async function resetConnection() {
         </div>
 
         <label class="block space-y-1 text-sm">
-          <span class="text-muted-foreground">后端地址</span>
+          <span class="text-muted-foreground">MC_API_BASE_URL</span>
           <Input
             v-model="baseUrl"
             :placeholder="defaultBaseUrl ? `默认值：${defaultBaseUrl}` : '默认值：（同源反代）'"
@@ -152,7 +152,7 @@ async function resetConnection() {
 
         <div class="grid grid-cols-2 gap-3">
           <label class="block space-y-1 text-sm">
-            <span class="text-muted-foreground">用户名</span>
+            <span class="text-muted-foreground">MC_API_USERNAME</span>
             <Input
               v-model="username"
               :placeholder="defaultUsername ? `默认值：${defaultUsername}` : '默认值：（未配置）'"
@@ -161,7 +161,7 @@ async function resetConnection() {
             />
           </label>
           <label class="block space-y-1 text-sm">
-            <span class="text-muted-foreground">密码</span>
+            <span class="text-muted-foreground">MC_API_PASSWORD</span>
             <Input
               v-model="password"
               type="password"
