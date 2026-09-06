@@ -47,8 +47,11 @@ const loading = ref(false)
 const detailLoading = ref(true)
 const error = ref('')
 
-// 卸载后丢弃迟到响应，避免与路由切换竞态
+// 卸载后丢弃迟到响应，避免与路由切换竞态；两级序号分别使旧的详情与曲目分页请求失效
+// （快速切换合集时旧 loadTracks 的在途结果作废，也不再吞掉新合集的加载请求）
 let disposed = false
+let detailSeq = 0
+let tracksSeq = 0
 onBeforeUnmount(() => {
   disposed = true
 })
@@ -56,6 +59,7 @@ onBeforeUnmount(() => {
 watch(() => [props.kind, props.guid], load, { immediate: true })
 
 async function load() {
+  const seq = ++detailSeq
   detail.value = null
   tracks.value = []
   total.value = 0
@@ -69,15 +73,18 @@ async function load() {
     else if (props.kind === 'genre') detail.value = await getGenreDetail(props.guid)
     else detail.value = await getPlaylistDetail(props.guid)
   } catch {
+    if (disposed || seq !== detailSeq) return
     detail.value = null
   } finally {
-    if (!disposed) detailLoading.value = false
+    if (!disposed && seq === detailSeq) detailLoading.value = false
   }
+  if (disposed || seq !== detailSeq) return
   await loadTracks(true)
 }
 
 async function loadTracks(reset = false) {
-  if (loading.value) return
+  const seq = ++tracksSeq
+  const dSeqAtStart = detailSeq
   loading.value = true
   try {
     const nextPage = reset ? 1 : page.value + 1
@@ -89,7 +96,8 @@ async function loadTracks(reset = false) {
         : kind === 'genre'
           ? getTracksByGenre(props.guid, nextPage, PAGE_SIZE)
           : getTracksByPlaylist(props.guid, nextPage, PAGE_SIZE))
-    if (disposed) return
+    // 合集已切换（detailSeq 变化）或有更新的分页请求时丢弃本次结果
+    if (disposed || seq !== tracksSeq || dSeqAtStart !== detailSeq) return
     let fresh: FnosTrack[] = data.list ?? []
     if (kind === 'album') {
       // 专辑内按碟号/曲号排序（曲号缺失的排最后）
@@ -104,11 +112,11 @@ async function loadTracks(reset = false) {
     total.value = data.total ?? tracks.value.length
     page.value = nextPage
   } catch (e) {
-    if (disposed) return
+    if (disposed || seq !== tracksSeq || dSeqAtStart !== detailSeq) return
     error.value = e instanceof Error ? e.message : String(e)
     toast.error('获取曲目列表失败', { description: error.value })
   } finally {
-    if (!disposed) loading.value = false
+    if (!disposed && seq === tracksSeq) loading.value = false
   }
 }
 

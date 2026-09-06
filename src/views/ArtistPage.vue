@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DownloadIcon, LoaderCircleIcon, Music2Icon, PlayIcon } from '@lucide/vue'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
@@ -58,7 +58,16 @@ const hasMore = computed(
 
 watch([plug, artistId], loadAll, { immediate: true })
 
+// 卸载后丢弃迟到响应，避免与路由切换竞态；两级序号分别使旧的歌手详情与歌曲分页请求失效
+let disposed = false
+let artistSeq = 0
+let songsSeq = 0
+onBeforeUnmount(() => {
+  disposed = true
+})
+
 async function loadAll() {
+  const seq = ++artistSeq
   info.value = null
   albums.value = []
   songs.value = []
@@ -68,22 +77,28 @@ async function loadAll() {
   infoLoading.value = true
   try {
     const data = await musicApi.artistAlbumById(plug.value, artistId.value)
+    if (disposed || seq !== artistSeq) return
     info.value = data
     albums.value = data.albums ?? []
     await loadSongs(true)
   } catch (e) {
+    if (disposed || seq !== artistSeq) return
     infoError.value = e instanceof Error ? e.message : String(e)
   } finally {
-    infoLoading.value = false
+    if (!disposed && seq === artistSeq) infoLoading.value = false
   }
 }
 
 async function loadSongs(reset = false) {
-  if (!info.value?.musicArtistsName || songsLoading.value) return
+  if (!info.value?.musicArtistsName) return
+  const seq = ++songsSeq
+  const seqAtStart = artistSeq
   songsLoading.value = true
   try {
     const page = reset ? 1 : songPage.value + 1
     const data = await musicApi.searchSong(plug.value, info.value.musicArtistsName, page, PAGE_SIZE)
+    // 歌手已切换（artistSeq 变化）或有更新的分页请求时丢弃本次结果
+    if (disposed || seq !== songsSeq || seqAtStart !== artistSeq) return
     const fresh = (data.records ?? []).filter(
       (s) => !songs.value.some((old) => old.id === s.id),
     )
@@ -92,9 +107,10 @@ async function loadSongs(reset = false) {
     songTotal.value = data.searchTotal ?? songs.value.length
     songPage.value = page
   } catch (e) {
+    if (disposed || seq !== songsSeq || seqAtStart !== artistSeq) return
     toast.error('获取歌手歌曲失败', { description: e instanceof Error ? e.message : String(e) })
   } finally {
-    songsLoading.value = false
+    if (!disposed && seq === songsSeq) songsLoading.value = false
   }
 }
 
