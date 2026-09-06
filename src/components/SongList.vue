@@ -34,6 +34,24 @@ function artistIdOf(song: SongRecord): string | null {
   return song.artistids?.[0] ?? null
 }
 
+/** fnOS 本地曲目不可下载，隐藏下载/音质入口 */
+function isFnos(song: SongRecord): boolean {
+  return song.plugName === 'fnos'
+}
+
+/** 歌手/专辑详情跳转：fnOS 走音乐库合集路由，在线源走原有路由 */
+function artistHref(song: SongRecord): string | null {
+  const id = artistIdOf(song)
+  if (!id) return null
+  return isFnos(song) ? `/library/collection/artist/${id}` : `/artist/${song.plugName}/${id}`
+}
+
+function albumHref(song: SongRecord): string | null {
+  const id = song.albumid ?? null
+  if (!id) return null
+  return isFnos(song) ? `/library/collection/album/${id}` : `/album/${song.plugName}/${id}`
+}
+
 function topQuality(song: SongRecord): string[] {
   return sortBrTypes(song.brTypes ?? []).slice(0, 3)
 }
@@ -122,8 +140,8 @@ async function enqueue(song: SongRecord) {
           </div>
           <div class="truncate text-xs text-muted-foreground" :title="`${artists(song)} · ${song.albumName || ''}`">
             <RouterLink
-              v-if="artistIdOf(song)"
-              :to="`/artist/${song.plugName}/${artistIdOf(song)}`"
+              v-if="artistHref(song)"
+              :to="artistHref(song)!"
               class="hover:text-foreground hover:underline"
             >
               {{ artists(song) }}</RouterLink>
@@ -131,8 +149,8 @@ async function enqueue(song: SongRecord) {
             <template v-if="song.albumName">
               ·
               <RouterLink
-                v-if="song.albumid"
-                :to="`/album/${song.plugName}/${song.albumid}`"
+                v-if="albumHref(song)"
+                :to="albumHref(song)!"
                 class="hover:text-foreground hover:underline"
               >{{ song.albumName }}</RouterLink>
               <span v-else>{{ song.albumName }}</span>
@@ -165,6 +183,7 @@ async function enqueue(song: SongRecord) {
             <FileTextIcon class="size-4" />
           </Button>
           <Button
+            v-if="!isFnos(song)"
             variant="ghost"
             size="icon-sm"
             title="下载到服务器"
@@ -173,7 +192,7 @@ async function enqueue(song: SongRecord) {
           >
             <DownloadIcon class="size-4" />
           </Button>
-          <QualityMenu :song="song" />
+          <QualityMenu v-if="!isFnos(song)" :song="song" />
         </div>
       </div>
     </template>

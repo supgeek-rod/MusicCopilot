@@ -16,6 +16,10 @@ server {
         proxy_read_timeout 300s;
     }
 
+    # 飞牛（fnOS）音乐库反代（可选）：location 块由 40-generate-config.sh 按需
+    # 生成到 /etc/nginx/mc-fnos/；通配 include 在无匹配文件时不报错
+    include /etc/nginx/mc-fnos/*.conf;
+
     # SPA 兜底
     location / {
         try_files $uri $uri/ /index.html;

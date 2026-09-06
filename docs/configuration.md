@@ -19,6 +19,9 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_API_USERNAME` / `MC_API_PASSWORD` | 自动登录账号（token 失效也会用它静默重登；留空则不自动登录，可在应用设置面板按设备配置连接） |
 | `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
+| `MC_FNOS_BASE_URL` | 飞牛（fnOS）网关地址（如 `http://192.168.31.31:5666`）：Vite 代理与 Docker nginx 把 `/fnos` 反代到该地址；**不配置则「音乐库」入口不显示** |
+| `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号（token 失效也会用它静默重登；密码经 SHA-256 后提交） |
+| `MC_FNOS_AUTO_LOGIN` | 是否自动登录飞牛音乐（`true` / `false`，默认 `true`） |
 | `MC_PORT` | Docker 对外端口（仅 docker-compose.yml 读取，默认 `17016`） |
 
 > 注意：`.env` 以明文保存密码，请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。「登录框 + 记住 token」模式规划在[路线图](./roadmap.md)第 2 期。
@@ -37,3 +40,4 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 - **开发**：浏览器同源访问自身 `/api`，由 Vite 代理转发到 `MC_API_BASE_URL`，不存在 CORS 问题。
 - **生产**：推荐直接用 [Docker 镜像](./deployment.md)（容器内 nginx 反代 `/api`，天然同源）；自行静态部署 `dist/` 时，需在同源服务上把 `/api` 反代到后端（自建 nginx 的 `proxy_pass` 或同级反代），并保证 `config.json` 的 `baseUrl` 保持为空。
+- **飞牛音乐库**：同理走同源 `/fnos` 反代（fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行）。dev 由 Vite 代理、Docker 由 nginx 按需生成 `location /fnos/`（配置了 `MC_FNOS_BASE_URL` 才生成）；自行静态部署需自行添加同等反代。

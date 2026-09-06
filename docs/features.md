@@ -14,11 +14,13 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 | 路由 | 页面 | 说明 |
 | --- | --- | --- |
 | `#/search` | 搜索页（默认，`/` 重定向至此） | 音源切换、联想词、歌曲列表、分页 |
+| `#/library` | 音乐库（飞牛 NAS 本地曲库） | 歌曲浏览、专辑/歌手/流派/歌单网格、库内搜索、分页 |
+| `#/library/collection/:kind/:guid` | 音乐库合集页 | kind 为 album/artist/genre/playlist；头部信息 + 曲目列表 + 播放全部 |
 | `#/artist/:plug/:id` | 歌手页 | 歌手详情、全部歌曲、全部专辑网格 |
 | `#/album/:plug/:id` | 专辑页 | 专辑详情、曲目列表、播放/下载整张 |
 | `#/downloads` | 下载任务页 | 任务队列管理与批量操作 |
 
-顶部导航：Logo「MusicCopilot」+ 连接状态指示（绿点已连接 / 红点异常 + 错误横幅）+ 页签导航 + 快捷搜索框（md 以上屏幕显示，回车跳转搜索页）+ 深色模式切换。
+顶部导航：Logo「MusicCopilot」+ 连接状态指示（绿点已连接 / 红点异常 + 错误横幅）+ 页签导航 + 快捷搜索框（md 以上屏幕显示，回车跳转搜索页）+ 深色模式切换。「音乐库」页签仅在配置了 `MC_FNOS_BASE_URL`（fnOS 接入启用）时显示。
 
 ## 启动与登录（stores/app.ts）
 
@@ -44,7 +46,7 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 ## 播放器（stores/player.ts + PlayerBar.vue）
 
 - **播放队列**：`queue[]` + `queueIndex`；`play(song)` 等价单元素队列；`playAll(songs, startIndex)` 供专辑页/歌手页整组连播。
-- **直链懒加载**：切到哪首才调 `getDownloadUrl`（最高音质 + 必传 `brTypes` 数组），避免直链过期；响应返回时若用户已切歌则丢弃。
+- **直链懒加载**：切到哪首才调 `getDownloadUrl`（最高音质 + 必传 `brTypes` 数组），避免直链过期；响应返回时若用户已切歌则丢弃。fnOS 本地曲目（`plugName='fnos'`）跳过取链，直接使用同源 `/fnos` 流地址。
 - **自动切歌**：`ended` 事件自动 `next()`，队尾停止；上一首/下一首按钮仅在队列长度 > 1 时显示。
 - **播放条**：封面、歌名/歌手、播放暂停、进度条拖拽、时间、音量（静音切换）、队列位置（如 `2/11`）、关闭。
 - 播放失败（链接失效）toast 提示；audio 元素操作放在 `flush: 'post'` 的 watcher 中（首次挂载时 DOM 才存在）。
@@ -71,6 +73,18 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 - **下载整张**：音质下拉（默认音质 + 从全部曲目 `bits` 汇总去重的码率选项，映射为整数 `bit`）→ 确认框 → `downloadAlbum`，成功 toast 显示任务数。
 - 当前队列正在播放本专辑歌曲时显示「♪ 正在播放本专辑」。
 
+## 音乐库（fnOS 本地曲库）
+
+> 接入飞牛（fnOS）NAS 内置音乐应用，规划与进度看板见仓库内 `docs/FNOS_LIBRARY_PLAN.md`。API 经同源 `/fnos` 反代直连（dev 走 Vite 代理、生产走 nginx，见[架构设计](./architecture.md)决策 #8），登录态由前端 `document.cookie` 写入 `music-token`，会话失效自动重登。
+
+- **登录**：进入音乐库页时探测 `/user/me`（无 Cookie 或失效则用 `MC_FNOS_USERNAME/PASSWORD` 静默重登，密码 SHA-256 提交）；登录失败/未启用时展示对应空态提示。
+- **曲库浏览**：歌曲（复用 SongList）/ 专辑 / 歌手 / 流派 / 歌单五个 Tab，各 30 条/页，上一页/下一页分页；网格卡片封面加载失败回退图标。
+- **库内搜索**：搜索框防抖 300ms，按当前 Tab 调用 `search/track|album|artist|playlist`（fnOS 无流派搜索接口，流派 Tab 对当前页客户端过滤）；清空关键词恢复浏览模式。
+- **合集页**：专辑/歌手/流派/歌单共用 `FnosCollectionView`——头部（封面、名称、歌手/发行日期/曲目数）+ 曲目列表 + 「播放全部」+「加载更多」（50 条/页）；专辑曲目按碟号/曲号排序。
+- **播放**：fnOS 曲目直链 `/fnos/music/api/v1/track/stream?guid=`（经同源反代自动携带 Cookie，支持 Range 拖动）；队列持久化与在线源一致。
+- **歌词**：`lyric/list` 取 `preferred` 指向的 LRC 内容，解析复用歌词弹窗。
+- **与在线源的差异**：fnOS 曲目 `plugName='fnos'`，经 `fnosTrackToRecord` 适配为统一 `SongRecord`；本地曲目不可下载，隐藏下载按钮与音质菜单；歌手/专辑链接指向音乐库合集路由（而非在线源详情页）。
+
 ## 下载
 
 - **服务器下载队列**：`downloadSong`（完整歌曲记录 + 可选 `brType`，省略时后端选最高音质）、`downloadAlbum`（专辑记录 + 整数 `bit`）、`downloadArtistAlbum`（歌手记录）。操作结果均以 toast 反馈。
@@ -88,8 +102,8 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 ## 基础设施
 
-- **Pinia stores**：`app`（配置、连接与登录状态、token、插件列表、音质枚举）、`player`（队列与播放状态）。
-- **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、动态 token 头（名取登录响应 `tokenName`）、统一解包 `{code, msg, data}`、网络错误友好提示。
+- **Pinia stores**：`app`（配置、连接与登录状态、token、插件列表、音质枚举）、`player`（队列与播放状态）、`fnos`（飞牛音乐库会话）。
+- **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、动态 token 头（名取登录响应 `tokenName`）、统一解包 `{code, msg, data}`、网络错误友好提示。fnOS 走独立的 `api/fnos.ts`（同源 `/fnos` 反代、Cookie 鉴权、`code==0` 成功码与会话失效重登自成一体）。
 - **竞态防御**：页面组件的异步请求在卸载后丢弃响应（`disposed` 守卫），避免与路由切换竞态引发渲染崩溃。
 - **深色模式**：`useDark`（`vueuse-color-scheme` 持久化），主题变量见 `src/style.css`。
 - **PWA（vite-plugin-pwa）**：`registerType: autoUpdate` 静默更新；构建产物全量预缓存 + SPA `navigateFallback`；`/api/*` 与 `config.json` 在 `navigateFallbackDenylist` 中永不缓存（后者容器内运行时生成）；封面等图片走 `StaleWhileRevalidate` 运行时缓存（限 200 条 / 14 天）。图标由 `public/favicon.svg` 经 sharp 一次性生成（192/512/maskable-512/apple-touch-180）。仅在构建产物（preview / Docker）生效，dev 模式默认无 SW。

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   HistoryIcon,
+  LibraryIcon,
   ListMusicIcon,
   MoonIcon,
   Music2Icon,
@@ -18,8 +19,10 @@ import { Input } from '@/components/ui/input'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import { clearSearchHistory, loadSearchHistory, removeSearchHistory } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
+import { useFnosStore } from '@/stores/fnos'
 
 const app = useAppStore()
+const fnos = useFnosStore()
 const route = useRoute()
 const router = useRouter()
 const isDark = useDark()
@@ -27,10 +30,19 @@ const toggleDark = useToggle(isDark)
 
 const statusTitle = computed(() => `${app.statusMsg}｜后端：${app.apiBase || '同源'}`)
 
-const navs = [
-  { path: '/search', label: '搜索', icon: SearchIcon },
-  { path: '/downloads', label: '下载任务', icon: ListMusicIcon },
-]
+const navs = computed(() => {
+  const list = [
+    { path: '/search', label: '搜索', icon: SearchIcon },
+    { path: '/downloads', label: '下载任务', icon: ListMusicIcon },
+  ]
+  // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示
+  if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
+  return list
+})
+
+function isActive(path: string): boolean {
+  return path === '/library' ? route.path.startsWith('/library') : route.path === path
+}
 
 const keyword = ref('')
 const tips = ref<string[]>([])
@@ -212,7 +224,7 @@ function clearHistory() {
         <Button
           v-for="nav in navs"
           :key="nav.path"
-          :variant="route.path === nav.path ? 'secondary' : 'ghost'"
+          :variant="isActive(nav.path) ? 'secondary' : 'ghost'"
           size="sm"
           as-child
         >

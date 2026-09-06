@@ -1,4 +1,6 @@
 import type { AlbumDetailRecord, AlbumRecord, AlbumSong, SongRecord } from '@/api/types'
+import type { FnosTrack } from '@/api/fnosTypes'
+import { fnosCoverUrl } from '@/api/fnos'
 
 /**
  * 专辑详情返回的曲目结构与搜索接口不同（musicName/musicArtists/musicImage/
@@ -32,5 +34,36 @@ export function albumDetailToSearchRecord(a: AlbumDetailRecord, plugName: string
     plugName,
     total: typeof d.musiccnt === 'string' ? Number(d.musiccnt) : null,
     dataInfo: a.dataInfo,
+  }
+}
+
+/**
+ * fnOS 曲目 → SongRecord（id 即 track guid，plugName 固定 'fnos'）。
+ * fnOS 本地曲目不走在线下载：brTypes 留空（音质徽章/下载按钮隐藏），
+ * 音频规格放 dataInfo 供展示；duration 已是毫秒无需换算。
+ */
+export function fnosTrackToRecord(t: FnosTrack): SongRecord {
+  const spec = t.audioSpec ?? null
+  return {
+    id: t.guid,
+    name: t.title,
+    artistName: (t.artists ?? []).map((a) => a.name),
+    artistids: (t.artists ?? []).map((a) => a.guid),
+    pic: fnosCoverUrl(t.coverId),
+    albumName: t.album?.name ?? null,
+    albumid: t.album?.guid ?? null,
+    plugName: 'fnos',
+    duration: t.duration ?? null,
+    brTypes: [],
+    dataInfo: spec
+      ? {
+          codec: spec.codec ?? null,
+          format: spec.format ?? null,
+          bitDepth: spec.bitDepth ?? null,
+          sampleRate: spec.sampleRate ?? null,
+          bitrate: spec.bitrate ?? null,
+          size: spec.size ?? null,
+        }
+      : undefined,
   }
 }

@@ -100,6 +100,17 @@ export interface TaskPage {
   pages: number
 }
 
+/** fnOS 音乐库接入配置（config.json 的 fnos 字段，MC_FNOS_* 变量生成） */
+export interface FnosAppConfig {
+  /** 是否启用音乐库入口（取决于是否配置了 MC_FNOS_BASE_URL） */
+  enabled?: boolean
+  username?: string
+  password?: string
+  autoLogin?: boolean
+  /** 信息性字段：/fnos 反代目标地址，仅供展示，应用行为不读取 */
+  proxyTarget?: string
+}
+
 /** 应用运行时配置（dev 由 Vite 从 .env 生成；生产为运行时 config.json 文件） */
 export interface AppConfig {
   baseUrl?: string
@@ -108,6 +119,8 @@ export interface AppConfig {
   autoLogin?: boolean
   /** 信息性字段：服务端转发层（Vite / nginx）使用的后端地址，仅供设置面板展示，应用行为不读取 */
   proxyTarget?: string
+  /** fnOS 音乐库接入配置（可选：未配置 MC_FNOS_BASE_URL 时无此块） */
+  fnos?: FnosAppConfig
 }
 
 /** 搜索歌手返回的记录 */

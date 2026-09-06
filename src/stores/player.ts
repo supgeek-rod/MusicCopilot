@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { fnosStreamUrl } from '@/api/fnos'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import { sortBrTypes } from '@/lib/format'
@@ -95,12 +96,19 @@ export const usePlayerStore = defineStore('player', {
       this.persist()
       this.loading = true
       try {
-        const brType = sortBrTypes(song.brTypes ?? [])[0] ?? ''
-        const info = await musicApi.getDownloadUrl(song.plugName, song.id, brType, song.brTypes ?? [])
-        // 若等待期间用户又切了歌，丢弃过期结果
-        if (this.queueIndex !== index) return
-        this.url = info.url
-        this.brType = info.brType
+        if (song.plugName === 'fnos') {
+          // fnOS 本地曲目：直链经同源 /fnos 反代，浏览器自动携带 music-token Cookie
+          if (this.queueIndex !== index) return
+          this.url = fnosStreamUrl(song.id)
+          this.brType = ''
+        } else {
+          const brType = sortBrTypes(song.brTypes ?? [])[0] ?? ''
+          const info = await musicApi.getDownloadUrl(song.plugName, song.id, brType, song.brTypes ?? [])
+          // 若等待期间用户又切了歌，丢弃过期结果
+          if (this.queueIndex !== index) return
+          this.url = info.url
+          this.brType = info.brType
+        }
         this.currentTime = 0
         this.duration = 0
         this.playSeq++
