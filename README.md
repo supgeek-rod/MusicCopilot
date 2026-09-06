@@ -61,8 +61,9 @@ docker compose up -d --build   # 或在本地构建
 ```
 .env / .env.example    # 运行配置（后端地址 / 账号；.env 不入库，模板见 .env.example）
 Dockerfile             # 前端镜像（多阶段构建，nginx 托管 + /api 反代）
-docker-compose.yml     # 一键编排（env_file 复用 .env）
+docker-compose.yml     # 一键编排（默认拉取 CI 预构建镜像，env_file 复用 .env）
 docker/                # nginx 反代模板 + 容器入口配置生成脚本
+.github/workflows/     # CI：Docker 镜像构建发布 + 文档站 Pages 部署
 docs/                  # 项目文档（VitePress 文档站，docs as code）
 src/api/               # 接口封装（axios + 统一响应解包 + 403 自动重登）
 src/stores/            # Pinia：应用配置登录态 / 播放队列
