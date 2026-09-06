@@ -34,14 +34,30 @@ npm run preview    # 本地预览构建产物
 
 ## Docker 部署
 
-容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS）。后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**：
+镜像由 CI 自动构建发布到 **Docker Hub / GHCR**（`amd64` + `arm64` 双架构），**推荐用 Compose 直接拉取预构建镜像**，无需克隆仓库、无需本地构建。容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS），改配置重启容器即可、无需重建镜像：
 
-```bash
-docker compose up -d           # 默认拉取 CI 发布的预构建镜像（env_file 复用开发用的 .env）
-docker compose up -d --build   # 或在本地构建
+```yaml
+# docker-compose.yml
+services:
+  web:
+    image: supgeekrod/music-copilot:latest   # 或 GHCR：ghcr.io/supgeek-rod/music-copilot:latest
+    container_name: music-copilot
+    ports:
+      - "17016:80"                # 对外端口，按需修改
+    environment:
+      MC_API_BASE_URL: http://<后端地址>:8096   # 必填：SQ Music 后端地址
+      MC_API_USERNAME: admin      # 自动登录账号
+      MC_API_PASSWORD: admin
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
 ```
 
-镜像 tag 规则与更多部署方式（docker run / 静态部署）见文档站[部署指南](docs/deployment.md)。
+```bash
+docker compose up -d
+```
+
+更多部署方式（克隆仓库用自带 compose / docker run / 本地构建）、升级与镜像 tag 规则见文档站[部署指南](docs/deployment.md)。
 
 ## 文档
 

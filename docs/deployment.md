@@ -1,27 +1,67 @@
 ---
 title: 部署指南
-description: Docker 一键部署与静态部署
+description: Docker Compose 拉取预构建镜像部署（Docker Hub / GHCR）与静态部署
 ---
 
 # 部署指南
 
 ## Docker 部署（推荐）
 
-容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS）。容器内 `baseUrl` 固定为空串，后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**：
+镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **Docker Hub 与 GHCR**（`linux/amd64` + `linux/arm64` 双架构），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
+
+### 方式一：Compose 拉取预构建镜像（推荐）
+
+新建一个空目录，放入 `docker-compose.yml`：
+
+```yaml
+services:
+  web:
+    image: supgeekrod/music-copilot:latest   # GHCR 用户改为 ghcr.io/supgeek-rod/music-copilot:latest
+    container_name: music-copilot
+    ports:
+      - "17016:80"                # 对外端口，按需修改
+    environment:
+      MC_API_BASE_URL: http://<你的 SQ Music 后端地址>:8096   # 必填：nginx 反代目标
+      MC_API_USERNAME: admin      # 自动登录账号（留空则不自动登录，可在应用设置面板按设备配置）
+      MC_API_PASSWORD: admin
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # 后端与容器同机时，后端地址可写 http://host.docker.internal:8096
+    restart: unless-stopped
+```
 
 ```bash
-# 方式一：拉取 CI 发布的预构建镜像（docker-compose.yml 默认走这里）
+docker compose up -d
+```
+
+访问 `http://localhost:17016`。后续升级到新版本：
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+### 方式二：克隆仓库，使用自带 Compose
+
+仓库自带的 `docker-compose.yml` 同样默认拉取预构建镜像（写有 `image:`，加 `--build` 时改为本地构建），并直接复用开发用的 `.env`（`MC_PORT` 可覆盖对外端口）：
+
+```bash
+git clone https://github.com/supgeek-rod/MusicCopilot.git
+cd MusicCopilot
+cp .env.example .env    # 填写后端地址与账号（.env 不入库）
+docker compose up -d
+```
+
+### 方式三：docker run
+
+```bash
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的 SQ Music 后端地址>:8096 \
   -e MC_API_USERNAME=admin -e MC_API_PASSWORD=admin \
   supgeekrod/music-copilot:latest
-# GHCR 镜像：ghcr.io/supgeek-rod/music-copilot:latest
+```
 
-# 方式二：docker compose（env_file 直接复用开发用的 .env）
-docker compose up -d          # 拉取预构建镜像
-docker compose up -d --build  # 或在本地构建
+### 本地构建镜像
 
-# 方式三：本地构建镜像
+```bash
 docker build -t music-copilot .
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的 SQ Music 后端地址>:8096 \
@@ -29,16 +69,16 @@ docker run -d -p 17016:80 \
   music-copilot
 ```
 
-构建并启动后访问 `http://localhost:17016`。
+### 部署注意事项
 
-- `MC_API_BASE_URL` 必填（nginx 反代目标）。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用 `http://host.docker.internal:8096`（compose 已配好 host-gateway 映射）或宿主机局域网 IP。
+- `MC_API_BASE_URL` 必填（nginx 反代目标）。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用 `http://host.docker.internal:8096`（自带 compose 已配好 host-gateway 映射）或宿主机局域网 IP。
 - 密码避免包含 `"` 或 `\`。
-- 对外端口默认 `17016`，compose 部署时可在 `.env` 里用 `MC_PORT` 覆盖。
+- 对外端口默认 `17016`；克隆仓库部署时可在 `.env` 里用 `MC_PORT` 覆盖。
 - 容器启动失败先看 `docker logs music-copilot`，多为缺少 `MC_API_BASE_URL`。
 
 ### 镜像 tag 说明
 
-镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建发布（`linux/amd64` + `linux/arm64`，同步发布到 Docker Hub 与 GHCR）：
+构建触发规则：push `development` / `v0.1.x` 分支发布对应分支名 tag（`v0.1.x` 分支额外发布 `latest`）；push `v*` 版本 tag 发布语义化版本：
 
 | tag | 对应构建 |
 | --- | --- |
@@ -61,5 +101,6 @@ docker run -d -p 17016:80 \
 | 文件 | 说明 |
 | --- | --- |
 | `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
-| `docker-compose.yml` | 一键编排（env_file 复用 `.env`） |
+| `docker-compose.yml` | 一键编排（默认拉取预构建镜像，env_file 复用 `.env`） |
 | `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
+| `.github/workflows/docker-publish.yml` | 镜像自动构建与发布（GHCR + Docker Hub） |
