@@ -11,3 +11,6 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# 设置面板「保存并重连」写出的真实配置文件（含密码，dev 下优先于 .env 虚拟配置）
+public/config.json

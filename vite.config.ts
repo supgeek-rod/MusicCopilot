@@ -37,6 +37,52 @@ function buildAppConfig(env: Record<string, string>) {
  * 也会重写到 index.html，后置中间件永远轮不到。真实文件（public/ 或 dist/ 下的
  * config.json）通过 existsSync 检查放行给静态服务，保持「真实文件优先」。
  */
+/**
+ * POST /config.json：设置面板「保存并重连」把连接配置落盘为真实文件
+ * （dev 写 public/config.json，preview 写 dist/config.json），写完后
+ * 「真实文件优先」逻辑自动改为服务该文件 —— 所有访问本服务的设备共用一份配置。
+ * 仅接受三个字符串字段；静态生产部署没有该端点，前端会降级为下载文件。
+ */
+const makeWriteConfig =
+  (realFile: string): Connect.NextHandleFunction =>
+  (req, res, next) => {
+    const url = (req.url ?? '').split('?')[0]
+    if (url !== '/config.json' || req.method !== 'POST') return next()
+    const chunks: Buffer[] = []
+    let size = 0
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > 8192) {
+        res.statusCode = 413
+        res.end()
+        req.destroy()
+        return
+      }
+      chunks.push(chunk)
+    })
+    req.on('error', () => {
+      res.statusCode = 400
+      res.end()
+    })
+    req.on('end', () => {
+      try {
+        const raw = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as Record<string, unknown>
+        const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+        const cfg = {
+          baseUrl: str(raw.baseUrl),
+          username: str(raw.username),
+          password: typeof raw.password === 'string' ? raw.password : '',
+        }
+        fs.writeFileSync(realFile, `${JSON.stringify(cfg, null, 2)}\n`)
+        res.statusCode = 204
+        res.end()
+      } catch {
+        res.statusCode = 400
+        res.end()
+      }
+    })
+  }
+
 function runtimeConfigPlugin(env: Record<string, string>): Plugin {
   let root = process.cwd()
   let outDir = 'dist'
@@ -57,9 +103,11 @@ function runtimeConfigPlugin(env: Record<string, string>): Plugin {
       outDir = path.resolve(resolved.root, resolved.build.outDir)
     },
     configureServer(server) {
+      server.middlewares.use(makeWriteConfig(path.resolve(root, 'public', 'config.json')))
       server.middlewares.use(makeServeConfig(path.resolve(root, 'public', 'config.json')))
     },
     configurePreviewServer(server) {
+      server.middlewares.use(makeWriteConfig(path.resolve(outDir, 'config.json')))
       server.middlewares.use(makeServeConfig(path.resolve(outDir, 'config.json')))
     },
     closeBundle() {
