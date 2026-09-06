@@ -6,7 +6,7 @@
 
 - 后端服务地址: http://192.168.31.31:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
 - 官方接口文档: https://59799517.github.io/simple_sq_music_plus/#/README
-- 前端开发服务器: http://localhost:5173 （`npm run dev`，`/api` 走 Vite 代理，目标读 `.env` 的 `MC_DEV_PROXY_TARGET`，缺省取 `MC_API_BASE_URL`）
+- 前端开发服务器: http://localhost:5173 （`npm run dev`，`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
 
 ## 必读记忆
 

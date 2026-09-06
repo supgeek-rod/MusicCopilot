@@ -38,8 +38,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 | 变量 | 说明 |
 | --- | --- |
-| `MC_API_BASE_URL` | 后端地址；**留空 `""` 表示同源**（见下方跨域说明） |
-| `MC_DEV_PROXY_TARGET` | 仅开发环境生效：`npm run dev` 的 vite 代理转发目标，默认取 `MC_API_BASE_URL` |
+| `MC_API_BASE_URL` | SQ Music 后端地址：dev/preview 下作为 Vite 代理的转发目标，Docker 下作为容器内 nginx 的反代目标（容器部署必填） |
 | `MC_USERNAME` / `MC_PASSWORD` | 登录账号密码，启动时自动登录（token 失效也会自动重登） |
 | `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
@@ -56,8 +55,8 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 ### 跨域（CORS）说明
 
-- **开发**：默认请求直接发往 `MC_API_BASE_URL`。若后端未开启 CORS，把它改为空串，请求将走同源路径 `/api` 由 vite 代理转发（目标取 `MC_DEV_PROXY_TARGET`，缺省同 `MC_API_BASE_URL`，可在 `.env` 单独指定）。
-- **生产**：推荐直接用下方 Docker 镜像（nginx 反代 `/api`，天然同源）；静态部署时若后端未开启 CORS，需将 `dist/` 部署在与后端同源的服务上（例如由 Simple SQ Music Plus 的 Web 容器或同级 nginx 反代托管），并保证 `config.json` 的 `baseUrl` 为空。
+- **开发**：浏览器同源访问自身 `/api`，由 Vite 代理转发到 `MC_API_BASE_URL`，不存在 CORS 问题。
+- **生产**：推荐直接用下方 Docker 镜像（容器内 nginx 反代 `/api`，天然同源）；自行静态部署 `dist/` 时，需在同源服务上把 `/api` 反代到后端（自建 nginx 的 `proxy_pass` 或同级反代），并保证 `config.json` 的 `baseUrl` 保持为空。个别需要浏览器直连后端的设备，可在应用设置面板按设备覆盖后端地址（仅存于该设备浏览器）。
 
 ## Docker 部署
 

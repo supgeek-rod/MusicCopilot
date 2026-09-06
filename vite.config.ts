@@ -17,11 +17,13 @@ function mcEnv(env: Record<string, string>, key: string): string | undefined {
   return value === undefined ? undefined : value.trim()
 }
 
-/** 应用运行时配置，与 config.json 同构 */
+/** 应用运行时配置，与 config.json 同构。
+ *  baseUrl 恒为空串（同源）：后端地址 MC_API_BASE_URL 只供服务端转发层使用
+ *  （dev/preview 的 Vite 代理、Docker 的 nginx），浏览器直连后端可用设置面板按设备覆盖。 */
 function buildAppConfig(env: Record<string, string>) {
   const autoLoginRaw = mcEnv(env, 'MC_AUTO_LOGIN')
   return {
-    baseUrl: mcEnv(env, 'MC_API_BASE_URL') ?? '',
+    baseUrl: '',
     username: mcEnv(env, 'MC_USERNAME') ?? '',
     password: mcEnv(env, 'MC_PASSWORD') ?? '',
     autoLogin: autoLoginRaw === undefined ? true : autoLoginRaw.toLowerCase() !== 'false',
@@ -66,7 +68,7 @@ function runtimeConfigPlugin(env: Record<string, string>): Plugin {
     },
     closeBundle() {
       const cfg = buildAppConfig(env)
-      if (!cfg.baseUrl && !cfg.username) return
+      if (!cfg.username) return
       fs.writeFileSync(path.join(outDir, 'config.json'), JSON.stringify(cfg, null, 2))
     },
   }
@@ -74,8 +76,9 @@ function runtimeConfigPlugin(env: Record<string, string>): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  // 后端地址：dev/preview 的 Vite 代理与 Docker nginx 共用同一个变量
   const proxyTarget =
-    mcEnv(env, 'MC_DEV_PROXY_TARGET') || mcEnv(env, 'MC_API_BASE_URL') || DEFAULT_PROXY_TARGET
+    mcEnv(env, 'MC_API_BASE_URL') || DEFAULT_PROXY_TARGET
   // 反向代理 / 域名访问 dev、preview 时需放行 Host（逗号分隔，如 MC_ALLOWED_HOSTS=a.com,b.com）
   const allowedHosts = (mcEnv(env, 'MC_ALLOWED_HOSTS') ?? '')
     .split(/[,\s]+/)
