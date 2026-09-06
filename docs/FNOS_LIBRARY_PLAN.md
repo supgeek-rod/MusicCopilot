@@ -70,11 +70,12 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | SongList：fnos 记录歌手/专辑链接映射到音乐库路由，隐藏下载与音质菜单 | ✅ |
 | 播放器 fnos 分流（`fnosStreamUrl` 直链）提前落地，浏览器实测音频推进（duration 272s） | ✅ |
 
-### M3 库内搜索 ⬜
+### M3 库内搜索 ✅（2026-09-06）
 
 | 任务 | 状态 |
 | --- | --- |
-| LibraryView 搜索框（`search/track|album|artist|playlist`，防抖 300ms） | ⬜ |
+| LibraryView 搜索框（歌曲/专辑/歌手走 `search/*`，防抖 300ms；流派无搜索接口，客户端过滤） | ✅ |
+| 实测：「周杰伦」返回 12 结果，空态与结果计数正常 | ✅ |
 
 ### M4 播放与歌词集成 ⬜
 

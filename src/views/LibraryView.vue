@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import { DiscIcon, LibraryIcon, Music2Icon, UserRoundIcon } from '@lucide/vue'
+import { DiscIcon, LibraryIcon, Music2Icon, SearchIcon, UserRoundIcon, XIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { watchDebounced } from '@vueuse/core'
 import {
   getAlbumList,
   getArtistList,
   getGenreList,
   getTrackList,
+  searchAlbums,
+  searchArtists,
+  searchTracks,
   fnosCoverUrl,
 } from '@/api/fnos'
 import type { FnosAlbum, FnosArtist, FnosGenre, FnosTrack } from '@/api/fnosTypes'
 import type { SongRecord } from '@/api/types'
 import SongList from '@/components/SongList.vue'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { fnosTrackToRecord } from '@/lib/adapter'
@@ -28,6 +33,10 @@ const fnos = useFnosStore()
 const activeTab = ref<TabKey>('tracks')
 const loginReady = ref(false)
 const loginFailed = ref(false)
+
+const keyword = ref('')
+/** 非空即库内搜索模式：各 Tab 调用对应 search/* 接口 */
+const query = ref('')
 
 const tracks = ref<SongRecord[]>([])
 const albums = ref<FnosAlbum[]>([])
@@ -57,6 +66,22 @@ watch(activeTab, () => {
   if (loginReady.value) load(1)
 })
 
+// 库内搜索：防抖 300ms（与搜索页联想一致）；清空关键词恢复浏览模式
+watchDebounced(
+  keyword,
+  (kw) => {
+    const q = kw.trim()
+    if (q === query.value) return
+    query.value = q
+    if (loginReady.value) load(1)
+  },
+  { debounce: 300 },
+)
+
+function clearSearch() {
+  keyword.value = ''
+}
+
 async function load(page: number) {
   if (page < 1 || page > totalPages.value) return
   loading.value = true
@@ -65,25 +90,38 @@ async function load(page: number) {
   try {
     let list: unknown[] = []
     if (tab === 'tracks') {
-      const data = await getTrackList(page, PAGE_SIZE)
+      const data = query.value
+        ? await searchTracks(query.value, page, PAGE_SIZE)
+        : await getTrackList(page, PAGE_SIZE)
       list = data.list ?? []
       total.value = data.total ?? 0
       if (!disposed) tracks.value = list.map((t) => fnosTrackToRecord(t as FnosTrack))
     } else if (tab === 'albums') {
-      const data = await getAlbumList(page, PAGE_SIZE)
+      const data = query.value
+        ? await searchAlbums(query.value, page, PAGE_SIZE)
+        : await getAlbumList(page, PAGE_SIZE)
       list = data.list ?? []
       total.value = data.total ?? 0
       if (!disposed) albums.value = list as FnosAlbum[]
     } else if (tab === 'artists') {
-      const data = await getArtistList(page, PAGE_SIZE)
+      const data = query.value
+        ? await searchArtists(query.value, page, PAGE_SIZE)
+        : await getArtistList(page, PAGE_SIZE)
       list = data.list ?? []
       total.value = data.total ?? 0
       if (!disposed) artists.value = list as FnosArtist[]
     } else {
       const data = await getGenreList(page, PAGE_SIZE)
-      list = data.list ?? []
-      total.value = data.total ?? 0
-      if (!disposed) genres.value = list as FnosGenre[]
+      let list = (data.list ?? []) as FnosGenre[]
+      // fnOS 无 /search/genre 接口：流派数量少，搜索时对当前页做客户端过滤
+      if (query.value) {
+        const q = query.value.toLowerCase()
+        list = list.filter((g) => g.name.toLowerCase().includes(q))
+        total.value = list.length
+      } else {
+        total.value = data.total ?? 0
+      }
+      if (!disposed) genres.value = list
     }
     if (disposed) return
     pageIndex.value = page
@@ -136,7 +174,11 @@ function hideImg(e: Event) {
         <div>
           <h1 class="text-xl font-semibold">音乐库</h1>
           <p class="mt-0.5 text-xs text-muted-foreground">
-            飞牛 NAS 本地曲库{{ total ? ` · 共 ${total} 项` : '' }}
+            {{
+              query
+                ? `搜索「${query}」 · ${total} 个结果`
+                : `飞牛 NAS 本地曲库${total ? ` · 共 ${total} 项` : ''}`
+            }}
           </p>
         </div>
         <Tabs v-model="activeTab">
@@ -150,6 +192,35 @@ function hideImg(e: Event) {
       </div>
 
       <div class="mt-4">
+        <!-- 库内搜索（当前 Tab 范围内） -->
+        <div class="relative">
+          <SearchIcon
+            class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            v-model="keyword"
+            class="pr-8"
+            :placeholder="
+              activeTab === 'tracks'
+                ? '搜索曲库中的歌曲'
+                : activeTab === 'albums'
+                  ? '搜索曲库中的专辑'
+                  : activeTab === 'artists'
+                    ? '搜索曲库中的歌手'
+                    : '搜索流派'
+            "
+          />
+          <button
+            v-if="keyword"
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="清空搜索"
+            @click="clearSearch"
+          >
+            <XIcon class="size-4" />
+          </button>
+        </div>
+
         <!-- 错误 -->
         <div v-if="error" class="py-12 text-center">
           <p class="text-sm text-destructive">{{ error }}</p>
@@ -165,7 +236,7 @@ function hideImg(e: Event) {
             v-if="!loading && !tracks.length"
             class="py-12 text-center text-sm text-muted-foreground"
           >
-            曲库为空
+            {{ query ? '未找到匹配的歌曲' : '曲库为空' }}
           </p>
         </template>
 
