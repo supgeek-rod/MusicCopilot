@@ -2,11 +2,12 @@
 
 ## 项目说明
 
-**MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA，对接 **SQ Music**（simple_sq_music_plus，自部署音乐下载与管理服务）。项目按 README「开发路线图」演进：第 3 期起新增 Node 伴生服务，第 5 期自建后端替换 SQMusic（架构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)）。
+**MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA，对接 **SQ Music**（simple_sq_music_plus，自部署音乐下载与管理服务）。项目按 [docs/roadmap.md](docs/roadmap.md)「开发路线图」演进：第 3 期起新增 Node 伴生服务，第 5 期自建后端替换 SQMusic（架构见 [docs/architecture.md](docs/architecture.md)）。
 
 - 后端服务地址: http://192.168.31.31:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
 - 官方接口文档: https://59799517.github.io/simple_sq_music_plus/#/README
 - 前端开发服务器: http://localhost:5173 （`npm run dev`，`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
+- 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
 
 ## 必读记忆
 
@@ -26,6 +27,7 @@
 - `npm run dev` —— Vite 开发服务器（端口 5173）
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
+- `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
 
 ## 代码约定
 
@@ -37,10 +39,10 @@
 - 路由组件使用**静态 import**（`src/router/index.ts`），曾排查过懒加载相关渲染异常，保持现状
 - 组件内异步请求必须在卸载后丢弃响应（`disposed` 守卫写法，参考 `DownloadsView.vue` / `SearchView.vue`），否则会与路由切换竞态导致 `parentNode null` 渲染崩溃
 - 提交信息遵循 conventional commits（feat / fix / docs / refactor…）
-- 文档放 `docs/`；`AGENTS.md` 放仓库根目录（子级 AGENTS.md 等 monorepo 迁移后再拆）
+- 文档放 `docs/`（VitePress 文档站，`docs/` 即站点根，配置在 `docs/.vitepress/config.mts`）；`docs/api-test-report.md` 含内网部署细节，已通过 `srcExclude` 排除出站点构建，站内文档只以文字提及、不要链接它；`AGENTS.md` 放仓库根目录（子级 AGENTS.md 等 monorepo 迁移后再拆）
 
 ## 路线图约束
 
-- 第 2 期：`config.json` 去掉明文密码，改「登录框 + 记住 token」模式（鉴权细节见 README 前置建议）
+- 第 2 期：`config.json` 去掉明文密码，改「登录框 + 记住 token」模式（鉴权细节见 docs/roadmap.md 前置建议）
 - 第 3 期迁移 monorepo 后：本文件拆为根级（通用）+ `apps/web` / `apps/server` 子级（各自特有约定）
-- 新增后端能力时，先更新 `docs/ARCHITECTURE.md` 的模块边界，再动代码；接口契约类型第 3 期起收敛到 `packages/api-contract`
+- 新增后端能力时，先更新 `docs/architecture.md` 的模块边界，再动代码；接口契约类型第 3 期起收敛到 `packages/api-contract`
