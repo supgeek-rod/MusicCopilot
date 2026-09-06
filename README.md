@@ -2,7 +2,7 @@
 
 基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载 Web 客户端，对接 [Simple SQ Music Plus](https://github.com/59799517/simple_sq_music_plus) 的 HTTP 接口。
 
-📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `development` 分支自动发布）
+📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `v0.1.x` 分支自动发布）
 
 ## 功能
 
@@ -81,4 +81,4 @@ npm run docs:build    # 构建文档站（含死链检查）
 npm run docs:preview  # 本地预览文档站构建产物
 ```
 
-推送 `development` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。
+推送 `v0.1.x` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。

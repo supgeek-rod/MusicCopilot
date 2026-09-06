@@ -43,7 +43,7 @@ npm run docs:build    # 构建到 docs/.vitepress/dist（含死链检查）
 npm run docs:preview  # 本地预览文档站构建产物
 ```
 
-推送 `development` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages：<https://supgeek-rod.github.io/MusicCopilot/>
+推送 `v0.1.x` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages：<https://supgeek-rod.github.io/MusicCopilot/>
 
 ## 下一步
 
