@@ -2,6 +2,8 @@
 
 基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载 Web 客户端，对接 [Simple SQ Music Plus](https://github.com/59799517/simple_sq_music_plus) 的 HTTP 接口。
 
+[![Build & Publish Docker Image](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml)
+
 📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `v0.1.x` 分支自动发布）
 
 ## 功能
@@ -35,10 +37,11 @@ npm run preview    # 本地预览构建产物
 容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS）。后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**：
 
 ```bash
-docker compose up -d --build   # env_file 直接复用开发用的 .env
+docker compose up -d           # 默认拉取 CI 发布的预构建镜像（env_file 复用开发用的 .env）
+docker compose up -d --build   # 或在本地构建
 ```
 
-更多部署方式（docker run / 静态部署）与参数见文档站[部署指南](docs/deployment.md)。
+镜像 tag 规则与更多部署方式（docker run / 静态部署）见文档站[部署指南](docs/deployment.md)。
 
 ## 文档
 
