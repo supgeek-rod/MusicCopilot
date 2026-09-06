@@ -1,7 +1,13 @@
+---
+title: 功能说明
+description: MusicCopilot 前端已实现的全部功能与实现要点
+---
+
 # MusicCopilot 功能说明
 
-> 本文档描述前端已实现的全部功能与实现要点。后端接口的实测差异与完整清单见
-> [api-test-report.md](api-test-report.md)，整体架构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+> 本文档描述前端已实现的全部功能与实现要点。后端接口的实测差异与完整清单见仓库内
+> `docs/api-test-report.md`（含内网部署细节，仅保留在代码仓库、不发布到文档站），
+> 整体架构见[架构设计](./architecture.md)。
 
 ## 页面与路由（hash 模式）
 
@@ -90,19 +96,12 @@
 
 ## 运行配置（MC_* 环境变量）
 
-配置统一以 `MC_` 前缀变量提供（真实环境变量 > `.env` 文件，模板见 `.env.example`）：
+配置统一以 `MC_` 前缀变量提供（真实环境变量 > `.env` 文件），完整变量表见[配置说明](./configuration.md)。
 
-| 变量 | 说明 |
-| --- | --- |
-| `MC_API_BASE_URL` | 后端地址；留空 `""` 表示同源（开发走 Vite 代理 / 生产 nginx 反代） |
-| `MC_DEV_PROXY_TARGET` | 仅开发环境生效：Vite 代理的转发目标，默认取 `MC_API_BASE_URL` |
-| `MC_USERNAME` / `MC_PASSWORD` | 自动登录账号（内网明文，改进计划见 README 前置建议） |
-| `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
-
-应用侧始终 `fetch /config.json`：dev/preview 由 Vite 中间件虚拟生成；`npm run build` 时若配置了任一变量则生成 `dist/config.json`（也可手动修改，运行时读取）；Docker 由容器入口脚本从环境变量生成。
+应用侧始终 `fetch /config.json`：dev/preview 由 Vite 中间件虚拟生成（`baseUrl` 恒为空串即同源）；`npm run build` 时若配置了账号则生成 `dist/config.json`（也可手动修改，运行时读取）；Docker 由容器入口脚本从环境变量生成。连接配置也可在应用设置面板按设备覆盖，仅存于该设备浏览器。
 
 ## 已知注意事项
 
-- 后端接口的文档差异、危险接口（`delSuccessTask` 会清空全部成功记录）、插件开关状态等**务必先读 [api-test-report.md](api-test-report.md)**。
+- 后端接口的文档差异、危险接口（`delSuccessTask` 会清空全部成功记录）、插件开关状态等**务必先读仓库内 `docs/api-test-report.md`**（该页含内网部署细节，仅保留在代码仓库）。
 - 搜索联想面板遮挡结果首行属于正常交互（失焦即关闭）；自动化测试点击列表操作前需先让输入框失焦。
 - 直链有时效，试听/下载均实时获取，不做缓存。

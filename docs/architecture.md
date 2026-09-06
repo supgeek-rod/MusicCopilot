@@ -1,6 +1,11 @@
+---
+title: 架构设计
+description: MusicCopilot 整体架构：演进总览、模块边界、关键决策与部署拓扑
+---
+
 # MusicCopilot 架构设计
 
-> 本文档按 [README 开发路线图](../README.md#开发路线图) 梳理项目的整体架构：现状 → 目标形态 → 模块边界 → 关键决策 → 各期落地路径。
+> 本文档按[开发路线图](./roadmap.md)梳理项目的整体架构：现状 → 目标形态 → 模块边界 → 关键决策 → 各期落地路径。
 
 ## 1. 架构演进总览
 
@@ -55,7 +60,7 @@ MusicCopilot/
 │  ├─ web.Dockerfile            # 基础版已提前落地（根级 Dockerfile，nginx 托管 + /api 反代）；第6期扩展 /mc 反代与多服务编排
 │  ├─ server.Dockerfile         # 第6期：Node 服务
 │  └─ docker-compose.yml
-└─ docs/ARCHITECTURE.md
+└─ docs/                       # 文档（VitePress 文档站 + 接口实测报告）
 ```
 
 ## 3. 服务与模块边界

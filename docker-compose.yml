@@ -2,18 +2,20 @@ name: music-copilot
 services:
   web:
     build: .
-    image: supgeekrod/music-copilot
+    # 优先拉取预构建镜像（CI 发布，见 .github/workflows/docker-publish.yml）；
+    # 加 --build 时在本地构建。也可换用 GHCR：ghcr.io/supgeek-rod/music-copilot:latest
+    image: supgeekrod/music-copilot:latest
     container_name: music-copilot
     ports:
       # 对外端口默认 17016，可在 .env 里用 MC_PORT 覆盖
       - "${MC_PORT:-17016}:80"
-    # .env 的 MC_API_BASE_URL 为空（同源开发模式）时，容器反代目标回退到 MC_DEV_PROXY_TARGET
+    # 后端地址（容器内 nginx 的反代目标）；与开发期共用同一份 .env，真实环境变量优先
     environment:
-      MC_API_BASE_URL: ${MC_API_BASE_URL:-${MC_DEV_PROXY_TARGET:-}}
+      MC_API_BASE_URL: ${MC_API_BASE_URL:-}
     # 让容器内 host.docker.internal 指向宿主机（后端与 Docker 同机时可用该地址）
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # 与开发期同一套 .env（MC_ 前缀变量注入容器；MC_DEV_PROXY_TARGET 在容器内被忽略）
+    # 与开发期同一套 .env（MC_ 前缀变量注入容器）
     env_file:
       - .env
     restart: unless-stopped

@@ -5,7 +5,7 @@ set -e
 
 if [ -z "${MC_API_BASE_URL:-}" ]; then
   echo "[mc] 错误：缺少环境变量 MC_API_BASE_URL（后端地址，nginx 将把 /api 反代到该地址）" >&2
-  echo "[mc] Docker / compose 部署请在 .env 中设置，例如 MC_API_BASE_URL=http://192.168.31.170:8096" >&2
+  echo "[mc] Docker / compose 部署请在 .env 中设置，例如 MC_API_BASE_URL=http://192.168.31.31:8096" >&2
   exit 1
 fi
 
@@ -14,12 +14,14 @@ case "${MC_AUTO_LOGIN:-true}" in
   *) AUTO_LOGIN=true ;;
 esac
 
-# 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端
+# 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端；
+# proxyTarget 为信息性字段，把反代目标带给浏览器供设置面板展示
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
-  "username": "${MC_USERNAME:-}",
-  "password": "${MC_PASSWORD:-}",
+  "proxyTarget": "${MC_API_BASE_URL}",
+  "username": "${MC_API_USERNAME:-}",
+  "password": "${MC_API_PASSWORD:-}",
   "autoLogin": ${AUTO_LOGIN}
 }
 EOF
