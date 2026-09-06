@@ -1,5 +1,7 @@
 # MusicCopilot
 
+[![Build & Publish Docker Image](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml)
+
 基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载 Web 客户端，对接 [Simple SQ Music Plus](https://github.com/59799517/simple_sq_music_plus) 的 HTTP 接口。
 
 ## 功能
@@ -63,10 +65,18 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS）。容器内 `baseUrl` 固定为空串，后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**：
 
 ```bash
-# 方式一：docker compose（env_file 直接复用开发用的 .env）
-docker compose up -d --build
+# 方式一：拉取预构建镜像（CI 自动发布，docker-compose.yml 默认走这里）
+docker run -d -p 17016:80 \
+  -e MC_API_BASE_URL=http://192.168.31.31:8096 \
+  -e MC_API_USERNAME=admin -e MC_API_PASSWORD=admin \
+  supgeekrod/music-copilot:latest
+# GHCR 镜像：ghcr.io/supgeek-rod/music-copilot:latest
 
-# 方式二：docker run
+# 方式二：docker compose（env_file 直接复用开发用的 .env）
+docker compose up -d          # 拉取预构建镜像
+docker compose up -d --build  # 或在本地构建
+
+# 方式三：本地构建镜像
 docker build -t music-copilot .
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://192.168.31.31:8096 \
@@ -75,6 +85,16 @@ docker run -d -p 17016:80 \
 ```
 
 访问 http://localhost:17016。`MC_API_BASE_URL` 必填（nginx 反代目标）；密码避免包含 `"` 或 `\`。对外端口默认 17016，compose 部署时可在 `.env` 里用 `MC_PORT` 覆盖。容器启动失败先看 `docker logs music-copilot`，多为缺少 `MC_API_BASE_URL`。
+
+### 镜像 tag 说明
+
+镜像由 [GitHub Actions](.github/workflows/docker-publish.yml) 自动构建发布（`linux/amd64` + `linux/arm64`，同步发布到 Docker Hub 与 GHCR）：
+
+| tag | 对应构建 |
+| --- | --- |
+| `latest` | 默认分支 `v0.1.x` 的最新构建 |
+| `development` | `development` 分支的最新构建 |
+| `0.1.2` / `0.1` | `v*` 版本 tag 的发布构建 |
 
 ## 目录结构
 
