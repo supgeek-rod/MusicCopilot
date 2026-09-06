@@ -93,12 +93,14 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | 歌单 Tab：列表卡片 → `/library/collection/playlist/:guid`（detail + 曲目 + 播放全部），支持库内歌单搜索 | ✅ |
 | 空态验证通过（当前 NAS 暂无歌单；详情接口失败时头部降级为基础信息） | ✅ |
 
-### M6 收尾验收 ⬜
+### M6 收尾验收 ✅（2026-09-06）
 
 | 任务 | 状态 |
 | --- | --- |
-| `npm run build` 通过；dev 手测全流程 | ⬜ |
-| 更新 `docs/features.md`、`docs/roadmap.md` 第 3 期标注（浏览/播放 ✅，补全下载 ⬜） | ⬜ |
+| `npm run build` 通过（vue-tsc + vite build + PWA 生成） | ✅ |
+| dev 手测全流程：浏览/搜索/二级页/播放/歌词/歌单空态 | ✅ |
+| 更新 `docs/features.md`（音乐库章节 + 路由表）、`docs/configuration.md`（MC_FNOS_*）、`docs/roadmap.md` 第 3 期标注（浏览/播放 ✅，补全下载 ⬜） | ✅ |
+| 本看板全部勾选 | ✅ |
 
 ## 5. 风险与备选
 
@@ -116,3 +118,10 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 
 - 2026-09-06：M0 真机验证通过（9 项实测）；本文档建立
 - 2026-09-06：M1 接入层完成；经 Vite 代理端到端验证（登录/曲库 code=0）；分支已快进到 development 最新（docs 站重构后路径为小写文件名）
+- 2026-09-06：M2~M5 全部完成并逐项浏览器实测（曲库 51 首渲染、专辑页排序与详情、流式播放推进、搜索 12 结果、歌词 52 行解析、歌单空态）
+- 2026-09-06：M6 验收通过：`npm run build` 通过，features/configuration/roadmap 文档同步；首期功能全量交付
+
+## 8. 后续（并入路线图第 3 期剩余部分）
+
+- Node 伴生服务（`/mc`）接管 `/fnos` 前缀 + monorepo 迁移
+- 歌单补全下载（对比歌单与本地库，缺失曲目一键下载——曲库目录即 SQ 下载目录，数据闭环已具备）
