@@ -1,7 +1,7 @@
 name: Build & Publish Docker Image
 
 # 触发规则：
-# - push 到 development / v0.1.x：发布对应分支名 tag（v0.1.x 为默认分支，额外发布 latest）
+# - push 到 development / v0.1.x：发布对应分支名 tag（v0.1.x 分支额外发布 latest）
 # - push v* tag：发布语义化版本 tag（如 v0.1.2 -> 0.1.2 / 0.1）
 # - workflow_dispatch：在 Actions 页面手动触发，可选任意包含本文件的分支运行
 on:
@@ -64,7 +64,7 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/v0.1.x' }}
 
       - name: Docker Hub metadata (tags)
         if: env.DOCKERHUB_USERNAME != ''
@@ -76,7 +76,7 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/v0.1.x' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6

@@ -92,7 +92,7 @@ docker run -d -p 17016:80 \
 
 | tag | 对应构建 |
 | --- | --- |
-| `latest` | 默认分支 `v0.1.x` 的最新构建 |
+| `latest` | `v0.1.x` 分支的最新构建 |
 | `development` | `development` 分支的最新构建 |
 | `0.1.2` / `0.1` | `v*` 版本 tag 的发布构建 |
 
