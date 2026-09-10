@@ -54,10 +54,23 @@ function onDurationchange() {
   const audio = audioRef.value
   if (audio && Number.isFinite(audio.duration)) player.duration = audio.duration
 }
+/** 切歌（上一首/下一首）：取链失败给出提示，避免 unhandled rejection 静默中断自动播放 */
+function switchTo(action: () => Promise<unknown>) {
+  action().catch((e) =>
+    toast.error('切歌失败', { description: e instanceof Error ? e.message : String(e) }),
+  )
+}
+function next() {
+  switchTo(() => player.next())
+}
+function prev() {
+  switchTo(() => player.prev())
+}
+
 function onEnded() {
   player.isPlaying = false
   // 播放结束自动切下一首（队列尾则停止）
-  if (player.hasNext) player.next()
+  if (player.hasNext) next()
 }
 function onError() {
   if (player.url) {
@@ -73,6 +86,8 @@ function togglePlay() {
     audio.pause()
     return
   }
+  // 取链中不重复触发（避免并发 jump 重复请求下载地址）
+  if (player.loading) return
   // 刷新恢复的队列尚未加载音频，先重新取链再播
   if (!player.url) {
     player
@@ -150,7 +165,7 @@ function close() {
           size="icon-sm"
           title="上一首"
           :disabled="!player.hasPrev"
-          @click="player.prev()"
+          @click="prev"
         >
           <SkipBackIcon class="size-4" />
         </Button>
@@ -164,7 +179,7 @@ function close() {
           size="icon-sm"
           title="下一首"
           :disabled="!player.hasNext"
-          @click="player.next()"
+          @click="next"
         >
           <SkipForwardIcon class="size-4" />
         </Button>

@@ -60,7 +60,7 @@ const defaultBaseUrl = computed(
   () => app.fileConfig?.proxyTarget?.trim() || app.fileConfig?.baseUrl?.trim() || '',
 )
 const defaultUsername = computed(() => app.fileConfig?.username ?? '')
-const defaultPassword = computed(() => app.fileConfig?.password ?? '')
+const defaultPassword = computed(() => !!app.fileConfig?.password)
 
 /** 保存连接配置：仅写入本设备浏览器存储并立即重连生效；留空的字段跟随默认值 */
 async function saveConnection() {
@@ -165,7 +165,7 @@ async function resetConnection() {
             <Input
               v-model="password"
               type="password"
-              :placeholder="defaultPassword ? `默认值：${defaultPassword}` : '默认值：（未配置）'"
+              :placeholder="defaultPassword ? '默认值：已配置（留空表示跟随默认）' : '默认值：（未配置）'"
               autocomplete="new-password"
             />
           </label>
