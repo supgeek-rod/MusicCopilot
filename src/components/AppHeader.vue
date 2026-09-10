@@ -174,9 +174,10 @@ function clearHistory() {
           />
           <Input
             v-model="keyword"
+            data-search-input
             class="h-8 w-52 pl-8 pr-2 text-sm transition-[width] focus:w-72"
             placeholder="搜索歌曲 / 歌手 / 专辑"
-            title="快捷搜索（回车跳转搜索页）"
+            title="快捷搜索（回车跳转搜索页，按 / 聚焦）"
             @focus="onInputFocus"
             @click="onInputFocus"
             @blur="onInputBlur"
