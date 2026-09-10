@@ -37,10 +37,13 @@ const toggleDark = useToggle(isDark)
 
 const statusTitle = computed(() => `${app.statusMsg}｜后端：${app.apiBase || '同源'}`)
 
-// 导航仅保留「音乐库」入口（仅在配置了 fnOS 接入时显示），搜索走右侧快捷搜索框，其余入口收敛进设置下拉
-const navs = computed(() =>
-  fnos.enabled ? [{ path: '/library', label: '音乐库', icon: LibraryIcon }] : [],
-)
+// 左侧导航：下载任务 + 音乐库（音乐库仅在配置了 fnOS 接入时显示）；搜索走右侧快捷搜索框
+const navs = computed(() => {
+  const list = [{ path: '/downloads', label: '下载任务', icon: ListMusicIcon }]
+  // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示
+  if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
+  return list
+})
 
 // 系统设置弹窗由设置下拉里的入口打开
 const settingsOpen = ref(false)
@@ -251,10 +254,6 @@ function clearHistory() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-40">
-            <DropdownMenuItem @click="router.push('/downloads')">
-              <ListMusicIcon class="size-4" />
-              下载任务
-            </DropdownMenuItem>
             <DropdownMenuItem @click="toggleDark()">
               <SunIcon v-if="isDark" class="size-4" />
               <MoonIcon v-else class="size-4" />
