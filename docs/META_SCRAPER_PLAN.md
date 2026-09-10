@@ -119,6 +119,7 @@ scraper/
 | `LibraryHealthView.vue`：总览/清单/匹配预览/写入/进度/配置/忽略清单 | ✅ |
 | 路由 `/library/health` + AppHeader 条件导航（`/library` 高亮规则排除体检页） | ✅ |
 | `npm run build` 通过 + vite 代理端到端验证（config.json scraper 块 / /mc/api 转发） | ✅ |
+| 浏览器实测：统计/清单渲染、勾选→匹配→候选弹窗（100% 正确专辑自动选中）→dry-run 预览→配置弹窗回显；实测发现并修复 companion 未拼 `/mc/api` 前缀的 404 | ✅ |
 
 ### M5 Docker + CI 🚧
 
@@ -128,7 +129,7 @@ scraper/
 | compose 增 scraper 服务（`profiles: [scraper]`、音乐卷 rw、data 卷、MC_SERVER_URL、缺 MC_MUSIC_DIR 报错守卫） | ✅ |
 | CI `scraper-docker.yml`（同 tag 策略，amd64+arm64，scraper/** 路径触发） | ✅ |
 | 文档站功能页 `docs/library-health.md` + nav/sidebar + configuration.md 环境变量 | ✅ |
-| 本地 docker build / 浏览器实测（本机 Docker daemon 未启动；合并后由 CI 首次构建验证） | ⬜ |
+| docker build（本机 Docker daemon 未启动；合并后由 CI 首次构建验证） | ⬜ |
 
 ## 5. 风险与备选
 
@@ -143,3 +144,4 @@ scraper/
 - 2026-09-11：方案批准（Node + TS / 复用 server/ 酷我 / v1 全量写入范围）；worktree 建立；文档先行 M0 开始
 - 2026-09-11：M0 完成（架构/路线图/看板三份文档，docs:build 通过）；M1 完成（getLyric 端点 + 契约固化 + 测试 + 真机验证）
 - 2026-09-11：M2/M3 完成（scraper 全链路：4 首样例扫描分类全对；晴天匹配 0.9 分命中；mp3/m4a 写入封面歌词、改名、备份验证；守卫与增量扫描通过）。M4 完成（体检页 + /mc 通道，build 通过、代理端到端验证）。M5 文档/CI/compose 完成，docker build 与浏览器实测待补
+- 2026-09-11：浏览器实测通过（匹配→候选→dry-run→配置全流程，真实酷我候选 100% 命中正确专辑）；发现并修复 companion 未拼 /mc/api 前缀的 404。v1 功能闭环交付，剩余：docker build 由 CI 验证
