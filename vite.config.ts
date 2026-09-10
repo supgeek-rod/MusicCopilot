@@ -168,6 +168,21 @@ export default defineConfig(({ command, mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    // 路由级静态 import 是既定约束（见 AGENTS.md），不拆懒加载；
+    // 用 vendor 分包改善缓存命中与首屏解析（改动业务代码时框架 chunk 不失效）
+    build: {
+      rolldownOptions: {
+        output: {
+          advancedChunks: {
+            groups: [
+              { name: 'vue', test: /node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/ },
+              { name: 'reka-ui', test: /node_modules[\\/](reka-ui|@lucide)[\\/]/ },
+              { name: 'axios', test: /node_modules[\\/](axios|vue-sonner|@vueuse)[\\/]/ },
+            ],
+          },
+        },
+      },
+    },
     server: {
       port: 5173,
       ...(allowedHosts.length ? { allowedHosts } : {}),

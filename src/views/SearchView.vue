@@ -56,6 +56,7 @@ const isHero = computed(() => !submitted.value && !loading.value)
 
 // 卸载后丢弃迟到响应，避免与路由切换产生更新竞态
 let disposed = false
+let searchSeq = 0
 onBeforeUnmount(() => {
   disposed = true
 })
@@ -109,12 +110,14 @@ function cleanLabel(label: string): string {
 async function doSearch(page = 1) {
   const kw = keyword.value.trim()
   if (!kw) return
+  // 并发守卫：loading 期间切换音源/关键词重搜时，丢弃「后发先至」的过期响应
+  const seq = ++searchSeq
   loading.value = true
   tipsOpen.value = false
   tips.value = []
   try {
     const data = await musicApi.searchSong(plug.value, kw, page, PAGE_SIZE)
-    if (disposed) return
+    if (disposed || seq !== searchSeq) return
     results.value = data.records ?? []
     total.value = data.searchTotal ?? results.value.length
     pageIndex.value = page
@@ -124,12 +127,12 @@ async function doSearch(page = 1) {
     if (route.query.q !== kw) router.replace({ query: { q: kw } }).catch(() => {})
     if (!results.value.length) toast.info('没有找到相关歌曲')
   } catch (e) {
-    if (disposed) return
+    if (disposed || seq !== searchSeq) return
     results.value = []
     total.value = 0
     toast.error('搜索失败', { description: e instanceof Error ? e.message : String(e) })
   } finally {
-    if (!disposed) loading.value = false
+    if (!disposed && seq === searchSeq) loading.value = false
     tipsOpen.value = false
   }
 }

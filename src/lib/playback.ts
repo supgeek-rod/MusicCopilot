@@ -18,6 +18,8 @@ export function togglePlayback(player: PlayerStore) {
     audio.pause()
     return
   }
+  // 取链中不重复触发（避免并发 jump 重复请求下载地址）
+  if (player.loading) return
   // 刷新恢复的队列尚未加载音频，先重新取链再播
   if (!player.url) {
     player

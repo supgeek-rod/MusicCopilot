@@ -25,6 +25,8 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_PORT` | Docker 对外端口（仅 docker-compose.yml 读取，默认 `17016`） |
 
 > 注意：`.env` 以明文保存密码，请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。「登录框 + 记住 token」模式规划在[路线图](./roadmap.md)第 2 期。
+>
+> ⚠️ **已知安全取舍**：自动登录（autoLogin / 403 静默重登）要求浏览器持有账号密码，因此 `MC_API_USERNAME` / `MC_API_PASSWORD` 会随 `config.json` 下发给**任何能打开页面的访问者**（DevTools 的网络与存储面板可直接读到）。请勿将部署暴露到公网；如需收敛，可留空凭据（关闭自动登录），改为在各设备的设置面板单独配置连接。
 
 ## 运行时配置 config.json
 

@@ -86,5 +86,9 @@ export function startTaskToasts() {
     }
   }
   poll()
-  setInterval(poll, POLL_MS)
+  setInterval(() => {
+    // 后台标签页暂停轮询，回前台后由下一次 tick 补齐状态迁移
+    if (document.hidden) return
+    poll()
+  }, POLL_MS)
 }

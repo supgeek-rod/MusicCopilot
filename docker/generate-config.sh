@@ -41,18 +41,28 @@ fi
 
 # 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端；
 # proxyTarget 为信息性字段，把反代目标带给浏览器供设置面板展示
+# JSON 转义：密码等环境变量含 " 或 \ 时避免生成损坏的 config.json
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+PROXY_TARGET=$(json_escape "${MC_API_BASE_URL}")
+USERNAME=$(json_escape "${MC_API_USERNAME:-}")
+PASSWORD=$(json_escape "${MC_API_PASSWORD:-}")
+FNOS_TARGET=$(json_escape "${MC_FNOS_BASE_URL:-}")
+FNOS_USERNAME=$(json_escape "${MC_FNOS_USERNAME:-}")
+FNOS_PASSWORD=$(json_escape "${MC_FNOS_PASSWORD:-}")
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
-  "proxyTarget": "${MC_API_BASE_URL}",
-  "username": "${MC_API_USERNAME:-}",
-  "password": "${MC_API_PASSWORD:-}",
+  "proxyTarget": "${PROXY_TARGET}",
+  "username": "${USERNAME}",
+  "password": "${PASSWORD}",
   "autoLogin": ${AUTO_LOGIN},
   "fnos": {
     "enabled": ${FNOS_ENABLED},
-    "proxyTarget": "${MC_FNOS_BASE_URL:-}",
-    "username": "${MC_FNOS_USERNAME:-}",
-    "password": "${MC_FNOS_PASSWORD:-}",
+    "proxyTarget": "${FNOS_TARGET}",
+    "username": "${FNOS_USERNAME}",
+    "password": "${FNOS_PASSWORD}",
     "autoLogin": ${FNOS_AUTO_LOGIN}
   }
 }

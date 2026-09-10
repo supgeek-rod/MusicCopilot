@@ -62,6 +62,19 @@ function onDurationchange() {
   const audio = audioRef.value
   if (audio && Number.isFinite(audio.duration)) player.duration = audio.duration
 }
+/** 切歌（上一首/下一首）：取链失败给出提示，避免 unhandled rejection 静默中断自动播放 */
+function switchTo(action: () => Promise<unknown>) {
+  action().catch((e) =>
+    toast.error('切歌失败', { description: e instanceof Error ? e.message : String(e) }),
+  )
+}
+function next() {
+  switchTo(() => player.next())
+}
+function prev() {
+  switchTo(() => player.prev())
+}
+
 function onEnded() {
   player.isPlaying = false
   // 自动切下一首（按播放模式：循环回绕/随机/播完停止），取链失败给提示
@@ -146,7 +159,7 @@ function close() {
           size="icon-sm"
           title="上一首（Ctrl+←）"
           :disabled="!player.hasPrev"
-          @click="player.prev()"
+          @click="prev"
         >
           <SkipBackIcon class="size-4" />
         </Button>
@@ -160,7 +173,7 @@ function close() {
           size="icon-sm"
           title="下一首（Ctrl+→）"
           :disabled="!player.hasNext"
-          @click="player.next()"
+          @click="next"
         >
           <SkipForwardIcon class="size-4" />
         </Button>
