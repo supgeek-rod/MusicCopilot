@@ -118,7 +118,13 @@ export default defineConfig(({ command, mode }) => {
         },
       }
     : undefined
+  // 版权信息页展示的版本号，取自 package.json
+  const appVersion = (JSON.parse(fs.readFileSync('package.json', 'utf-8')) as { version: string })
+    .version
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+    },
     plugins: [
       vue(),
       tailwindcss(),

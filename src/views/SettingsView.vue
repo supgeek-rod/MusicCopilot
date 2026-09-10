@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PlugIcon, SlidersHorizontalIcon } from '@lucide/vue'
+import { CopyrightIcon, PlugIcon, SlidersHorizontalIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,14 @@ import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
 
-// 设置页左侧导航分区（版权信息页在 about 分支中加入此列表）
+// 构建时由 vite define 注入（取自 package.json version）
+const appVersion = __APP_VERSION__
+
+// 设置页左侧导航分区
 const sections = [
   { id: 'general', label: '通用', icon: SlidersHorizontalIcon },
   { id: 'connection', label: '后端连接', icon: PlugIcon },
+  { id: 'about', label: '版权信息', icon: CopyrightIcon },
 ] as const
 
 type SectionId = (typeof sections)[number]['id']
@@ -191,6 +195,69 @@ async function resetConnection() {
             恢复跟随文件
           </Button>
           <span v-if="hasOverride" class="text-xs text-muted-foreground">当前使用本设备覆盖配置</span>
+        </div>
+      </section>
+
+      <!-- 版权信息 -->
+      <section v-else-if="active === 'about'" class="max-w-xl">
+        <h2 class="text-lg font-semibold">版权信息</h2>
+        <p class="mt-1 text-sm text-muted-foreground">项目开源信息与授权说明。</p>
+        <Separator class="my-4" />
+
+        <div class="space-y-4 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="font-medium">MusicCopilot</span>
+            <span class="rounded-full border px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+              v{{ appVersion }}
+            </span>
+          </div>
+
+          <dl class="space-y-2">
+            <div class="flex items-center gap-2">
+              <dt class="w-20 shrink-0 text-muted-foreground">源代码</dt>
+              <dd>
+                <a
+                  class="text-primary hover:underline"
+                  href="https://github.com/supgeek-rod/MusicCopilot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  github.com/supgeek-rod/MusicCopilot
+                </a>
+              </dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="w-20 shrink-0 text-muted-foreground">文档</dt>
+              <dd>
+                <a
+                  class="text-primary hover:underline"
+                  href="https://supgeek-rod.github.io/MusicCopilot/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  supgeek-rod.github.io/MusicCopilot
+                </a>
+              </dd>
+            </div>
+            <div class="flex items-center gap-2">
+              <dt class="w-20 shrink-0 text-muted-foreground">授权</dt>
+              <dd>
+                <a
+                  class="text-primary hover:underline"
+                  href="https://github.com/supgeek-rod/MusicCopilot/blob/main/LICENSE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  MIT License
+                </a>
+              </dd>
+            </div>
+          </dl>
+
+          <p class="text-xs leading-relaxed text-muted-foreground">
+            Copyright © 2026 supgeek-rod。本项目基于 MIT 授权发布：任何人可免费使用、复制、修改与分发，
+            需保留上述版权与许可声明；软件按「现状」提供，不含任何形式的担保。
+          </p>
         </div>
       </section>
     </div>
