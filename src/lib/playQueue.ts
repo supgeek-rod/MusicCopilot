@@ -40,7 +40,8 @@ const VOLUME_KEY = 'music-copilot:volume'
 /** 读取持久化的播放音量（0–1），缺失或损坏时回退为 1 */
 export function loadVolume(): number {
   try {
-    const v = Number(localStorage.getItem(VOLUME_KEY))
+    // 注意 Number(null) === 0：键缺失时必须走 NaN 分支回退为 1，否则新用户启动即静音
+    const v = Number.parseFloat(localStorage.getItem(VOLUME_KEY) ?? '')
     return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1
   } catch {
     return 1

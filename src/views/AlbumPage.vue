@@ -66,14 +66,15 @@ function trackOf(s: SongRecord): number {
   return Number.isFinite(t) ? t : 9999
 }
 
-watch([plug, albumId], load, { immediate: true })
-
 // 卸载后丢弃迟到响应，避免与路由切换竞态；请求序号用于同组件路由复用（专辑 A→B）时丢弃旧结果
+// 注意：声明必须先于下方 immediate watch，否则回调同步执行时撞 TDZ（Cannot access before initialization）
 let disposed = false
 let loadSeq = 0
 onBeforeUnmount(() => {
   disposed = true
 })
+
+watch([plug, albumId], load, { immediate: true })
 
 async function load() {
   const seq = ++loadSeq

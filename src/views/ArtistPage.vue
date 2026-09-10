@@ -56,15 +56,16 @@ const hasMore = computed(
   () => songTotal.value > 0 && songs.value.length < songTotal.value && !hasDupPage,
 )
 
-watch([plug, artistId], loadAll, { immediate: true })
-
 // 卸载后丢弃迟到响应，避免与路由切换竞态；两级序号分别使旧的歌手详情与歌曲分页请求失效
+// 注意：声明必须先于下方 immediate watch，否则回调同步执行时撞 TDZ（Cannot access before initialization）
 let disposed = false
 let artistSeq = 0
 let songsSeq = 0
 onBeforeUnmount(() => {
   disposed = true
 })
+
+watch([plug, artistId], loadAll, { immediate: true })
 
 async function loadAll() {
   const seq = ++artistSeq
