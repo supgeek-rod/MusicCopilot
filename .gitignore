@@ -1,0 +1,16 @@
+# 调研产物
+*.mp3
+*.flac
+*.ape
+out/
+tmp/
+
+# 未来 Laravel 骨架
+/vendor/
+/node_modules/
+/.env
+/.env.backup
+/storage/*.key
+npm-debug.log
+.DS_Store
+Thumbs.db

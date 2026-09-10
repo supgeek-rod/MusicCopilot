@@ -1,0 +1,48 @@
+kw:
+  id: kw-v1
+  #  名称
+  name: 酷我
+  #  不需要登录
+  islogin: false
+  #  搜索歌曲
+  SearchUrl: http://search.kuwo.cn/r.s?client=kt&encoding=utf8&rformat=json&mobi=1&vipver=1&pn=#{pn}&rn=#{pagesize}&correct=1&all=#{searchKey}&ft=#{searchType}
+  #  榜单
+  BangMenuUrl: http://m.kuwo.cn/newh5app/api/mobile/v1/typelist/rank
+  #  榜单详情
+  BangInfoUrl: http://kbangserver.kuwo.cn/ksong.s?from=pc&fmt=json&pn=#{pn}&rn=#{pagesize}&type=bang&data=content&id=#{BangMenuId}&show_copyright_off=0&pcmp4=1&isbang=1
+  #   下载
+  downloadurl: http://nmobi.kuwo.cn/mobi.s?f=kuwo&source=jiakong&q=
+  #返回json的下载链接
+  downloadurl2: https://mobi.kuwo.cn/mobi.s?f=web&user=0&source=kwplayer_ar_5.0.0.0_B_jiakong_vh.apk&type=convert_url_with_sign&rid=#{musicId}&br=#{brvalue}
+  # PC端歌词获取（加密）
+  LyrIcUrl: http://newlyric.kuwo.cn/newlyric.lrc?
+  #  歌曲详情以及歌词
+  SongInfoUrl: https://m.kuwo.cn/newh5/singles/songinfoandlrc?musicId=#{musicId}&httpsStatus=1&reqId=969ba290-4b49-11eb-8db2-ebd372233623
+  # 获取歌曲信息（不含歌词）
+  MusicAudioInfoUrl: http://musicpay.kuwo.cn/music.pay?newver=2&uid=0&sid=&android_id=76a84aed3ff799de&from=ar&deviceid=76a84aed3ff799de&ver=11.1.9.1&src=kwplayer_ar_11.1.9.1_kwtest.apk&appuid=2752816366&allpay=1&notrace=0&oaid=bbcdcf642ce70f13&op=query&action=play&signver=new&filter=no&apiversion=2&local=0&quality=H&preload=0&ids=#{musicId}
+  # 获取歌词地址
+  SongImageUrl: http://artistpicserver.kuwo.cn/pic.web?prod=kwplayer_ar_11.3.4.1&corp=kuwo&source=kwplayer_ar_11.3.4.1_hw.apk&type=rid_pic&pictype=url&content=list&size=500&rid=#{musicId}&jfencv=user,android_id
+
+  #  歌曲封面前缀
+  SongCoverUrl: https://img3.kuwo.cn/star/albumcover/
+  # 歌手封面前缀
+  Searheads: https://star.kuwo.cn/star/starheads/
+  # 歌手信息
+  ArtistInfoUrl: https://search.kuwo.cn/r.s?stype=artistinfo&encoding=utf8&artistid=#{artistid}&pcjson=1;
+  # 专辑列表
+  AlbumListUrl: https://search.kuwo.cn/r.s?pn=0&rn=10000&artistid=#{artistid}&stype=albumlist&sortby=1&alflac=1&show_copyright_off=1&pcmp4=1&encoding=utf8&plat=pc&thost=search.kuwo.cn&vipver=MUSIC_9.1.1.2_BCS2&devid=38668888&pcjson=1
+  # 专辑信息
+  AlbumInfoUrl: https://search.kuwo.cn/r.s?pn=#{pn}&rn=#{pagesize}&albumid=#{albumid}&stype=albuminfo&show_copyright_off=1&alflac=1&pcmp4=1&encoding=utf8&plat=pc&vipver=MUSIC_9.1.1.2_BCS2&devid=38668888&newver=1&pcjson=1
+  #专辑列表
+  ArtistAlbumListUrl: https://search.kuwo.cn/r.s?pn=0&rn=10000&artistid=#{artistid}&stype=albumlist&sortby=1&alflac=1&show_copyright_off=1&pcmp4=1&encoding=utf8&plat=pc&thost=search.kuwo.cn&vipver=MUSIC_9.1.1.2_BCS2&devid=38668888&pcjson=1
+  #  歌手单曲列表（分页）
+  ArtistSongListUrl: https://search.kuwo.cn/r.s?pn=#{pn}&rn=#{pagesize}&artistid=#{artistid}&stype=artist2music&sortby=0&alflac=1&show_copyright_off=1&pcmp4=1&encoding=utf8&plat=pc&thost=search.kuwo.cn&vipver=MUSIC_9.1.1.2_BCS2&devid=38668888&newver=1&pcjson=1
+  #歌单详情
+  PlayListInfo: http://nplserver.kuwo.cn/pl.svc?op=getlistinfo&pid=#{id}&pn=#{pn}&rn=#{pagesize}&encode=utf8&keyset=pl2012&vipver=MUSIC_9.1.1.2_BCS2&newver=1
+  #搜索提示
+  SearchTip: https://kuwo.cn/openapi/v1/www/search/searchKey?key=#{SearchTip}&httpsStatus=1
+
+#或者 user desc加密
+#  下载链接：http://mobi.kuwo.cn/mobi.s?f=web&user=0611d9b202ca0820&android_id=0611d9b202ca0820&prod=kwplayer_ar_11.3.0.0&corp=kuwo&newver=3&vipver=11.3.0.0&source=kwwear_ar_2.2.3_Fwatch.apk&p2p=1&q36=8899378ed08282acc723cdbc100010615202&approval=false&loginUid=0&loginSid=0&appuid=2788274549&allpay=0&notrace=0&oaid=3d3e1ab6-b5a1-4767-be7c-55fe63786812&type=convert_url_with_sign&br=4000kflac&format=flac&sig=0&rid=6187932&priority=bitrate&network=4G&localUid=-1&mode=audition&from=PC&token=bad205aa9e8a50181d948b1cafc16091&bc_token=1462dab652d0a688811e13bddf48596a&timestamp=1755249729&uid=2788274549
+
+# http://nmobi.kuwo.cn/mobi.s?f=web&source=kwwear_ar_2.2.3_Fwatch.apk&type=convert_url_with_sign&rid=6187932&br=4000kflac&from=PC
