@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HistoryIcon, Music2Icon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
+import { HistoryIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
 import { onClickOutside, watchDebounced } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -180,10 +180,16 @@ function onLyrics(song: SongRecord) {
 
 <template>
   <div :class="isHero ? 'flex min-h-[70vh] flex-col items-center justify-center' : ''">
+    <!-- 首页状态：标题引导在搜索框上方（不放图标） -->
+    <template v-if="isHero">
+      <h1 class="text-center text-xl font-semibold">搜索你想听的音乐</h1>
+      <p class="mt-1 text-center text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
+    </template>
+
     <!-- 搜索区 -->
     <form
       class="flex w-full gap-2"
-      :class="isHero ? 'max-w-2xl flex-col gap-3 sm:flex-row' : ''"
+      :class="isHero ? 'mt-6 max-w-2xl flex-col gap-3 sm:flex-row' : ''"
       @submit.prevent="doSearch(1)"
     >
       <!-- 首页大搜索区不显示音源选择，保持聚焦；搜索结果页提供音源切换 -->
@@ -280,15 +286,9 @@ function onLyrics(song: SongRecord) {
       </Button>
     </form>
 
-    <!-- 首页状态：标题 + 搜索历史平铺 -->
+    <!-- 首页状态：搜索历史平铺 -->
     <div v-if="isHero" class="mt-10 flex w-full max-w-2xl flex-col items-center">
-      <div class="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Music2Icon class="size-8" />
-      </div>
-      <h1 class="mt-4 text-xl font-semibold">搜索你想听的音乐</h1>
-      <p class="mt-1 text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
-
-      <div v-if="history.length" class="mt-8 w-full">
+      <div v-if="history.length" class="w-full">
         <div class="mb-2 flex items-center justify-between px-1">
           <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
             <HistoryIcon class="size-3.5" />
