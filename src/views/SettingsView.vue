@@ -1,14 +1,8 @@
 <script setup lang="ts">
+import { PlugIcon, SlidersHorizontalIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,6 +11,16 @@ import { FALLBACK_QUALITY_OPTIONS } from '@/lib/settings'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
+
+// 设置页左侧导航分区（版权信息页在 about 分支中加入此列表）
+const sections = [
+  { id: 'general', label: '通用', icon: SlidersHorizontalIcon },
+  { id: 'connection', label: '后端连接', icon: PlugIcon },
+] as const
+
+type SectionId = (typeof sections)[number]['id']
+
+const active = ref<SectionId>('general')
 
 /** 音质选项：优先后端枚举表（按展示标签去重），不可用时用内置兜底档位；码率从高到低 */
 const qualityOptions = computed<{ value: string; label: string }[]>(() => {
@@ -46,8 +50,6 @@ function onQualityChange(value: unknown) {
 }
 
 // ---- 后端连接 ----
-// 由父组件控制打开（导航栏设置下拉里的「系统设置」入口）
-const open = defineModel<boolean>('open', { default: false })
 const baseUrl = ref('')
 const username = ref('')
 const password = ref('')
@@ -97,34 +99,50 @@ async function resetConnection() {
 </script>
 
 <template>
-  <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>设置</DialogTitle>
-        <DialogDescription>下载音质与后端连接配置。</DialogDescription>
-      </DialogHeader>
+  <div class="flex flex-col gap-6 sm:flex-row sm:gap-10">
+    <!-- 左侧分区导航 -->
+    <nav class="flex shrink-0 gap-1 sm:w-40 sm:flex-col" aria-label="设置分区">
+      <button
+        v-for="s in sections"
+        :key="s.id"
+        type="button"
+        class="flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors"
+        :class="active === s.id ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'"
+        @click="active = s.id"
+      >
+        <component :is="s.icon" class="size-4" />
+        {{ s.label }}
+      </button>
+    </nav>
 
-      <label class="flex items-center justify-between gap-3 text-sm">
-        <span class="shrink-0 text-muted-foreground">下载音质</span>
-        <Select
-          :model-value="app.downloadBrType"
-          @update:model-value="onQualityChange"
-        >
-          <SelectTrigger class="w-44">
-            <SelectValue placeholder="自动（最高音质）" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">自动（最高音质）</SelectItem>
-            <SelectItem v-for="q in qualityOptions" :key="q.value" :value="q.value">
-              {{ q.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </label>
+    <!-- 右侧内容 -->
+    <div class="min-w-0 flex-1">
+      <!-- 通用 -->
+      <section v-if="active === 'general'" class="max-w-xl">
+        <h2 class="text-lg font-semibold">通用</h2>
+        <p class="mt-1 text-sm text-muted-foreground">播放与下载偏好。</p>
+        <Separator class="my-4" />
+        <label class="flex items-center justify-between gap-3 text-sm">
+          <span class="shrink-0 text-muted-foreground">下载音质</span>
+          <Select :model-value="app.downloadBrType" @update:model-value="onQualityChange">
+            <SelectTrigger class="w-44">
+              <SelectValue placeholder="自动（最高音质）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">自动（最高音质）</SelectItem>
+              <SelectItem v-for="q in qualityOptions" :key="q.value" :value="q.value">
+                {{ q.label }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </label>
+      </section>
 
-      <Separator />
-
-      <div class="space-y-3">
+      <!-- 后端连接 -->
+      <section v-else-if="active === 'connection'" class="max-w-xl space-y-3">
+        <h2 class="text-lg font-semibold">后端连接</h2>
+        <p class="text-sm text-muted-foreground">本设备的后端连接覆盖配置。</p>
+        <Separator class="my-4" />
         <div>
           <h3 class="text-sm font-medium">自定义 MC_API</h3>
           <p class="mt-0.5 text-xs text-muted-foreground">
@@ -144,7 +162,7 @@ async function resetConnection() {
           />
         </label>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label class="block space-y-1 text-sm">
             <span class="text-muted-foreground">MC_API_USERNAME</span>
             <Input
@@ -174,7 +192,7 @@ async function resetConnection() {
           </Button>
           <span v-if="hasOverride" class="text-xs text-muted-foreground">当前使用本设备覆盖配置</span>
         </div>
-      </div>
-    </DialogContent>
-  </Dialog>
+      </section>
+    </div>
+  </div>
 </template>

@@ -5,6 +5,7 @@ import DownloadsView from '@/views/DownloadsView.vue'
 import FnosCollectionView from '@/views/FnosCollectionView.vue'
 import LibraryView from '@/views/LibraryView.vue'
 import SearchView from '@/views/SearchView.vue'
+import SettingsView from '@/views/SettingsView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -20,6 +21,7 @@ const router = createRouter({
       props: true,
     },
     { path: '/downloads', name: 'downloads', component: DownloadsView },
+    { path: '/settings', name: 'settings', component: SettingsView },
     { path: '/artist/:plug/:id', name: 'artist', component: ArtistPage },
     { path: '/album/:plug/:id', name: 'album', component: AlbumPage },
     { path: '/:pathMatch(.*)*', redirect: '/search' },
