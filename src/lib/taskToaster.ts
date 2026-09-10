@@ -24,6 +24,16 @@ function errDesc(t: TaskInfo): string {
   return short ? `${taskLabel(t)}：${short}` : taskLabel(t)
 }
 
+/** 多首任务描述：每行一首（最多 3 行）+ 尾注，配合右对齐与 pre-line 换行展示 */
+function listDesc(list: TaskInfo[]): string {
+  const lines = list.slice(0, 3).map(taskLabel)
+  if (list.length > 3) lines.push(`等共 ${list.length} 首`)
+  return lines.join('\n')
+}
+
+/** 逐行描述需要 pre-line 才能保留换行 */
+const LIST_CLASS = { description: 'whitespace-pre-line' }
+
 function check(list: TaskInfo[]) {
   const seen = new Set<string>()
   const done: TaskInfo[] = []
@@ -49,12 +59,14 @@ function check(list: TaskInfo[]) {
   if (done.length === 1) toast.success('下载完成', { description: taskLabel(done[0]) })
   else if (done.length > 1)
     toast.success(`下载完成（${done.length} 首）`, {
-      description: done.slice(0, 3).map(taskLabel).join('、'),
+      description: listDesc(done),
+      classes: LIST_CLASS,
     })
   if (failed.length === 1) toast.error('下载失败', { description: errDesc(failed[0]) })
   else if (failed.length > 1)
     toast.error(`下载失败（${failed.length} 首）`, {
-      description: failed.slice(0, 3).map(taskLabel).join('、'),
+      description: listDesc(failed),
+      classes: LIST_CLASS,
     })
 }
 
