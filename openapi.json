@@ -1,0 +1,582 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Laravel",
+        "version": "0.0.1"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api"
+        }
+    ],
+    "paths": {
+        "/music/searchSong": {
+            "get": {
+                "operationId": "musicSearch.searchSong",
+                "summary": "\u641c\u7d22\u5355\u66f2\uff08\u9177\u6211\uff1asearch.kuwo.cn/r.s ft=music\uff09",
+                "tags": [
+                    "MusicSearch"
+                ],
+                "parameters": [
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "plugName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "records": {
+                                                            "type": "string"
+                                                        },
+                                                        "searchTotal": {
+                                                            "type": "string"
+                                                        },
+                                                        "searchIndex": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer",
+                                                                    "enum": [
+                                                                        1
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "searchSize": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer",
+                                                                    "enum": [
+                                                                        30
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "searchKeyWork": {
+                                                            "type": "string"
+                                                        },
+                                                        "plugName": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "kw"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "records",
+                                                        "searchTotal",
+                                                        "searchIndex",
+                                                        "searchSize",
+                                                        "searchKeyWork",
+                                                        "plugName"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "keyword \u4e0d\u80fd\u4e3a\u7a7a"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/music/searchArtist": {
+            "get": {
+                "operationId": "musicSearch.searchArtist",
+                "summary": "\u641c\u7d22\u6b4c\u624b\uff08\u9177\u6211\uff1ar.s ft=artist\uff09",
+                "tags": [
+                    "MusicSearch"
+                ],
+                "parameters": [
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "plugName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "records": {
+                                                            "type": "string"
+                                                        },
+                                                        "searchTotal": {
+                                                            "type": "string"
+                                                        },
+                                                        "searchIndex": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer",
+                                                                    "enum": [
+                                                                        1
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "searchSize": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer",
+                                                                    "enum": [
+                                                                        30
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "searchKeyWork": {
+                                                            "type": "string"
+                                                        },
+                                                        "plugName": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "kw"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "records",
+                                                        "searchTotal",
+                                                        "searchIndex",
+                                                        "searchSize",
+                                                        "searchKeyWork",
+                                                        "plugName"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "keyword \u4e0d\u80fd\u4e3a\u7a7a"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/music/searchAlbum": {
+            "get": {
+                "operationId": "musicSearch.searchAlbum",
+                "summary": "\u641c\u7d22\u4e13\u8f91\uff08\u9177\u6211\uff1ar.s ft=album\uff09",
+                "tags": [
+                    "MusicSearch"
+                ],
+                "parameters": [
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "plugName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "records": {
+                                                            "type": "string"
+                                                        },
+                                                        "searchTotal": {
+                                                            "type": "string"
+                                                        },
+                                                        "searchIndex": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer",
+                                                                    "enum": [
+                                                                        1
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "searchSize": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "integer",
+                                                                    "enum": [
+                                                                        30
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        "searchKeyWork": {
+                                                            "type": "string"
+                                                        },
+                                                        "plugName": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "kw"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "records",
+                                                        "searchTotal",
+                                                        "searchIndex",
+                                                        "searchSize",
+                                                        "searchKeyWork",
+                                                        "plugName"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "keyword \u4e0d\u80fd\u4e3a\u7a7a"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

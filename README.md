@@ -34,6 +34,7 @@ curl 'http://127.0.0.1:8097/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
   （资产已本地化到 `public/vendor/scalar/`，离线 NAS 可用；CDN 产物有坏包问题勿换回，见 git 历史）
 - `http://127.0.0.1:8097/docs/api` —— Scramble 自带文档页（Stoplight Elements，控制台经实测可发真实请求）
 - `http://127.0.0.1:8097/docs/api.json` —— OpenAPI 3.1 规范（Scramble 从控制器自动生成，可喂 openapi-typescript 生成前端契约类型）
+- 仓库根 `openapi.json` —— 规范固化产物（`php artisan scramble:export`），前端仓库 `packages/api-contract` 的类型生成源
 
 已知限制：规范中 `records` 的内部结构是宽松推断（`array<string,mixed>`），信封与分页字段精确；
 后续可用 Scramble 扩展或响应类进一步收紧。
