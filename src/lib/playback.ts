@@ -43,7 +43,23 @@ export function focusSearchInput() {
   return false
 }
 
-/** 全局快捷键：空格播放/暂停、`/` 聚焦搜索；输入控件内不拦截 */
+/** 音量调整步长（0–1） */
+const VOLUME_STEP = 0.1
+
+function changeVolume(player: PlayerStore, delta: number) {
+  player.volume = Math.min(1, Math.max(0, Math.round((player.volume + delta) * 100) / 100))
+}
+
+function skip(player: PlayerStore, dir: 'next' | 'prev') {
+  player[dir]().catch((e) =>
+    toast.error('切歌失败', { description: e instanceof Error ? e.message : String(e) }),
+  )
+}
+
+/** 全局快捷键：
+ * 空格 播放/暂停；`/` 聚焦搜索；
+ * Ctrl+←/→ 上一曲/下一曲；Ctrl+↑/↓ 音量加减。
+ * 输入控件内一律不拦截（避免劫持文字编辑的词间光标移动与组合键）。 */
 export function installKeyboardShortcuts(player: PlayerStore): () => void {
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null
@@ -54,13 +70,26 @@ export function installKeyboardShortcuts(player: PlayerStore): () => void {
     ) {
       return
     }
-    if (e.ctrlKey || e.metaKey || e.altKey) return
-    if (e.code === 'Space') {
+    const mod = e.ctrlKey || e.metaKey
+    if (!mod && e.altKey) return
+    if (!mod && e.code === 'Space') {
       e.preventDefault()
       togglePlayback(player)
-    } else if (e.key === '/') {
+    } else if (!mod && e.key === '/') {
       e.preventDefault()
       focusSearchInput()
+    } else if (mod && e.key === 'ArrowRight') {
+      e.preventDefault()
+      skip(player, 'next')
+    } else if (mod && e.key === 'ArrowLeft') {
+      e.preventDefault()
+      skip(player, 'prev')
+    } else if (mod && e.key === 'ArrowUp') {
+      e.preventDefault()
+      changeVolume(player, VOLUME_STEP)
+    } else if (mod && e.key === 'ArrowDown') {
+      e.preventDefault()
+      changeVolume(player, -VOLUME_STEP)
     }
   }
   window.addEventListener('keydown', onKeydown)
