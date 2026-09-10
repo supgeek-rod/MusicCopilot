@@ -194,7 +194,9 @@ function onLyrics(song: SongRecord) {
       <div ref="searchBoxRef" class="relative flex-1">
         <Input
           v-model="keyword"
+          data-search-input
           placeholder="搜索歌曲 / 歌手 / 专辑，回车搜索"
+          title="按 / 聚焦搜索"
           class="h-9 pr-9"
           @focus="onInputFocus"
           @blur="onInputBlur"

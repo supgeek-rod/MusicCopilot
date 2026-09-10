@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { LoaderCircleIcon } from '@lucide/vue'
-import { onMounted, watch } from 'vue'
+import { onMounted, onBeforeUnmount, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import PlayerBar from '@/components/PlayerBar.vue'
 import { Toaster } from '@/components/ui/sonner'
+import { installKeyboardShortcuts } from '@/lib/playback'
 import { startTaskToasts } from '@/lib/taskToaster'
 import { useAppStore } from '@/stores/app'
 import { usePlayerStore } from '@/stores/player'
@@ -14,6 +15,17 @@ const player = usePlayerStore()
 onMounted(() => {
   app.init()
 })
+
+// 全局快捷键：空格播放/暂停、`/` 聚焦搜索
+let uninstallShortcuts: (() => void) | null = null
+onBeforeUnmount(() => uninstallShortcuts?.())
+watch(
+  () => app.ready,
+  (ready) => {
+    if (ready && !uninstallShortcuts) uninstallShortcuts = installKeyboardShortcuts(player)
+  },
+  { immediate: true },
+)
 
 // 登录成功后启动全局下载完成 toast 通知（幂等）
 watch(
