@@ -186,8 +186,9 @@ function onLyrics(song: SongRecord) {
       :class="isHero ? 'max-w-2xl flex-col gap-3 sm:flex-row' : ''"
       @submit.prevent="doSearch(1)"
     >
-      <Select v-model="plug">
-        <SelectTrigger class="shrink-0" :class="isHero ? 'w-full h-11 sm:w-[120px]' : 'w-[120px]'" title="选择音源">
+      <!-- 首页大搜索区不显示音源选择，保持聚焦；搜索结果页提供音源切换 -->
+      <Select v-if="!isHero" v-model="plug">
+        <SelectTrigger class="w-[120px] shrink-0" title="选择音源">
           <SelectValue placeholder="音源" />
         </SelectTrigger>
         <SelectContent>
@@ -204,7 +205,7 @@ function onLyrics(song: SongRecord) {
           data-search-input
           placeholder="搜索歌曲 / 歌手 / 专辑，回车搜索"
           title="按 / 聚焦搜索"
-          :class="isHero ? 'h-11 pr-9 text-base' : 'h-9 pr-9'"
+          :class="isHero ? 'h-12 pr-9 text-base' : 'h-9 pr-9'"
           @focus="onInputFocus"
           @blur="onInputBlur"
           @keydown.enter.prevent="doSearch(1)"
@@ -269,7 +270,11 @@ function onLyrics(song: SongRecord) {
         </div>
       </div>
 
-      <Button type="submit" :class="isHero ? 'h-11' : ''" :disabled="loading || !keyword.trim()">
+      <Button
+        type="submit"
+        :class="isHero ? 'h-12 px-7 text-base' : ''"
+        :disabled="loading || !keyword.trim()"
+      >
         <SearchIcon class="size-4" />
         搜索
       </Button>

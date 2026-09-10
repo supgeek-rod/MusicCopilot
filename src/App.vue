@@ -59,5 +59,15 @@ watch(
     <PlayerBar />
   </div>
 
-  <Toaster position="top-center" rich-colors close-button />
+  <!-- toast 固定右上角，文字右对齐 -->
+  <Toaster
+    position="top-right"
+    rich-colors
+    close-button
+    :toast-options="{
+      classes: {
+        toast: 'rounded-2xl [&_[data-title]]:text-right [&_[data-description]]:text-right',
+      },
+    }"
+  />
 </template>
