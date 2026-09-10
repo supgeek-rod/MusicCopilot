@@ -57,10 +57,13 @@ function skip(player: PlayerStore, dir: 'next' | 'prev') {
 }
 
 /** 全局快捷键：
- * 空格 播放/暂停；`/` 聚焦搜索；
+ * 空格 播放/暂停；`/` 聚焦搜索；`?` 快捷键速查弹窗；
  * Ctrl+←/→ 上一曲/下一曲；Ctrl+↑/↓ 音量加减。
  * 输入控件内一律不拦截（避免劫持文字编辑的词间光标移动与组合键）。 */
-export function installKeyboardShortcuts(player: PlayerStore): () => void {
+export function installKeyboardShortcuts(
+  player: PlayerStore,
+  opts: { onShowShortcuts?: () => void } = {},
+): () => void {
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null
     if (
@@ -78,6 +81,9 @@ export function installKeyboardShortcuts(player: PlayerStore): () => void {
     } else if (!mod && e.key === '/') {
       e.preventDefault()
       focusSearchInput()
+    } else if (!mod && e.key === '?') {
+      e.preventDefault()
+      opts.onShowShortcuts?.()
     } else if (mod && e.key === 'ArrowRight') {
       e.preventDefault()
       skip(player, 'next')

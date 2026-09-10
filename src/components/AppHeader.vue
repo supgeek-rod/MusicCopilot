@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   HistoryIcon,
+  KeyboardIcon,
   LibraryIcon,
   ListMusicIcon,
   MoonIcon,
@@ -26,6 +27,9 @@ import { Input } from '@/components/ui/input'
 import { clearSearchHistory, loadSearchHistory, removeSearchHistory } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
 import { useFnosStore } from '@/stores/fnos'
+
+// 快捷键速查弹窗由 App.vue 挂载，`?` 键或此处下拉均可唤出
+const emit = defineEmits<{ showShortcuts: [] }>()
 
 const app = useAppStore()
 const fnos = useFnosStore()
@@ -254,6 +258,10 @@ function clearHistory() {
               <SunIcon v-if="isDark" class="size-4" />
               <MoonIcon v-else class="size-4" />
               {{ isDark ? '切换浅色' : '切换深色' }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="emit('showShortcuts')">
+              <KeyboardIcon class="size-4" />
+              快捷键
             </DropdownMenuItem>
             <DropdownMenuItem @click="router.push('/settings')">
               <SettingsIcon class="size-4" />
