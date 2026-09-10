@@ -22,6 +22,9 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_FNOS_BASE_URL` | 飞牛（fnOS）网关地址（如 `http://192.168.31.31:5666`）：Vite 代理与 Docker nginx 把 `/fnos` 反代到该地址；**不配置则「音乐库」入口不显示** |
 | `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号（token 失效也会用它静默重登；密码经 SHA-256 后提交） |
 | `MC_FNOS_AUTO_LOGIN` | 是否自动登录飞牛音乐（`true` / `false`，默认 `true`） |
+| `MC_SCRAPER_BASE_URL` | 刮削工具（scraper 容器）地址：Vite 代理与 Docker nginx 把 `/mc` 反代到该地址；**不配置则「体检」入口不显示**（见[音乐库体检](./library-health)） |
+| `MC_SCRAPER_TOKEN` | 刮削工具的共享 token（工具侧 `MC_SCRAPER_TOKEN` 非空时必填；前端以 `x-mc-token` 头携带） |
+| `MC_MUSIC_DIR` | 仅 compose 的 scraper 服务读取：fnOS 音乐库目录（**读写**挂载，写入标签/封面/备份） |
 | `MC_PORT` | Docker 对外端口（仅 docker-compose.yml 读取，默认 `17016`） |
 
 > 注意：`.env` 以明文保存密码，请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。「登录框 + 记住 token」模式规划在[路线图](./roadmap.md)第 2 期。

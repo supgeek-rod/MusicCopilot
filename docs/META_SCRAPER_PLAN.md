@@ -92,42 +92,43 @@ scraper/
 | WSL `php artisan test` 通过（7 tests / 16 assertions，含加密链路 mock、重试、错误分支） | ✅ |
 | 真机验证：晴天 id=228908 → code=200，LRC 8716 字符 | ✅ |
 
-### M2 scraper 骨架 + 扫描 + 体检 API ⬜
+### M2 scraper 骨架 + 扫描 + 体检 API ✅（2026-09-11）
 
 | 任务 | 状态 |
 | --- | --- |
-| `scraper/` 工程：package.json / tsconfig / Fastify / node:sqlite / zod | ⬜ |
-| scanner：递归扫描 + music-metadata 读标签入库 + 体检分类 | ⬜ |
-| routes：status / scan / tracks / jobs / config / ignore | ⬜ |
-| 本地样例目录 curl 全链路验证（扫描→清单→过滤→分页） | ⬜ |
+| `scraper/` 工程：package.json / tsconfig / Fastify / node:sqlite / zod | ✅ |
+| scanner：递归扫描 + music-metadata 读标签入库 + 体检分类（增量：size+mtime 跳过） | ✅ |
+| routes：status / scan / tracks / jobs / config / ignore | ✅ |
+| 本地样例目录 curl 全链路验证（4 首样例：分类计数/过滤/分页全对） | ✅ |
 
-### M3 匹配 + 写入 ⬜
-
-| 任务 | 状态 |
-| --- | --- |
-| matcher：文件名解析 + 调 server/ 搜索 + 置信度评分 | ⬜ |
-| writer：taglib-wasm 写标签/封面/歌词 + dry-run + 备份 + 重命名 | ⬜ |
-| ffmpeg 兜底路径（taglib-wasm 覆盖不了的类型） | ⬜ |
-| mp3 / flac / m4a 真实样例验证：dry-run、写入、备份还原、封面歌词嵌入 | ⬜ |
-
-### M4 Web 后台 ⬜
+### M3 匹配 + 写入 ✅（2026-09-11）
 
 | 任务 | 状态 |
 | --- | --- |
-| vite proxy + PWA denylist + config.json scraper 块 + nginx/generate-config.sh | ⬜ |
-| `src/api/companion.ts` + 契约类型 | ⬜ |
-| `LibraryHealthView.vue`：总览/清单/匹配预览/写入/进度/配置/忽略清单 | ⬜ |
-| 路由 + AppHeader 条件导航 | ⬜ |
-| `npm run build` 通过 + 浏览器实测 | ⬜ |
+| matcher：文件名解析 + 调 server/ 搜索 + 置信度评分（bigram；≥0.8 高置信，无歌手参照封顶 0.75 防脏数据自动写入） | ✅ |
+| writer：taglib-wasm 全 API 写标签/封面/歌词 + dry-run + 备份 + 重命名（冲突跳过） | ✅ |
+| ~~ffmpeg 兜底路径~~ → ❌ 挪出 v1（taglib-wasm 已覆盖 mp3/flac/m4a/ogg/opus/wav/ape，兜底收益低；writer 报错明确） | ❌ |
+| mp3 / flac / m4a 真实样例验证：dry-run 预览、写入、`.mc-backup/` 备份、封面/歌词嵌入、改名；守卫（低置信跳过/无匹配跳过/无变更跳过）、忽略清单、增量扫描、疑似重复检测全部通过 | ✅ |
 
-### M5 Docker + CI ⬜
+### M4 Web 后台 ✅（2026-09-11）
 
 | 任务 | 状态 |
 | --- | --- |
-| `scraper/Dockerfile` + `.dockerignore`（node:24-alpine 多阶段、非 root） | ⬜ |
-| compose 增 scraper 服务（音乐卷 rw / data 卷 / MC_SERVER_URL / token） | ⬜ |
-| CI `scraper-docker.yml`（同 tag 策略，amd64+arm64） | ⬜ |
-| 文档站功能页 + nav/sidebar | ⬜ |
+| vite proxy + PWA denylist + config.json scraper 块 + nginx/generate-config.sh | ✅ |
+| `src/api/companion.ts` + 契约类型 | ✅ |
+| `LibraryHealthView.vue`：总览/清单/匹配预览/写入/进度/配置/忽略清单 | ✅ |
+| 路由 `/library/health` + AppHeader 条件导航（`/library` 高亮规则排除体检页） | ✅ |
+| `npm run build` 通过 + vite 代理端到端验证（config.json scraper 块 / /mc/api 转发） | ✅ |
+
+### M5 Docker + CI 🚧
+
+| 任务 | 状态 |
+| --- | --- |
+| `scraper/Dockerfile` + `.dockerignore`（node:24-alpine 多阶段、VOLUME /music /data） | ✅ |
+| compose 增 scraper 服务（`profiles: [scraper]`、音乐卷 rw、data 卷、MC_SERVER_URL、缺 MC_MUSIC_DIR 报错守卫） | ✅ |
+| CI `scraper-docker.yml`（同 tag 策略，amd64+arm64，scraper/** 路径触发） | ✅ |
+| 文档站功能页 `docs/library-health.md` + nav/sidebar + configuration.md 环境变量 | ✅ |
+| 本地 docker build / 浏览器实测（本机 Docker daemon 未启动；合并后由 CI 首次构建验证） | ⬜ |
 
 ## 5. 风险与备选
 
@@ -141,3 +142,4 @@ scraper/
 
 - 2026-09-11：方案批准（Node + TS / 复用 server/ 酷我 / v1 全量写入范围）；worktree 建立；文档先行 M0 开始
 - 2026-09-11：M0 完成（架构/路线图/看板三份文档，docs:build 通过）；M1 完成（getLyric 端点 + 契约固化 + 测试 + 真机验证）
+- 2026-09-11：M2/M3 完成（scraper 全链路：4 首样例扫描分类全对；晴天匹配 0.9 分命中；mp3/m4a 写入封面歌词、改名、备份验证；守卫与增量扫描通过）。M4 完成（体检页 + /mc 通道，build 通过、代理端到端验证）。M5 文档/CI/compose 完成，docker build 与浏览器实测待补

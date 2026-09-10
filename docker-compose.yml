@@ -19,3 +19,35 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+
+  # 元数据刮削工具（可选）：直接读写 NAS 音乐文件的独立容器（音乐库体检后台）。
+  # 启用步骤：
+  #   1. .env 里设置 MC_MUSIC_DIR=<fnOS 音乐库目录>（读写）与 MC_SCRAPER_BASE_URL=http://scraper:8098
+  #   2. docker compose --profile scraper up -d
+  # web 容器经 env_file 拿到 MC_SCRAPER_BASE_URL 后自动生成 /mc 反代并显示「体检」入口。
+  scraper:
+    profiles: ["scraper"]
+    build: ./scraper
+    image: supgeekrod/music-copilot-scraper:latest
+    container_name: music-copilot-scraper
+    environment:
+      MC_MUSIC_DIR: /music
+      MC_DATA_DIR: /data
+      # 在线匹配音源（SQMusic 对齐契约：searchSong/getLyric），默认同 web 的后端地址
+      MC_SERVER_URL: ${MC_SERVER_URL:-${MC_API_BASE_URL:-http://host.docker.internal:8096}}
+      MC_SCRAPER_TOKEN: ${MC_SCRAPER_TOKEN:-}
+    volumes:
+      # 音乐目录必须读写（写入标签/封面/歌词、备份到 .mc-backup/）
+      - "${MC_MUSIC_DIR:?启用 scraper 前请在 .env 设置 MC_MUSIC_DIR}:/music"
+      - scraper-data:/data
+    ports:
+      # 宿主机调试用；web 容器走 compose 内网 http://scraper:8098
+      - "${MC_SCRAPER_PORT:-8098}:8098"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  scraper-data:

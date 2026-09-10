@@ -32,7 +32,10 @@ export default defineConfig({
       },
       {
         text: '功能',
-        items: [{ text: '功能说明', link: '/features' }],
+        items: [
+          { text: '功能说明', link: '/features' },
+          { text: '音乐库体检', link: '/library-health' },
+        ],
       },
       {
         text: '深入',
