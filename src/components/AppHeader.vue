@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  HeartPulseIcon,
   HistoryIcon,
   KeyboardIcon,
   LibraryIcon,
@@ -40,16 +41,24 @@ const toggleDark = useToggle(isDark)
 
 const statusTitle = computed(() => `${app.statusMsg}｜后端：${app.apiBase || '同源'}`)
 
-// 左侧导航：下载任务 + 音乐库（音乐库仅在配置了 fnOS 接入时显示）；搜索走右侧快捷搜索框
+// 左侧导航：下载任务 + 音乐库（音乐库仅在配置了 fnOS 接入时显示）+ 体检（scraper 工具接入时显示）；搜索走右侧快捷搜索框
 const navs = computed(() => {
   const list = [{ path: '/downloads', label: '下载任务', icon: ListMusicIcon }]
   // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示
   if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
+  // 音乐库体检入口仅在配置了刮削工具（MC_SCRAPER_BASE_URL）时显示
+  if (app.config?.scraper?.enabled) {
+    list.push({ path: '/library/health', label: '体检', icon: HeartPulseIcon })
+  }
   return list
 })
 
 function isActive(path: string): boolean {
-  return path === '/library' ? route.path.startsWith('/library') : route.path === path
+  if (path === '/library') {
+    // 体检页（/library/health）有自己的导航项，不归入音乐库高亮
+    return route.path === '/library' || route.path.startsWith('/library/collection')
+  }
+  return route.path === path
 }
 
 const keyword = ref('')

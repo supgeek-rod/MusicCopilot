@@ -111,6 +111,16 @@ export interface FnosAppConfig {
   proxyTarget?: string
 }
 
+/** 刮削工具接入配置（config.json 的 scraper 字段，MC_SCRAPER_* 变量生成） */
+export interface ScraperAppConfig {
+  /** 是否启用「音乐库体检」入口（取决于是否配置了 MC_SCRAPER_BASE_URL） */
+  enabled?: boolean
+  /** 非空时请求带 x-mc-token 头 */
+  token?: string
+  /** 信息性字段：/mc 反代目标地址，仅供展示，应用行为不读取 */
+  proxyTarget?: string
+}
+
 /** 应用运行时配置（dev 由 Vite 从 .env 生成；生产为运行时 config.json 文件） */
 export interface AppConfig {
   baseUrl?: string
@@ -121,6 +131,8 @@ export interface AppConfig {
   proxyTarget?: string
   /** fnOS 音乐库接入配置（可选：未配置 MC_FNOS_BASE_URL 时无此块） */
   fnos?: FnosAppConfig
+  /** 刮削工具接入配置（可选：未配置 MC_SCRAPER_BASE_URL 时无此块） */
+  scraper?: ScraperAppConfig
 }
 
 /** 搜索歌手返回的记录 */

@@ -34,6 +34,7 @@ function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
   const autoLoginRaw = mcEnv(env, 'MC_AUTO_LOGIN')
   const fnosAutoLoginRaw = mcEnv(env, 'MC_FNOS_AUTO_LOGIN')
   const fnosBaseUrl = mcEnv(env, 'MC_FNOS_BASE_URL') ?? ''
+  const scraperBaseUrl = mcEnv(env, 'MC_SCRAPER_BASE_URL') ?? ''
   return {
     baseUrl: '',
     username: mcEnv(env, 'MC_API_USERNAME') ?? '',
@@ -46,6 +47,11 @@ function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
       password: mcEnv(env, 'MC_FNOS_PASSWORD') ?? '',
       autoLogin: fnosAutoLoginRaw === undefined ? true : fnosAutoLoginRaw.toLowerCase() !== 'false',
       proxyTarget: fnosBaseUrl,
+    },
+    scraper: {
+      enabled: Boolean(scraperBaseUrl),
+      token: mcEnv(env, 'MC_SCRAPER_TOKEN') ?? '',
+      proxyTarget: scraperBaseUrl,
     },
   }
 }
@@ -118,6 +124,16 @@ export default defineConfig(({ command, mode }) => {
         },
       }
     : undefined
+  // 刮削工具反代（可选）：/mc/* → scraper 工具（路由自带 /mc 前缀，不 rewrite）
+  const scraperProxyTarget = mcEnv(env, 'MC_SCRAPER_BASE_URL') ?? ''
+  const scraperProxy = scraperProxyTarget
+    ? {
+        '/mc': {
+          target: scraperProxyTarget,
+          changeOrigin: true,
+        },
+      }
+    : undefined
   // 版权信息页展示的版本号，取自 package.json；经 VITE_ 环境变量暴露给 import.meta.env
   const appVersion = (JSON.parse(fs.readFileSync('package.json', 'utf-8')) as { version: string })
     .version
@@ -148,7 +164,7 @@ export default defineConfig(({ command, mode }) => {
         },
         workbox: {
           navigateFallback: 'index.html',
-          navigateFallbackDenylist: [/^\/api\//, /^\/fnos\//, /\/config\.json$/],
+          navigateFallbackDenylist: [/^\/api\//, /^\/fnos\//, /^\/mc\//, /\/config\.json$/],
           runtimeCaching: [
             {
               // 专辑/歌手封面等图片：SWR 缓存（含外链 CDN），限额防膨胀
@@ -186,11 +202,15 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: 5173,
       ...(allowedHosts.length ? { allowedHosts } : {}),
-      ...(apiProxy || fnosProxy ? { proxy: { ...apiProxy, ...fnosProxy } } : {}),
+      ...(apiProxy || fnosProxy || scraperProxy
+        ? { proxy: { ...apiProxy, ...fnosProxy, ...scraperProxy } }
+        : {}),
     },
     preview: {
       ...(allowedHosts.length ? { allowedHosts } : {}),
-      ...(apiProxy || fnosProxy ? { proxy: { ...apiProxy, ...fnosProxy } } : {}),
+      ...(apiProxy || fnosProxy || scraperProxy
+        ? { proxy: { ...apiProxy, ...fnosProxy, ...scraperProxy } }
+        : {}),
     },
   }
 })

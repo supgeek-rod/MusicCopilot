@@ -3,6 +3,7 @@ import AlbumPage from '@/views/AlbumPage.vue'
 import ArtistPage from '@/views/ArtistPage.vue'
 import DownloadsView from '@/views/DownloadsView.vue'
 import FnosCollectionView from '@/views/FnosCollectionView.vue'
+import LibraryHealthView from '@/views/LibraryHealthView.vue'
 import LibraryView from '@/views/LibraryView.vue'
 import SearchView from '@/views/SearchView.vue'
 import SettingsView from '@/views/SettingsView.vue'
@@ -20,6 +21,8 @@ const router = createRouter({
       component: FnosCollectionView,
       props: true,
     },
+    // 音乐库体检（scraper 刮削工具后台，scraper.enabled 时显示入口）
+    { path: '/library/health', name: 'library-health', component: LibraryHealthView },
     { path: '/downloads', name: 'downloads', component: DownloadsView },
     { path: '/settings', name: 'settings', component: SettingsView },
     { path: '/artist/:plug/:id', name: 'artist', component: ArtistPage },
