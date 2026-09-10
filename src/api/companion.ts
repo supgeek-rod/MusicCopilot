@@ -35,7 +35,8 @@ function normalizeError(error: unknown): ApiError {
 
 async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, data?: unknown): Promise<T> {
   try {
-    const res = await scraperHttp.request<T>({ method, url, ...(data !== undefined ? { data } : {}) })
+    // 统一拼 /mc/api 前缀：axios 相对路径会落到页面自身路径，必须显式带基址
+    const res = await scraperHttp.request<T>({ method, url: SCRAPER_BASE + url, ...(data !== undefined ? { data } : {}) })
     return res.data
   } catch (error) {
     throw normalizeError(error)
