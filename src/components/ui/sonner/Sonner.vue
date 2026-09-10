@@ -32,6 +32,8 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
       '--gray4': 'var(--border)',
       '--gray5': 'var(--border)',
       '--gray12': 'var(--popover-foreground)',
+      // 适中宽度：默认 356px 偏宽，右对齐文本观感松散；小屏收窄至视口内
+      '--width': 'min(320px, calc(100vw - 32px))',
     }"
     :toast-options="props.toastOptions ?? {
       classes: {
