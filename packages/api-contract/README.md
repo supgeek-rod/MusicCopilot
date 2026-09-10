@@ -16,10 +16,10 @@
 ```bash
 cd packages/api-contract
 npm install       # 首次
-npm run gen       # 读 ../..//MusicCopilotServer/openapi.json（或运行中的后端），生成 index.d.ts
+npm run gen       # 读仓库内 server/openapi.json（或运行中的后端），生成 index.d.ts
 ```
 
-规范来源优先级：`MC_API_SPEC` 环境变量 → 同级 `MusicCopilotServer/openapi.json` → `http://127.0.0.1:8097/docs/api.json`。
+规范来源优先级：`MC_API_SPEC` 环境变量 → 仓库内 `server/openapi.json` → `http://127.0.0.1:8097/docs/api.json`。
 
 ## 使用方式
 

@@ -2,7 +2,7 @@
 
 ## 项目说明
 
-**MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA，对接 **SQ Music**（simple_sq_music_plus，自部署音乐下载与管理服务）。项目按 [docs/roadmap.md](docs/roadmap.md)「开发路线图」演进：第 3 期起新增 Node 伴生服务，第 5 期自建后端替换 SQMusic（架构见 [docs/architecture.md](docs/architecture.md)）。
+**MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA，对接 **SQ Music**（simple_sq_music_plus，自部署音乐下载与管理服务）。项目按 [docs/roadmap.md](docs/roadmap.md)「开发路线图」演进：第 3 期起新增 Node 伴生服务，第 5 期自建后端替换 SQMusic（架构见 [docs/architecture.md](docs/architecture.md)）。自建后端已提前落地：`server/` 子目录（PHP / Laravel 13，原独立仓库 MusicCopilotServer 于 2026-09-11 subtree 并入，保留历史）。
 
 - 后端服务地址: http://192.168.31.31:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
 - 官方接口文档: https://59799517.github.io/simple_sq_music_plus/#/README
@@ -28,6 +28,14 @@
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
 - `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
+- `wsl -e bash -lc "cd '/mnt/c/Users/superod/OneDrive/文档/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=8097"` —— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
+
+## server/ 子目录（自建后端，Laravel 13）
+
+- 定位：第 5 期替换 SQMusic 的自建后端（原 MusicCopilotServer 仓库 subtree 并入），音源插件化（`app/Plugins/Sources/`），已实现酷我搜索三端点；进度与用法见 `server/README.md`
+- 文档与测试台：`http://127.0.0.1:8097/api-docs.html`（Scalar）、`/docs/api`（Stoplight Elements）、`/docs/api.json` 与 `server/openapi.json`（规范固化，契约类型源）
+- 契约策略：过渡期保持 SQMusic 对齐契约；**新端点不复制历史瑕疵**；SQMusic 退役后以 /v2 出清理版（详见 `packages/api-contract/README.md`）
+- 酷我直链解析有**大陆 IP 区域限制**（海外 407），本机测酷我 curl 一律 `--noproxy '*'`；Windows mingw curl 的 argv 中文会转 GBK（先经 node `encodeURIComponent` 编码）——详见 `server/docs/kuwo-api-notes.md`
 
 ## 代码约定
 
@@ -44,5 +52,5 @@
 ## 路线图约束
 
 - 第 2 期：`config.json` 去掉明文密码，改「登录框 + 记住 token」模式（鉴权细节见 docs/roadmap.md 前置建议）
-- 第 3 期迁移 monorepo 后：本文件拆为根级（通用）+ `apps/web` / `apps/server` 子级（各自特有约定）
-- 新增后端能力时，先更新 `docs/architecture.md` 的模块边界，再动代码；接口契约类型第 3 期起收敛到 `packages/api-contract`
+- monorepo 已于 2026-09-11 提前落地（前端在根、后端在 `server/`）：本文件为根级（前端 + 通用约定），`server/` 特有约定见 `server/AGENTS.md`
+- 新增后端能力时，先更新 `docs/architecture.md` 的模块边界，再动代码；接口契约类型收敛到 `packages/api-contract`（已落地：由 `server/openapi.json` 经 openapi-typescript 生成，`npm run gen -w packages/api-contract` 重新生成）

@@ -29,38 +29,30 @@ description: MusicCopilot 整体架构：演进总览、模块边界、关键决
 - **第 3-4 期**：引入 **Companion 伴生服务**（Node.js），补齐 SQMusic 不具备的 NAS 侧能力（fnOS 对接、文件扫描、标签写入）。
 - **第 5-6 期**：自建 **MusicCopilot Server** 按相同接口契约替换 SQMusic 后端，Docker 一键交付。Companion 与自建后端**合并为同一个 Node 服务**（按模块启停），避免维护两套进程。
 
-## 2. 目标仓库形态（monorepo）
+## 2. 仓库形态（monorepo 已落地）
 
-> 第 1-2 期保持现有单包结构不动；第 3 期动工时一次性迁移到 workspaces（迁移成本低：移动目录 + 改 npm workspaces 字段）。
+> 2026-09-11 monorepo 提前落地：前端保持在仓库根（工具链/部署零改动），自建后端并入 `server/`
+> （原独立仓库 MusicCopilotServer，git subtree 保留历史）。与原规划的两处差异：
+> server 技术栈为 **PHP / Laravel 13**（第 5 期研究后确定，替代 Node/Fastify 方案）；前端不再迁入 `apps/web`。
 
 ```
 MusicCopilot/
-├─ apps/
-│  ├─ web/                      # 现有 SPA（package.json + public/ + src/ 原样迁入）
-│  │  ├─ .env / config.json   # 运行配置（MC_* 变量；dev 由 Vite 生成 config.json）
-│  │  └─ src/
-│  │     ├─ api/                # http 客户端 + 各后端接口封装（见 §4 前端适配层）
-│  │     ├─ stores/ views/ components/ lib/ router/
-│  └─ server/                   # 第3期起：Companion + 自建后端（同一 Node 服务）
-│     └─ src/
-│        ├─ modules/
-│        │  ├─ auth/            # 第2期：登录签发 token（JWT）、用户配置
-│        │  ├─ fnos/            # 第3期：fnOS 接口代理（登录/曲库/歌单）
-│        │  ├─ library/         # 第3期：本地音乐库扫描与浏览
-│        │  ├─ playlist/        # 第3期：歌单查看、歌单补全下载编排
-│        │  ├─ healthcheck/     # 第4期：文件体检、标签写入、重命名
-│        │  ├─ music/           # 第5期：聚合搜索/详情/直链（调用音源插件）
-│        │  ├─ download/        # 第5期：下载引擎（队列/并发/进度/重试/写标签）
-│        │  └─ tasks/           # 第5期：任务持久化与查询
-│        ├─ plugins/sources/    # 第5期：音源插件（kw/netease/mg/tidal…），可独立热更新
-│        └─ infra/              # 配置加载、SQLite、日志、静态托管
-│     └─ data/                  # SQLite 数据库 + 下载目录（Docker 卷挂载）
+├─ src/ index.html vite.config.ts ...   # 前端 SPA（原单包结构不变）
 ├─ packages/
-│  └─ api-contract/             # 前后端共享 TS 类型与接口契约（单一来源）
+│  └─ api-contract/             # 前后端共享契约类型（openapi-typescript 由 server/openapi.json 生成）
+├─ server/                      # 自建后端（PHP / Laravel 13，应用根即本目录）
+│  ├─ app/
+│  │  ├─ Http/Controllers/     # API 控制器（SQMusic 契约 {code,msg,data}）
+│  │  └─ Plugins/Sources/      # 音源插件（SourcePlugin 接口 + KuwoPlugin，待增 netease/mg/tidal）
+│  ├─ routes/api.php           # /api/music/* 等路由
+│  ├─ public/api-docs.html     # Scalar 文档测试台（资产本地化 public/vendor/scalar/）
+│  ├─ lang/zh_CN/              # 最小化中文验证消息
+│  ├─ docs/kuwo-api-notes.md   # 酷我端点/加密/区域限制调研
+│  ├─ research/ scripts/       # 酷我调研资料与 curl 验证脚本
+│  └─ openapi.json             # OpenAPI 3.1 规范固化（scramble:export）
 ├─ docker/
 │  ├─ web.Dockerfile            # 基础版已提前落地（根级 Dockerfile，nginx 托管 + /api 反代）；第6期扩展 /mc 反代与多服务编排
-│  ├─ server.Dockerfile         # 第6期：Node 服务
-│  └─ docker-compose.yml
+│  └─ server.Dockerfile         # 第6期：PHP 服务镜像
 └─ docs/                       # 文档（VitePress 文档站 + 接口实测报告）
 ```
 
@@ -90,7 +82,7 @@ MusicCopilot/
 | 4 | **统一鉴权**：第 2 期登录框 + JWT；前端 axios 适配层同时兼容 SQMusic 的 `sqmusic` 头与自建服务的 `Authorization: Bearer` | 配置文件不再存明文密码；过渡期双后端并存无感切换 |
 | 5 | **数据闭环**：下载目录 = fnOS 音乐目录（Docker 卷映射同一路径） | 新下载自动被 fnOS 扫描入库，歌单补全/音质升级无需搬运文件 |
 | 6 | **同源部署**：生产由 nginx 反代 `/api`、`/mc`，开发用 Vite proxy | 彻底规避 CORS；`config.json` 只需留空 baseUrl |
-| 7 | **技术栈**：server 用 Fastify + better-sqlite3；构建产物单进程 | 轻量、TS 友好、NAS 资源占用低 |
+| 7 | **技术栈**（2026-09 修订）：server 用 PHP / Laravel 13 + SQLite（队列 database driver + `queue:work`） | Laravel 生态完备（HTTP 客户端/队列/测试开箱即用）、插件化天然契合；原 Fastify+Node 方案作废 |
 | 8 | **fnOS 同源反代直连**：`/fnos` 前缀固定为「fnOS 音乐 API 同源代理」（dev 走 Vite proxy，生产走 nginx），前端登录后以 `document.cookie` 写入 `music-token`，封面/音频流用相对路径自动携带 Cookie；第 3 期由 Companion `server/fnos` 模块接管同一前缀 | fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行；前缀语义固定后伴生服务接管零改动 |
 
 ## 5. 部署拓扑（第 6 期目标）

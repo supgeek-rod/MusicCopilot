@@ -11,7 +11,7 @@ import openapiTS, { astToString } from 'openapi-typescript'
 
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = resolve(pkgDir, '../..')
-const siblingSpec = resolve(repoRoot, '../MusicCopilotServer/openapi.json')
+const siblingSpec = resolve(repoRoot, 'server/openapi.json')
 const fallbackUrl = 'http://127.0.0.1:8097/docs/api.json'
 
 async function loadSpec() {
