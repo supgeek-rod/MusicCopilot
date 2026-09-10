@@ -7,6 +7,19 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # 压缩与缓存：JS/CSS 单 chunk 较大，gzip 显著减少传输；
+    # /assets/* 为哈希文件名，可长期缓存
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
     # 后端反代：浏览器同源访问 /api，规避 CORS
     location /api {
         proxy_pass ${MC_API_BASE_URL};

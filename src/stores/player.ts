@@ -5,6 +5,13 @@ import type { SongRecord } from '@/api/types'
 import { sortBrTypes } from '@/lib/format'
 import { loadPersistedQueue, persistQueue } from '@/lib/playQueue'
 
+const VOLUME_KEY = 'mc:player-volume'
+
+function loadPersistedVolume(): number {
+  const v = Number.parseFloat(localStorage.getItem(VOLUME_KEY) ?? '')
+  return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 1
+}
+
 export const usePlayerStore = defineStore('player', {
   // 启动时恢复上次退出时的队列（url 不恢复，点播放时重新取链）
   state: () => {
@@ -20,7 +27,7 @@ export const usePlayerStore = defineStore('player', {
       isPlaying: false,
       currentTime: 0,
       duration: 0,
-      volume: 1,
+      volume: loadPersistedVolume(),
     }
   },
 
@@ -136,6 +143,12 @@ export const usePlayerStore = defineStore('player', {
       this.currentTime = 0
       this.duration = 0
       this.persist()
+    },
+
+    /** 调节音量并持久化到 localStorage（0 = 静音也是有效值） */
+    setVolume(v: number) {
+      this.volume = Math.min(1, Math.max(0, v))
+      localStorage.setItem(VOLUME_KEY, String(this.volume))
     },
 
     /** 队列或当前索引变更后写入 localStorage */

@@ -111,7 +111,7 @@ function onSeek(value: number[] | undefined) {
 function onVolume(value: number[] | undefined) {
   const v = value?.[0]
   if (v === undefined) return
-  player.volume = v / 100
+  player.setVolume(v / 100)
   if (audioRef.value) audioRef.value.volume = player.volume
 }
 

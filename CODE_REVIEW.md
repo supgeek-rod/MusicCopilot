@@ -16,6 +16,19 @@
 >   - P1-6 `docker/generate-config.sh` 对所有字符串字段做 JSON 转义（`\` 与 `"`）
 > - 其余 P2/P3 未处理。
 > - 验证：`npm run build`、`npm run docs:build`、`sh -n docker/generate-config.sh` 均通过。
+> - P2/P3 第二批 ✅ 已修复（2026-09-10）——同分支 `fix/code-review-p1`：
+>   - P2-2 `LibraryView.vue` 加载失败时清空列表并复位 pageIndex/total
+>   - P2-4 `QualityMenu.vue` 直链下载提示改中性（说明跨域文件名由浏览器决定）
+>   - P2-5 `taskToaster.ts` / `DownloadsView.vue` 轮询在 `document.hidden` 时跳过
+>   - P2-6 `player.ts` 新增 `setVolume`，音量持久化到 localStorage（0 静音有效）
+>   - P2-8 `DownloadsView.vue` 行内重试/入队按钮增加 `busyTaskId` 防连点
+>   - P2-9 `http.ts` 响应拦截器先判 `axios.isCancel`，不再误报连接失败
+>   - P2-12 `LibraryView.vue` 登录失败重试改为重跑 `ensureLogin()`，不再整页刷新
+>   - O1 `vite.config.ts` Rolldown `advancedChunks` 拆 vendor（vue/reka-ui/axios），单 chunk 542 kB → 最大 176 kB
+>   - O2 `nginx-default.conf.template` 开 gzip + `/assets/*` 一年 immutable 缓存
+>   - O4 批量删除确认文案带上当前筛选 total 与「不受筛选影响」提示
+>   - O5 `shadcn-vue` 移入 devDependencies；`RetriableConfig` 收紧为 `AxiosRequestConfig & { __retried403?: boolean }`
+> - 本轮明确不处理：P2-1（无服务端 logout 接口）、P2-3（跨页排序，需拉全量）、P2-7 / P2-10 / P2-13 / P2-14（功能设计变更，另行排期）、P2-11（无害一次性迁移）、O3（首屏并行化，收益小）。
 
 ## 结论速览
 

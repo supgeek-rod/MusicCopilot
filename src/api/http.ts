@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 import type { ApiResponse } from './types'
 
 /**
@@ -41,12 +41,15 @@ http.interceptors.request.use((cfg) => {
   return cfg
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RetriableConfig = typeof axios.defaults & { __retried403?: boolean } & any
+type RetriableConfig = AxiosRequestConfig & { __retried403?: boolean }
 
 http.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
+    // 主动取消（AbortController 等）不是连接故障，不误报「无法连接后端服务」
+    if (axios.isCancel(error)) {
+      return Promise.reject(new ApiError('请求已取消'))
+    }
     const cfg = error.config as RetriableConfig | undefined
     // 登录态失效：自动重登一次并重试原请求（认证接口本身不重试，避免死循环）
     if (

@@ -86,6 +86,22 @@ function clearSearch() {
   keyword.value = ''
 }
 
+/** 登录失败重试：重新走登录流程并加载第一页（不整页刷新） */
+const retrying = ref(false)
+async function retryLogin() {
+  retrying.value = true
+  try {
+    loginReady.value = await fnos.ensureLogin()
+    loginFailed.value = !loginReady.value
+    if (loginReady.value) {
+      keyword.value = ''
+      load(1)
+    }
+  } finally {
+    retrying.value = false
+  }
+}
+
 // 歌词弹窗（fnOS 曲目由 LyricDialog 内部分流取词）
 const lyricOpen = ref(false)
 const lyricSong = ref<SongRecord | null>(null)
@@ -147,6 +163,14 @@ async function load(page: number) {
     pageIndex.value = page
   } catch (e) {
     if (disposed) return
+    // 失败时清空列表并复位分页，避免沿用上一个 Tab/页码的 total 显示「第 3 / 1 页」
+    tracks.value = []
+    albums.value = []
+    artists.value = []
+    genres.value = []
+    playlists.value = []
+    total.value = 0
+    pageIndex.value = 1
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
     if (!disposed) loading.value = false
@@ -199,7 +223,9 @@ function hideImg(e: Event) {
       <p class="mt-1 text-xs text-muted-foreground">
         请检查 .env 中 MC_FNOS_USERNAME / MC_FNOS_PASSWORD 配置与 NAS 网络
       </p>
-      <Button variant="outline" size="sm" class="mt-4" @click="router.go(0)">重试</Button>
+      <Button variant="outline" size="sm" class="mt-4" :disabled="retrying" @click="retryLogin">
+        {{ retrying ? '重试中…' : '重试' }}
+      </Button>
     </div>
 
     <template v-else>
