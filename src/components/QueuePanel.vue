@@ -53,7 +53,7 @@ async function remove(index: number) {
         </Button>
       </div>
 
-      <ScrollArea class="max-h-80">
+      <ScrollArea class="max-h-[min(20rem,60vh)]">
         <div v-if="!player.queue.length" class="px-3 py-10 text-center text-sm text-muted-foreground">
           队列为空
         </div>
