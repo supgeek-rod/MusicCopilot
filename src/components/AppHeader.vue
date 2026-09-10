@@ -23,7 +23,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import SettingsDialog from '@/components/SettingsDialog.vue'
 import { clearSearchHistory, loadSearchHistory, removeSearchHistory } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
 import { useFnosStore } from '@/stores/fnos'
@@ -44,9 +43,6 @@ const navs = computed(() => {
   if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
   return list
 })
-
-// 系统设置弹窗由设置下拉里的入口打开
-const settingsOpen = ref(false)
 
 function isActive(path: string): boolean {
   return path === '/library' ? route.path.startsWith('/library') : route.path === path
@@ -246,7 +242,7 @@ function clearHistory() {
           </div>
         </div>
 
-        <!-- 设置下拉：下载任务 / 主题切换 / 系统设置 -->
+        <!-- 设置下拉：主题切换 / 系统设置（进入独立设置页） -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="icon-sm" title="设置">
@@ -259,7 +255,7 @@ function clearHistory() {
               <MoonIcon v-else class="size-4" />
               {{ isDark ? '切换浅色' : '切换深色' }}
             </DropdownMenuItem>
-            <DropdownMenuItem @click="settingsOpen = true">
+            <DropdownMenuItem @click="router.push('/settings')">
               <SettingsIcon class="size-4" />
               系统设置
             </DropdownMenuItem>
@@ -267,7 +263,5 @@ function clearHistory() {
         </DropdownMenu>
       </div>
     </div>
-
-    <SettingsDialog v-model:open="settingsOpen" />
   </header>
 </template>
