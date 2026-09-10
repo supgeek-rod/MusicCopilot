@@ -17,27 +17,63 @@ class MusicSearchController extends Controller
     {
     }
 
+    /**
+     * 搜索单曲（酷我：search.kuwo.cn/r.s ft=music）
+     *
+     * @response status=200 {"code":200,"msg":null,"data":{"records":[{"id":"228908","name":"晴天","artistName":["周杰伦"],"albumName":"叶惠美","albumid":"1293","duration":"269000","brTypes":["KW_FLAC_2000","KW_MP3_320","KW_MP3_128"],"pic":"https://example.com/500/x.jpg","plugName":"kw"}],"searchTotal":6627,"searchIndex":1,"searchSize":3,"searchKeyWork":"晴天 周杰伦","plugName":"kw"}}
+     */
     public function searchSong(Request $request): JsonResponse
     {
-        return $this->search($request, 'song');
+        $validated = $request->validate([
+            'keyword' => 'required|string',
+            'plugName' => 'string',
+            'pageIndex' => 'integer|min:1',
+            'pageSize' => 'integer|min:1|max:100',
+        ]);
+
+        return $this->search($validated, 'song');
     }
 
+    /**
+     * 搜索歌手（酷我：r.s ft=artist）
+     *
+     * @response status=200 {"code": 200, "msg": null, "data": {"records": [{"artistName": "周杰伦", "artistid": "336", "pic": "https://img4.kuwo.cn/star/starheads/500/x.jpg", "plugName": "kw", "total": "45", "dataInfo": {}}], "searchTotal": 50, "searchIndex": 1, "searchSize": 3, "searchKeyWork": "周杰伦", "plugName": "kw"}}
+     */
     public function searchArtist(Request $request): JsonResponse
     {
-        return $this->search($request, 'artist');
+        $validated = $request->validate([
+            'keyword' => 'required|string',
+            'plugName' => 'string',
+            'pageIndex' => 'integer|min:1',
+            'pageSize' => 'integer|min:1|max:100',
+        ]);
+
+        return $this->search($validated, 'artist');
     }
 
+    /**
+     * 搜索专辑（酷我：r.s ft=album）
+     *
+     * @response status=200 {"code": 200, "msg": null, "data": {"records": [{"albumName": "叶惠美", "albumid": "1293", "artistName": "周杰伦", "artistid": "336", "pic": "https://img3.kuwo.cn/star/albumcover/500/x.jpg", "plugName": "kw", "total": "11", "dataInfo": {}}], "searchTotal": 3, "searchIndex": 1, "searchSize": 3, "searchKeyWork": "叶惠美", "plugName": "kw"}}
+     */
     public function searchAlbum(Request $request): JsonResponse
     {
-        return $this->search($request, 'album');
+        $validated = $request->validate([
+            'keyword' => 'required|string',
+            'plugName' => 'string',
+            'pageIndex' => 'integer|min:1',
+            'pageSize' => 'integer|min:1|max:100',
+        ]);
+
+        return $this->search($validated, 'album');
     }
 
-    private function search(Request $request, string $type): JsonResponse
+    private function search(array $validated, string $type): JsonResponse
     {
-        $keyword = trim((string) $request->query('keyword', ''));
-        $plugName = (string) ($request->query('plugName', 'kw'));
-        $pageIndex = max(1, (int) $request->query('pageIndex', '1'));
-        $pageSize = min(100, max(1, (int) $request->query('pageSize', '30')));
+        $keyword = trim($validated['keyword']);
+        $plugName = $validated['plugName'] ?? 'kw';
+        $pageIndex = $validated['pageIndex'] ?? 1;
+        $pageSize = $validated['pageSize'] ?? 30;
 
         if ($keyword === '') {
             return $this->fail('keyword 不能为空');

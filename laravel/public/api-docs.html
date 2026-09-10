@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <title>MusicCopilot Server API</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { margin: 0; background: #1b1b22; }
+    #fallback {
+      display: none;
+      font-family: ui-monospace, Consolas, monospace;
+      color: #e2e2e8; padding: 24px; line-height: 1.8;
+    }
+    #fallback a { color: #8ab4ff; }
+  </style>
+</head>
+<body>
+  <!-- Scalar 渲染容器（本地化构建，离线 NAS 可用） -->
+  <div id="app"></div>
+
+  <!-- 加载失败时的兜底提示 -->
+  <div id="fallback">
+    <p>Scalar 资源加载失败。可尝试：</p>
+    <p>1. 检查 <code>public/vendor/scalar/api-reference.browser.js</code> 是否存在</p>
+    <p>2. 原始规范文件：<a href="/docs/api.json">/docs/api.json</a></p>
+    <p>3. Scramble 自带文档页：<a href="/docs/api">/docs/api</a></p>
+  </div>
+
+  <script src="/vendor/scalar/api-reference.browser.js"></script>
+  <script>
+    if (window.Scalar && window.Scalar.createApiReference) {
+      window.Scalar.createApiReference('#app', {
+        // Scramble 生成的 OpenAPI 3.1 规范（同源，无需 CORS）
+        url: '/docs/api.json',
+      })
+    } else {
+      document.getElementById('fallback').style.display = 'block'
+    }
+  </script>
+</body>
+</html>

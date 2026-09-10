@@ -10,6 +10,7 @@
 - [x] Laravel 13 骨架（`laravel/`，WSL PHP 8.4 运行，`php artisan serve --port=8097`）
 - [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，SQMusic `{code,msg,data}` 契约，
       字段对齐 MusicCopilot 前端 `SongRecord/ArtistRecord/AlbumRecord`）
+- [x] API 文档 + 在线测试台：Scalar（本地化）+ Scramble 自动生成 OpenAPI 3.1 规范（2026-09-11）
 - [ ] 鉴权（登录 + sqmusic token 头）
 - [ ] 歌词 / 歌曲详情 / 直链解析 / 下载链接
 - [ ] 下载队列与任务管理
@@ -26,6 +27,16 @@ curl 'http://127.0.0.1:8097/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
 
 `pageIndex` 从 1 开始（内部转酷我 pn=pageIndex-1）；`pageSize` 上限 100。
 错误统一 `{code:500, msg, data:null}`：keyword 缺失、plugName 未注册、上游请求失败。
+
+### API 文档与在线测试（Scalar + Scramble）
+
+- **`http://127.0.0.1:8097/api-docs.html`** —— Scalar 渲染的交互式文档 + 请求测试控制台
+  （资产已本地化到 `public/vendor/scalar/`，离线 NAS 可用；CDN 产物有坏包问题勿换回，见 git 历史）
+- `http://127.0.0.1:8097/docs/api` —— Scramble 自带文档页（Stoplight Elements，控制台经实测可发真实请求）
+- `http://127.0.0.1:8097/docs/api.json` —— OpenAPI 3.1 规范（Scramble 从控制器自动生成，可喂 openapi-typescript 生成前端契约类型）
+
+已知限制：规范中 `records` 的内部结构是宽松推断（`array<string,mixed>`），信封与分页字段精确；
+后续可用 Scramble 扩展或响应类进一步收紧。
 
 ## 目录结构
 
