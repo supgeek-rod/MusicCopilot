@@ -1,0 +1,19 @@
+{
+  "name": "@musiccopilot/api-contract",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MusicCopilot 前后端 API 契约类型（由 MusicCopilotServer 的 OpenAPI 规范自动生成，勿手改 index.d.ts）",
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    }
+  },
+  "scripts": {
+    "gen": "node scripts/generate.mjs"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.5.0"
+  }
+}
