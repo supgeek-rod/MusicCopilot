@@ -3,7 +3,13 @@ import { fnosStreamUrl } from '@/api/fnos'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import { sortBrTypes } from '@/lib/format'
-import { loadPersistedQueue, loadPlayMode, persistPlayMode, persistQueue } from '@/lib/playQueue'
+import {
+  loadPersistedQueue,
+  loadPlayMode,
+  loadVolume,
+  persistPlayMode,
+  persistQueue,
+} from '@/lib/playQueue'
 import type { PlayMode } from '@/lib/playQueue'
 
 export const usePlayerStore = defineStore('player', {
@@ -21,7 +27,7 @@ export const usePlayerStore = defineStore('player', {
       isPlaying: false,
       currentTime: 0,
       duration: 0,
-      volume: 1,
+      volume: loadVolume(),
       /** 播放模式：loop 列表循环（默认）/ shuffle 随机播放 / stop 播完停止 */
       playMode: loadPlayMode(),
     }
