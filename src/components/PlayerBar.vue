@@ -141,7 +141,7 @@ function close() {
           v-if="player.queue.length > 1"
           variant="ghost"
           size="icon-sm"
-          title="上一首"
+          title="上一首（Ctrl+←）"
           :disabled="!player.hasPrev"
           @click="player.prev()"
         >
@@ -155,7 +155,7 @@ function close() {
           v-if="player.queue.length > 1"
           variant="ghost"
           size="icon-sm"
-          title="下一首"
+          title="下一首（Ctrl+→）"
           :disabled="!player.hasNext"
           @click="player.next()"
         >
