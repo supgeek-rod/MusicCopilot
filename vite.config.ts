@@ -118,6 +118,10 @@ export default defineConfig(({ command, mode }) => {
         },
       }
     : undefined
+  // 版权信息页展示的版本号，取自 package.json；经 VITE_ 环境变量暴露给 import.meta.env
+  const appVersion = (JSON.parse(fs.readFileSync('package.json', 'utf-8')) as { version: string })
+    .version
+  process.env.VITE_APP_VERSION = appVersion
   return {
     plugins: [
       vue(),

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { LoaderCircleIcon } from '@lucide/vue'
-import { onMounted, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import PlayerBar from '@/components/PlayerBar.vue'
+import ShortcutsModal from '@/components/ShortcutsModal.vue'
 import { Toaster } from '@/components/ui/sonner'
+import { installKeyboardShortcuts } from '@/lib/playback'
+import { persistVolume } from '@/lib/playQueue'
 import { startTaskToasts } from '@/lib/taskToaster'
 import { useAppStore } from '@/stores/app'
 import { usePlayerStore } from '@/stores/player'
@@ -11,9 +14,32 @@ import { usePlayerStore } from '@/stores/player'
 const app = useAppStore()
 const player = usePlayerStore()
 
+// 快捷键速查弹窗：`?` 键或导航栏设置下拉唤出
+const shortcutsOpen = ref(false)
+
 onMounted(() => {
   app.init()
 })
+
+// 全局快捷键：空格播放/暂停、`/` 聚焦搜索、Ctrl+←/→ 切歌、Ctrl+↑/↓ 音量
+let uninstallShortcuts: (() => void) | null = null
+onBeforeUnmount(() => uninstallShortcuts?.())
+watch(
+  () => app.ready,
+  (ready) => {
+    if (ready && !uninstallShortcuts)
+      uninstallShortcuts = installKeyboardShortcuts(player, {
+        onShowShortcuts: () => (shortcutsOpen.value = true),
+      })
+  },
+  { immediate: true },
+)
+
+// 音量变更（滑杆/静音/快捷键）持久化，刷新后恢复
+watch(
+  () => player.volume,
+  (v) => persistVolume(v),
+)
 
 // 登录成功后启动全局下载完成 toast 通知（幂等）
 watch(
@@ -33,7 +59,7 @@ watch(
   </div>
 
   <div v-else class="flex min-h-screen flex-col">
-    <AppHeader />
+    <AppHeader @show-shortcuts="shortcutsOpen = true" />
     <div
       v-if="!app.connected"
       class="bg-destructive/10 px-4 py-1.5 text-center text-xs text-destructive"
@@ -47,5 +73,17 @@ watch(
     <PlayerBar />
   </div>
 
-  <Toaster position="top-center" rich-colors close-button />
+  <ShortcutsModal v-model:open="shortcutsOpen" />
+
+  <!-- toast 固定右上角，文字右对齐 -->
+  <Toaster
+    position="top-right"
+    rich-colors
+    close-button
+    :toast-options="{
+      classes: {
+        toast: 'rounded-2xl [&_[data-title]]:text-right [&_[data-description]]:text-right',
+      },
+    }"
+  />
 </template>

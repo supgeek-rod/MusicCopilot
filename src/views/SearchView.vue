@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HistoryIcon, Music2Icon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
+import { HistoryIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
 import { onClickOutside, watchDebounced } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -50,6 +50,9 @@ const lyricOpen = ref(false)
 const lyricSong = ref<SongRecord | null>(null)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+
+// 首页（未搜索）状态：搜索框居中放大展示，历史记录平铺在下方
+const isHero = computed(() => !submitted.value && !loading.value)
 
 // 卸载后丢弃迟到响应，避免与路由切换产生更新竞态
 let disposed = false
@@ -176,10 +179,21 @@ function onLyrics(song: SongRecord) {
 </script>
 
 <template>
-  <div>
+  <div :class="isHero ? 'flex min-h-[70vh] flex-col items-center justify-center' : ''">
+    <!-- 首页状态：标题引导在搜索框上方（不放图标） -->
+    <template v-if="isHero">
+      <h1 class="text-center text-xl font-semibold">搜索你想听的音乐</h1>
+      <p class="mt-1 text-center text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
+    </template>
+
     <!-- 搜索区 -->
-    <form class="flex gap-2" @submit.prevent="doSearch(1)">
-      <Select v-model="plug">
+    <form
+      class="flex w-full gap-2"
+      :class="isHero ? 'mt-6 max-w-2xl flex-col gap-3 sm:flex-row' : ''"
+      @submit.prevent="doSearch(1)"
+    >
+      <!-- 首页大搜索区不显示音源选择，保持聚焦；搜索结果页提供音源切换 -->
+      <Select v-if="!isHero" v-model="plug">
         <SelectTrigger class="w-[120px] shrink-0" title="选择音源">
           <SelectValue placeholder="音源" />
         </SelectTrigger>
@@ -194,8 +208,10 @@ function onLyrics(song: SongRecord) {
       <div ref="searchBoxRef" class="relative flex-1">
         <Input
           v-model="keyword"
+          data-search-input
           placeholder="搜索歌曲 / 歌手 / 专辑，回车搜索"
-          class="h-9 pr-9"
+          title="按 / 聚焦搜索"
+          :class="isHero ? 'h-12 pr-9 text-base' : 'h-9 pr-9'"
           @focus="onInputFocus"
           @blur="onInputBlur"
           @keydown.enter.prevent="doSearch(1)"
@@ -218,9 +234,9 @@ function onLyrics(song: SongRecord) {
             <span class="truncate">{{ t }}</span>
           </button>
         </div>
-        <!-- 搜索历史：聚焦且未输入关键词时展示 -->
+        <!-- 搜索历史：聚焦且未输入关键词时展示（首页状态改为下方平铺展示） -->
         <div
-          v-else-if="tipsOpen && !keyword.trim() && history.length"
+          v-else-if="tipsOpen && !keyword.trim() && history.length && !isHero"
           class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
         >
           <div
@@ -260,19 +276,45 @@ function onLyrics(song: SongRecord) {
         </div>
       </div>
 
-      <Button type="submit" :disabled="loading || !keyword.trim()">
+      <Button
+        type="submit"
+        :class="isHero ? 'h-12 px-7 text-base' : ''"
+        :disabled="loading || !keyword.trim()"
+      >
         <SearchIcon class="size-4" />
         搜索
       </Button>
     </form>
 
-    <!-- 空态引导 -->
-    <div v-if="!submitted && !loading" class="flex flex-col items-center justify-center py-28 text-center">
-      <div class="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Music2Icon class="size-8" />
+    <!-- 首页状态：搜索历史（左对齐小字，弱化展示，点击可重新搜索） -->
+    <div v-if="isHero" class="mt-10 flex w-full max-w-2xl flex-col items-start">
+      <div v-if="history.length" class="w-full">
+        <div class="mb-1.5 flex items-center justify-between px-1">
+          <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <HistoryIcon class="size-3.5" />
+            搜索历史
+          </span>
+          <button
+            type="button"
+            class="flex items-center gap-1 text-xs text-muted-foreground/70 hover:text-foreground"
+            @click="clearHistory"
+          >
+            清空
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 px-1">
+          <button
+            v-for="h in history"
+            :key="h"
+            type="button"
+            class="text-xs text-muted-foreground hover:text-foreground"
+            :title="`搜索「${h}」`"
+            @click="searchTerm(h)"
+          >
+            {{ h }}
+          </button>
+        </div>
       </div>
-      <h1 class="mt-4 text-xl font-semibold">搜索你想听的音乐</h1>
-      <p class="mt-1 text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
     </div>
 
     <!-- 结果区 -->

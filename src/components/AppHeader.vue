@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import {
   HistoryIcon,
+  KeyboardIcon,
   LibraryIcon,
   ListMusicIcon,
   MoonIcon,
   Music2Icon,
   SearchIcon,
+  SettingsIcon,
   SunIcon,
   TrashIcon,
   XIcon,
@@ -15,11 +17,19 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { musicApi } from '@/api/music'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import SettingsDialog from '@/components/SettingsDialog.vue'
 import { clearSearchHistory, loadSearchHistory, removeSearchHistory } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
 import { useFnosStore } from '@/stores/fnos'
+
+// 快捷键速查弹窗由 App.vue 挂载，`?` 键或此处下拉均可唤出
+const emit = defineEmits<{ showShortcuts: [] }>()
 
 const app = useAppStore()
 const fnos = useFnosStore()
@@ -30,11 +40,9 @@ const toggleDark = useToggle(isDark)
 
 const statusTitle = computed(() => `${app.statusMsg}｜后端：${app.apiBase || '同源'}`)
 
+// 左侧导航：下载任务 + 音乐库（音乐库仅在配置了 fnOS 接入时显示）；搜索走右侧快捷搜索框
 const navs = computed(() => {
-  const list = [
-    { path: '/search', label: '搜索', icon: SearchIcon },
-    { path: '/downloads', label: '下载任务', icon: ListMusicIcon },
-  ]
+  const list = [{ path: '/downloads', label: '下载任务', icon: ListMusicIcon }]
   // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示
   if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
   return list
@@ -145,7 +153,23 @@ function clearHistory() {
         </div>
       </RouterLink>
 
-      <nav class="ml-auto flex items-center gap-1">
+      <!-- 导航：靠左，仅音乐库 -->
+      <nav class="flex items-center gap-1">
+        <Button
+          v-for="nav in navs"
+          :key="nav.path"
+          :variant="isActive(nav.path) ? 'secondary' : 'ghost'"
+          size="sm"
+          as-child
+        >
+          <RouterLink :to="nav.path">
+            <component :is="nav.icon" class="size-4" />
+            {{ nav.label }}
+          </RouterLink>
+        </Button>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-1">
         <!-- 快捷搜索：聚焦显历史、输入显联想，选中/回车跳转搜索页（面板交互与搜索页一致） -->
         <div ref="searchBoxRef" class="relative mr-2 hidden md:block">
           <SearchIcon
@@ -153,9 +177,10 @@ function clearHistory() {
           />
           <Input
             v-model="keyword"
+            data-search-input
             class="h-8 w-52 pl-8 pr-2 text-sm transition-[width] focus:w-72"
             placeholder="搜索歌曲 / 歌手 / 专辑"
-            title="快捷搜索（回车跳转搜索页）"
+            title="快捷搜索（回车跳转搜索页，按 / 聚焦）"
             @focus="onInputFocus"
             @click="onInputFocus"
             @blur="onInputBlur"
@@ -221,26 +246,30 @@ function clearHistory() {
           </div>
         </div>
 
-        <Button
-          v-for="nav in navs"
-          :key="nav.path"
-          :variant="isActive(nav.path) ? 'secondary' : 'ghost'"
-          size="sm"
-          as-child
-        >
-          <RouterLink :to="nav.path">
-            <component :is="nav.icon" class="size-4" />
-            {{ nav.label }}
-          </RouterLink>
-        </Button>
-
-        <SettingsDialog />
-
-        <Button variant="ghost" size="icon-sm" :title="isDark ? '切换浅色' : '切换深色'" @click="toggleDark()">
-          <SunIcon v-if="isDark" class="size-4" />
-          <MoonIcon v-else class="size-4" />
-        </Button>
-      </nav>
+        <!-- 设置下拉：主题切换 / 系统设置（进入独立设置页） -->
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="icon-sm" title="设置">
+              <SettingsIcon class="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" class="w-40">
+            <DropdownMenuItem @click="toggleDark()">
+              <SunIcon v-if="isDark" class="size-4" />
+              <MoonIcon v-else class="size-4" />
+              {{ isDark ? '切换浅色' : '切换深色' }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="emit('showShortcuts')">
+              <KeyboardIcon class="size-4" />
+              快捷键
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="router.push('/settings')">
+              <SettingsIcon class="size-4" />
+              系统设置
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   </header>
 </template>

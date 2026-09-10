@@ -16,10 +16,18 @@ import { Button } from '@/components/ui/button'
 import QueuePanel from '@/components/QueuePanel.vue'
 import { Slider } from '@/components/ui/slider'
 import { formatSeconds } from '@/lib/format'
+import { bindAudioEl, togglePlayback } from '@/lib/playback'
 import { usePlayerStore } from '@/stores/player'
 
 const player = usePlayerStore()
 const audioRef = ref<HTMLAudioElement | null>(null)
+
+// 音频元素挂载/卸载时同步注册，供全局快捷键（空格播放/暂停）复用
+watch(
+  audioRef,
+  (el) => bindAudioEl(el),
+  { immediate: true, flush: 'post' },
+)
 
 const pct = computed(() =>
   player.duration > 0 ? Math.min(100, (player.currentTime / player.duration) * 100) : 0,
@@ -56,8 +64,11 @@ function onDurationchange() {
 }
 function onEnded() {
   player.isPlaying = false
-  // 播放结束自动切下一首（队列尾则停止）
-  if (player.hasNext) player.next()
+  // 自动切下一首（按播放模式：循环回绕/随机/播完停止），取链失败给提示
+  if (player.hasNext)
+    player.next().catch((e) =>
+      toast.error('播放失败', { description: e instanceof Error ? e.message : String(e) }),
+    )
 }
 function onError() {
   if (player.url) {
@@ -67,22 +78,7 @@ function onError() {
 }
 
 function togglePlay() {
-  const audio = audioRef.value
-  if (!audio) return
-  if (player.isPlaying) {
-    audio.pause()
-    return
-  }
-  // 刷新恢复的队列尚未加载音频，先重新取链再播
-  if (!player.url) {
-    player
-      .jump(player.queueIndex)
-      .catch((e) =>
-        toast.error('播放失败', { description: e instanceof Error ? e.message : String(e) }),
-      )
-    return
-  }
-  audio.play().catch(() => toast.error('播放失败'))
+  togglePlayback(player)
 }
 
 function onSeek(value: number[] | undefined) {
@@ -148,7 +144,7 @@ function close() {
           v-if="player.queue.length > 1"
           variant="ghost"
           size="icon-sm"
-          title="上一首"
+          title="上一首（Ctrl+←）"
           :disabled="!player.hasPrev"
           @click="player.prev()"
         >
@@ -162,7 +158,7 @@ function close() {
           v-if="player.queue.length > 1"
           variant="ghost"
           size="icon-sm"
-          title="下一首"
+          title="下一首（Ctrl+→）"
           :disabled="!player.hasNext"
           @click="player.next()"
         >
