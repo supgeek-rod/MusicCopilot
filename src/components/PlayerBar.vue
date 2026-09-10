@@ -64,8 +64,11 @@ function onDurationchange() {
 }
 function onEnded() {
   player.isPlaying = false
-  // 播放结束自动切下一首（队列尾则停止）
-  if (player.hasNext) player.next()
+  // 自动切下一首（按播放模式：循环回绕/随机/播完停止），取链失败给提示
+  if (player.hasNext)
+    player.next().catch((e) =>
+      toast.error('播放失败', { description: e instanceof Error ? e.message : String(e) }),
+    )
 }
 function onError() {
   if (player.url) {
