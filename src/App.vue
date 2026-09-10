@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { LoaderCircleIcon } from '@lucide/vue'
-import { onMounted, onBeforeUnmount, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import PlayerBar from '@/components/PlayerBar.vue'
+import ShortcutsModal from '@/components/ShortcutsModal.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { installKeyboardShortcuts } from '@/lib/playback'
 import { persistVolume } from '@/lib/playQueue'
@@ -12,6 +13,9 @@ import { usePlayerStore } from '@/stores/player'
 
 const app = useAppStore()
 const player = usePlayerStore()
+
+// 快捷键速查弹窗：`?` 键或导航栏设置下拉唤出
+const shortcutsOpen = ref(false)
 
 onMounted(() => {
   app.init()
@@ -23,7 +27,10 @@ onBeforeUnmount(() => uninstallShortcuts?.())
 watch(
   () => app.ready,
   (ready) => {
-    if (ready && !uninstallShortcuts) uninstallShortcuts = installKeyboardShortcuts(player)
+    if (ready && !uninstallShortcuts)
+      uninstallShortcuts = installKeyboardShortcuts(player, {
+        onShowShortcuts: () => (shortcutsOpen.value = true),
+      })
   },
   { immediate: true },
 )
@@ -52,7 +59,7 @@ watch(
   </div>
 
   <div v-else class="flex min-h-screen flex-col">
-    <AppHeader />
+    <AppHeader @show-shortcuts="shortcutsOpen = true" />
     <div
       v-if="!app.connected"
       class="bg-destructive/10 px-4 py-1.5 text-center text-xs text-destructive"
@@ -65,6 +72,8 @@ watch(
     </main>
     <PlayerBar />
   </div>
+
+  <ShortcutsModal v-model:open="shortcutsOpen" />
 
   <!-- toast 固定右上角，文字右对齐 -->
   <Toaster

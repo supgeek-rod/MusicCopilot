@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CopyrightIcon, PlugIcon, SlidersHorizontalIcon } from '@lucide/vue'
+import { BookOpenIcon, CopyrightIcon, KeyboardIcon, PlugIcon, SlidersHorizontalIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { brBit, brTypeLabel } from '@/lib/format'
 import { FALLBACK_QUALITY_OPTIONS } from '@/lib/settings'
+import { SHORTCUTS } from '@/lib/shortcuts'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
@@ -19,6 +20,8 @@ const appVersion = __APP_VERSION__
 const sections = [
   { id: 'general', label: '通用', icon: SlidersHorizontalIcon },
   { id: 'connection', label: '后端连接', icon: PlugIcon },
+  { id: 'shortcuts', label: '快捷键', icon: KeyboardIcon },
+  { id: 'guide', label: '使用说明', icon: BookOpenIcon },
   { id: 'about', label: '版权信息', icon: CopyrightIcon },
 ] as const
 
@@ -195,6 +198,84 @@ async function resetConnection() {
             恢复跟随文件
           </Button>
           <span v-if="hasOverride" class="text-xs text-muted-foreground">当前使用本设备覆盖配置</span>
+        </div>
+      </section>
+
+      <!-- 快捷键 -->
+      <section v-else-if="active === 'shortcuts'" class="max-w-xl">
+        <h2 class="text-lg font-semibold">快捷键</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          全局生效，输入框内不触发；Mac 上 Ctrl 即 ⌘。任意页面按
+          <kbd class="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs">?</kbd> 可唤出速查弹窗。
+        </p>
+        <Separator class="my-4" />
+        <ul class="space-y-2">
+          <li
+            v-for="s in SHORTCUTS"
+            :key="s.action"
+            class="flex items-center justify-between gap-4 text-sm"
+          >
+            <span class="text-muted-foreground">{{ s.action }}</span>
+            <span class="flex shrink-0 items-center gap-1">
+              <kbd
+                v-for="k in s.keys"
+                :key="k"
+                class="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground"
+              >
+                {{ k }}
+              </kbd>
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 使用说明 -->
+      <section v-else-if="active === 'guide'" class="max-w-xl space-y-5 text-sm leading-relaxed">
+        <h2 class="text-lg font-semibold">使用说明</h2>
+        <p class="text-sm text-muted-foreground">MusicCopilot 各功能模块的简要说明。</p>
+        <Separator class="my-4" />
+
+        <div>
+          <h3 class="font-medium">搜索与下载</h3>
+          <ul class="mt-1.5 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>首页搜索框输入歌曲 / 歌手 / 专辑关键词，回车搜索；联想词与历史记录可直接点击。</li>
+            <li>结果列表支持在线试听、查看歌词、下载到服务器（自动进入下载任务）或本机。</li>
+            <li>顶部导航栏的快捷搜索框回车后跳转搜索页执行搜索。</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-medium">播放器</h3>
+          <ul class="mt-1.5 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>点击歌曲即试听；底部播放条控制播放、进度与音量。</li>
+            <li>「播放队列」可查看、点击切歌、移除歌曲，并支持列表循环 / 随机播放 / 播完停止三种模式。</li>
+            <li>播放音量与播放模式会自动记忆，刷新后保持。</li>
+            <li>快捷键：空格播放暂停、Ctrl+←/→ 切歌、Ctrl+↑/↓ 音量、? 查看速查表。</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-medium">音乐库</h3>
+          <ul class="mt-1.5 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>配置飞牛 OS 接入（MC_FNOS_BASE_URL）后可用，浏览 fnOS 本地音乐库。</li>
+            <li>支持按专辑 / 歌手 / 流派 / 歌单浏览，可直接播放与下载。</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-medium">下载任务</h3>
+          <ul class="mt-1.5 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>查看服务器端下载进度与结果，支持按状态筛选与批量操作。</li>
+            <li>失败任务可重试；下载完成的歌曲可选择保存到本机。</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-medium">设置</h3>
+          <ul class="mt-1.5 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>「通用」设置下载音质偏好。</li>
+            <li>「后端连接」可按设备覆盖部署配置（默认跟随 config.json），仅保存在本机浏览器。</li>
+          </ul>
         </div>
       </section>
 
