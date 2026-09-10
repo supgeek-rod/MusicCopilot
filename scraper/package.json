@@ -1,0 +1,27 @@
+{
+  "name": "@musiccopilot/scraper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MusicCopilot 元数据刮削工具：扫描音乐目录，匹配在线元数据并写回标签/封面/歌词（独立容器，直读写 NAS 音乐文件卷）",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fastify": "^5.3.1",
+    "music-metadata": "^11.15.0",
+    "taglib-wasm": "^2.2.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  }
+}

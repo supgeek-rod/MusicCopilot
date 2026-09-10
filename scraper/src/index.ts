@@ -1,0 +1,48 @@
+import { createRequire } from 'node:module'
+import Fastify from 'fastify'
+import { loadConfig } from './config.js'
+import { dbFilePath, openDb } from './db.js'
+import { loadEnv } from './env.js'
+import { JobRunner } from './jobs.js'
+import { registerRoutes, type Ctx } from './routes.js'
+
+const env = loadEnv()
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
+
+const db = openDb(dbFilePath(env.dataDir))
+const runner = new JobRunner(env, db, () => loadConfig(db))
+
+const app = Fastify({
+  logger: { level: process.env.MC_LOG_LEVEL ?? 'info' },
+})
+
+// 可选共享 token 鉴权（MC_SCRAPER_TOKEN 非空时启用）
+if (env.token !== '') {
+  app.addHook('onRequest', async (req, reply) => {
+    if (req.headers['x-mc-token'] !== env.token) {
+      return reply.code(401).send({ error: '无效或缺失 x-mc-token' })
+    }
+  })
+}
+
+const ctx: Ctx = { env, db, runner, version }
+app.register(async (scope) => registerRoutes(scope, ctx), { prefix: '/mc/api' })
+
+// 模板路由 `/`（不在 /mc/api 下）不受 token 钩子限制，仅作存活探测
+app.get('/healthz', async () => ({ ok: true, version }))
+
+const stop = async (): Promise<void> => {
+  await app.close()
+  process.exit(0)
+}
+process.on('SIGINT', () => void stop())
+process.on('SIGTERM', () => void stop())
+
+app
+  .listen({ port: env.port, host: '0.0.0.0' })
+  .then(() => app.log.info(`scraper ready: http://0.0.0.0:${env.port}/mc/api/status (music=${env.musicDir})`))
+  .catch((err) => {
+    app.log.error(err)
+    process.exit(1)
+  })
