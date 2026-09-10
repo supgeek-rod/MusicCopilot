@@ -122,8 +122,9 @@ export function fnosMe(): Promise<FnosUser> {
 
 // ── 曲库浏览 ──
 
-export function getTrackList(page: number, size: number): Promise<FnosPage<FnosTrack>> {
-  return get<FnosPage<FnosTrack>>('/track/list', { page, size })
+/** sort 实测支持 `createdAt,desc` 等「字段,方向」格式（服务端回显 sort 字段） */
+export function getTrackList(page: number, size: number, sort?: string): Promise<FnosPage<FnosTrack>> {
+  return get<FnosPage<FnosTrack>>('/track/list', sort ? { page, size, sort } : { page, size })
 }
 
 export function getAlbumList(page: number, size: number): Promise<FnosPage<FnosAlbum>> {
@@ -199,6 +200,34 @@ export function searchPlaylists(q: string, page: number, size: number): Promise<
 
 export function getPlaylists(page: number, size: number): Promise<FnosPage<FnosPlaylist>> {
   return get<FnosPage<FnosPlaylist>>('/playlist/list', { page, size })
+}
+
+// ── 随机取样（「随便听听」）──
+
+function shuffle<T>(list: T[]): T[] {
+  const arr = [...list]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+/** 从曲库随机取样：小库整库取回洗牌，大库随机页采样（避免全量拉取） */
+export async function getRandomTracks(limit: number): Promise<FnosTrack[]> {
+  const head = await get<FnosPage<FnosTrack>>('/track/list', { page: 1, size: 1 })
+  const total = head.total ?? 0
+  if (!total) return []
+  if (total <= 200) {
+    const all = await get<FnosPage<FnosTrack>>('/track/list', { page: 1, size: 200 })
+    return shuffle(all.list ?? []).slice(0, limit)
+  }
+  const pages = Math.ceil(total / limit)
+  const data = await get<FnosPage<FnosTrack>>('/track/list', {
+    page: Math.floor(Math.random() * pages) + 1,
+    size: limit,
+  })
+  return shuffle(data.list ?? [])
 }
 
 // ── 歌词 ──

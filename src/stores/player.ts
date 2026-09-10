@@ -3,6 +3,7 @@ import { fnosStreamUrl } from '@/api/fnos'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import { sortBrTypes } from '@/lib/format'
+import { recordRecentPlay } from '@/lib/recentPlays'
 import {
   loadPersistedQueue,
   loadPlayMode,
@@ -128,6 +129,8 @@ export const usePlayerStore = defineStore('player', {
         this.currentTime = 0
         this.duration = 0
         this.playSeq++
+        // 本地最近播放：只记 fnOS 曲目（音乐库首页「最近播放」数据源）
+        if (song.plugName === 'fnos') recordRecentPlay(song)
       } finally {
         this.loading = false
       }

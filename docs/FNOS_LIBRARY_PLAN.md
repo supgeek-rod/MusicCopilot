@@ -102,6 +102,20 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 | 更新 `docs/features.md`（音乐库章节 + 路由表）、`docs/configuration.md`（MC_FNOS_*）、`docs/roadmap.md` 第 3 期标注（浏览/播放 ✅，补全下载 ⬜） | ✅ |
 | 本看板全部勾选 | ✅ |
 
+### M7 首页重构：快捷播放导向 ✅（2026-09-11）
+
+> 背景：development 演进后（搜索页 hero 改版、全局快捷键、播放模式），音乐库页重新设计为「一页三态」，重心是让用户以最短路径播放此刻想听的音乐。
+
+| 任务 | 状态 |
+| --- | --- |
+| `LibraryView` 三态重构：首页 hero（居中标题 + 大搜索框 + 随便听听）/ 搜索结果 / 浏览 Tab | ✅ |
+| 「随便听听」：`getRandomTracks` 随机取样 30 首整组连播（≤200 首整库洗牌，更大库随机页采样） | ✅ |
+| 「最近添加」横滑封面卡（`track/list?sort=createdAt,desc`，实测排序生效），点击即播 | ✅ |
+| 「最近播放」：新增 `lib/recentPlays.ts`（本地记录，键 `music-copilot:recent-plays`，上限 20），player.jump 写入（仅 fnOS 曲目），切歌即时刷新 | ✅ |
+| 库内统一搜索：歌曲/专辑/歌手并行检索 + 回车整组播放命中歌曲；相关专辑/歌手横滑入口 | ✅ |
+| 保留 development 修复（retryLogin、失败复位、网格显式分支）；守卫升级 disposed + 请求序号双保险 | ✅ |
+| 浏览器实测：hero/点击即播/随便听听/搜索回车（真实输入节奏）/返回/浏览/合集页/在线源回归 | ✅ |
+
 ## 5. 风险与备选
 
 - **Set-Cookie 兜底**：实测登录无 Set-Cookie，由前端 `document.cookie` 写入即可；若浏览器策略拦截（如未来固件加 SameSite），备选为代理侧（vite configure 钩子）读登录响应记忆 token 并注入 Cookie 头
@@ -120,6 +134,7 @@ MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NA
 - 2026-09-06：M1 接入层完成；经 Vite 代理端到端验证（登录/曲库 code=0）；分支已快进到 development 最新（docs 站重构后路径为小写文件名）
 - 2026-09-06：M2~M5 全部完成并逐项浏览器实测（曲库 51 首渲染、专辑页排序与详情、流式播放推进、搜索 12 结果、歌词 52 行解析、歌单空态）
 - 2026-09-06：M6 验收通过：`npm run build` 通过，features/configuration/roadmap 文档同步；首期功能全量交付
+- 2026-09-11：M7 首页重构（快捷播放导向）完成并全量实测；fnOS 曲库与 SQ 下载目录的闭环持续生效（曲库已从 51 首自动增长到 62 首）
 
 ## 8. 后续（并入路线图第 3 期剩余部分）
 
