@@ -13,8 +13,8 @@ import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
 
-// 构建时由 vite define 注入（取自 package.json version）
-const appVersion = __APP_VERSION__
+// 构建时由 vite.config.ts 注入（取自 package.json version）
+const appVersion = import.meta.env.VITE_APP_VERSION
 
 // 设置页左侧导航分区
 const sections = [
