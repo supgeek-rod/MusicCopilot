@@ -10,4 +10,8 @@ return [
 
     'user_agent' => env('KUWO_USER_AGENT', 'kuwo_player/9.1.1.2'),
     'timeout' => env('KUWO_TIMEOUT', 10),
+
+    // 加密歌词端点（newlyric）：魔法参数与解密链路见 KuwoPlugin::fetchLyric / scripts/kw-lyric.sh
+    'lyric_url' => env('KUWO_LYRIC_URL', 'http://newlyric.kuwo.cn/newlyric.lrc'),
+    'lyric_timeout' => env('KUWO_LYRIC_TIMEOUT', 20),
 ];

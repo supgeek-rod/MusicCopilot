@@ -50,6 +50,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/music/getLyric": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 歌词（酷我加密歌词接口 newlyric）
+         *     契约对齐 SQMusic 的 POST /api/music/getLyric，但按「新端点不复制历史瑕疵」
+         *     把 LRC 文本放 data（SQMusic 放 msg，前端 music.ts getLyric 两种均兼容）。
+         */
+        post: operations["musicSearch.getLyric"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -216,6 +237,49 @@ export interface operations {
                         code: 500;
                         /** @constant */
                         msg: "keyword 不能为空";
+                        data: null;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "musicSearch.getLyric": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: string;
+                    plugName?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: string;
+                    } | {
+                        /** @constant */
+                        code: 500;
+                        /** @constant */
+                        msg: "未找到歌词";
+                        data: null;
+                    } | {
+                        /** @constant */
+                        code: 500;
+                        msg: string;
                         data: null;
                     };
                 };

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Plugins\Sources\LyricPlugin;
 use App\Plugins\Sources\SourceManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -66,6 +67,51 @@ class MusicSearchController extends Controller
         ]);
 
         return $this->search($validated, 'album');
+    }
+
+    /**
+     * 歌词（酷我加密歌词接口 newlyric）
+     * 契约对齐 SQMusic 的 POST /api/music/getLyric，但按「新端点不复制历史瑕疵」
+     * 把 LRC 文本放 data（SQMusic 放 msg，前端 music.ts getLyric 两种均兼容）。
+     *
+     * @response status=200 {"code":200,"msg":null,"data":"[00:00.00]作词：周杰伦\n[00:01.00]故事的小黄花"}
+     */
+    public function getLyric(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|string',
+            'plugName' => 'string',
+        ]);
+
+        $plugName = $validated['plugName'] ?? 'kw';
+
+        if (! $this->sources->has($plugName)) {
+            return $this->fail("插件 {$plugName} 未开启");
+        }
+
+        $plugin = $this->sources->get($plugName);
+
+        if (! $plugin instanceof LyricPlugin) {
+            return $this->fail("插件 {$plugName} 不支持歌词");
+        }
+
+        try {
+            $lyric = $plugin->getLyric($validated['id']);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->fail('歌词获取失败：'.$e->getMessage());
+        }
+
+        if ($lyric === null || $lyric === '') {
+            return $this->fail('未找到歌词');
+        }
+
+        return response()->json([
+            'code' => 200,
+            'msg' => null,
+            'data' => $lyric,
+        ]);
     }
 
     private function search(array $validated, string $type): JsonResponse

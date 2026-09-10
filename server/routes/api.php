@@ -7,4 +7,5 @@ Route::prefix('music')->group(function () {
     Route::get('searchSong', [MusicSearchController::class, 'searchSong']);
     Route::get('searchArtist', [MusicSearchController::class, 'searchArtist']);
     Route::get('searchAlbum', [MusicSearchController::class, 'searchAlbum']);
+    Route::post('getLyric', [MusicSearchController::class, 'getLyric']);
 });

@@ -543,6 +543,113 @@
                     }
                 }
             }
+        },
+        "/music/getLyric": {
+            "post": {
+                "operationId": "musicSearch.getLyric",
+                "summary": "\u6b4c\u8bcd\uff08\u9177\u6211\u52a0\u5bc6\u6b4c\u8bcd\u63a5\u53e3 newlyric\uff09\n\u5951\u7ea6\u5bf9\u9f50 SQMusic \u7684 POST /api/music/getLyric\uff0c\u4f46\u6309\u300c\u65b0\u7aef\u70b9\u4e0d\u590d\u5236\u5386\u53f2\u7455\u75b5\u300d\n\u628a LRC \u6587\u672c\u653e data\uff08SQMusic \u653e msg\uff0c\u524d\u7aef music.ts getLyric \u4e24\u79cd\u5747\u517c\u5bb9\uff09\u3002",
+                "tags": [
+                    "MusicSearch"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "plugName": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u672a\u627e\u5230\u6b4c\u8bcd"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
         }
     },
     "components": {

@@ -75,21 +75,22 @@ scraper/
 
 ## 4. 里程碑与任务清单
 
-### M0 文档先行 ⬜
+### M0 文档先行 ✅（2026-09-11）
 
 | 任务 | 状态 |
 | --- | --- |
-| `docs/architecture.md`：模块表（scraper/*）、决策 #2 修订、#9 #10、部署拓扑、前端适配层 | ⬜ |
-| `docs/roadmap.md`：第 4 期标 🚧 + 形态调整说明 | ⬜ |
-| 本看板建立 | ⬜ |
+| `docs/architecture.md`：模块表（scraper/*）、决策 #2 修订、#9 #10、部署拓扑、前端适配层 | ✅ |
+| `docs/roadmap.md`：第 4 期标 🚧 + 形态调整说明 | ✅ |
+| 本看板建立 | ✅ |
 
-### M1 server/ 歌词端点 ⬜
+### M1 server/ 歌词端点 ✅（2026-09-11）
 
 | 任务 | 状态 |
 | --- | --- |
-| `GET /api/music/getLyric`（酷我歌词代理，SQMusic 契约） | ⬜ |
-| `server/openapi.json` 固化 + `packages/api-contract` 重生成 | ⬜ |
-| WSL `php artisan test` 通过 | ⬜ |
+| `GET→POST /api/music/getLyric`（酷我 newlyric 代理，SQMusic 契约；LRC 放 `data`，不复制 SQMusic 放 `msg` 的瑕疵） | ✅ |
+| `server/openapi.json` 固化 + `packages/api-contract` 重生成（4 端点） | ✅ |
+| WSL `php artisan test` 通过（7 tests / 16 assertions，含加密链路 mock、重试、错误分支） | ✅ |
+| 真机验证：晴天 id=228908 → code=200，LRC 8716 字符 | ✅ |
 
 ### M2 scraper 骨架 + 扫描 + 体检 API ⬜
 
@@ -139,3 +140,4 @@ scraper/
 ## 6. 进度日志
 
 - 2026-09-11：方案批准（Node + TS / 复用 server/ 酷我 / v1 全量写入范围）；worktree 建立；文档先行 M0 开始
+- 2026-09-11：M0 完成（架构/路线图/看板三份文档，docs:build 通过）；M1 完成（getLyric 端点 + 契约固化 + 测试 + 真机验证）

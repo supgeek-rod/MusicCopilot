@@ -2,7 +2,9 @@
 
 namespace App\Plugins\Sources\Kuwo;
 
+use App\Plugins\Sources\LyricPlugin;
 use App\Plugins\Sources\SourcePlugin;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -10,9 +12,10 @@ use RuntimeException;
  * 酷我音乐音源插件。
  * 端点调研结论见仓库 docs/kuwo-api-notes.md：
  * 搜索走 search.kuwo.cn/r.s（ft=music|artist|album），pn 从 0 开始；
- * 音质清单来自 N_MINFO/MINFO，仅五个明文 br 可用于后续直链解析。
+ * 音质清单来自 N_MINFO/MINFO，仅五个明文 br 可用于后续直链解析；
+ * 歌词走 newlyric 加密接口（lrcx=1），魔法参数与解密链路见 fetchLyric。
  */
-class KuwoPlugin implements SourcePlugin
+class KuwoPlugin implements SourcePlugin, LyricPlugin
 {
     public function plugName(): string
     {
@@ -50,6 +53,91 @@ class KuwoPlugin implements SourcePlugin
             'records' => array_map($this->mapAlbum(...), $json['albumlist'] ?? []),
             'total' => $total,
         ];
+    }
+
+    public function getLyric(string $songId): ?string
+    {
+        $songId = trim($songId);
+        if ($songId === '') {
+            return null;
+        }
+
+        $cacheKey = "kuwo:lyric:{$songId}";
+        $cached = Cache::get($cacheKey);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
+
+        $lyric = $this->fetchLyric($songId);
+        if ($lyric !== null && $lyric !== '') {
+            Cache::put($cacheKey, $lyric, now()->addDays(7));
+        }
+
+        return $lyric;
+    }
+
+    /**
+     * 酷我加密歌词接口（newlyric，仅 lrcx=1 模式实测有效）：
+     * 参数 XOR "yeelion" → base64 → GET → 校验 tp=content → \r\n\r\n 分隔 →
+     * zlib inflate → base64 → XOR → gb18030 解码。
+     * user/requester 是魔法值不可改；服务端多节点间歇性返回 TP=ERROR REQUEST
+     * （与 UA/重放无关，按时间窗口波动），退避重试。
+     * 调研过程见 scripts/kw-lyric.sh 与 docs/kuwo-api-notes.md。
+     */
+    private function fetchLyric(string $songId): ?string
+    {
+        $query = rawurlencode(base64_encode($this->xorBytes(
+            "user=12345,web,web,web&requester=localhost&req=1&rid=MUSIC_{$songId}&lrcx=1",
+        )));
+        $attempts = 3;
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            $response = Http::timeout((int) config('kuwo.lyric_timeout'))
+                ->withHeaders(['User-Agent' => (string) config('kuwo.user_agent')])
+                ->get((string) config('kuwo.lyric_url').'?'.$query);
+
+            $body = $response->body();
+
+            if ($response->successful() && str_starts_with($body, 'tp=content')) {
+                $separator = strpos($body, "\r\n\r\n");
+                if ($separator === false) {
+                    return null;
+                }
+
+                $inflated = @gzuncompress(substr($body, $separator + 4));
+                if ($inflated === false) {
+                    return null;
+                }
+
+                $decoded = base64_decode($inflated, true);
+                if ($decoded === false) {
+                    return null;
+                }
+
+                $lrc = trim(mb_convert_encoding($this->xorBytes($decoded), 'UTF-8', 'GB18030'));
+
+                return $lrc !== '' ? $lrc : null;
+            }
+
+            if ($attempt < $attempts) {
+                sleep($attempt * 2);
+            }
+        }
+
+        return null;
+    }
+
+    /** 酷我歌词链路固定密钥的循环 XOR */
+    private function xorBytes(string $data): string
+    {
+        $key = 'yeelion';
+        $out = '';
+
+        for ($i = 0, $len = strlen($data); $i < $len; $i++) {
+            $out .= $data[$i] ^ $key[$i % strlen($key)];
+        }
+
+        return $out;
     }
 
     private function search(string $keyword, int $pageIndex, int $pageSize, string $type): array
