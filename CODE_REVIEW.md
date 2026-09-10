@@ -34,6 +34,7 @@
 >   - P1-2：development 已抽出 `lib/playback.ts` 供快捷键复用，catch 已覆盖；本分支补的「取链中防重复触发」守卫改落到 `togglePlayback`
 >   - P1-3：设置已由弹窗迁至 `SettingsView.vue`，密码 placeholder 修复重新落到新页面
 >   - P1-5 / P2-5 / O1 / O2 等自动合并，语义已逐项复核
+> - 回归补充（2026-09-11）：development 此前**并未合入** P0-1/P0-2 的修复（一直留在 `fix/library-genre-grid` / `fix/detail-views-race-guards` 分支），浏览器回归当场复现 P0-1 后已 cherry-pick 进 development（1096bd9 / c8893be），详见 [REGRESSION_REPORT.md](./REGRESSION_REPORT.md)。
 
 ## 结论速览
 
