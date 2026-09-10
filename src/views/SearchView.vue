@@ -286,42 +286,33 @@ function onLyrics(song: SongRecord) {
       </Button>
     </form>
 
-    <!-- 首页状态：搜索历史平铺 -->
-    <div v-if="isHero" class="mt-10 flex w-full max-w-2xl flex-col items-center">
+    <!-- 首页状态：搜索历史（左对齐小字，弱化展示，点击可重新搜索） -->
+    <div v-if="isHero" class="mt-10 flex w-full max-w-2xl flex-col items-start">
       <div v-if="history.length" class="w-full">
-        <div class="mb-2 flex items-center justify-between px-1">
+        <div class="mb-1.5 flex items-center justify-between px-1">
           <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
             <HistoryIcon class="size-3.5" />
             搜索历史
           </span>
           <button
             type="button"
-            class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            class="flex items-center gap-1 text-xs text-muted-foreground/70 hover:text-foreground"
             @click="clearHistory"
           >
-            <TrashIcon class="size-3.5" />
             清空
           </button>
         </div>
-        <div class="flex flex-wrap justify-center gap-2">
-          <div v-for="h in history" :key="h" class="group relative">
-            <button
-              type="button"
-              class="rounded-full border bg-muted/50 px-3 py-1.5 text-sm hover:bg-accent"
-              :title="`搜索「${h}」`"
-              @click="searchTerm(h)"
-            >
-              {{ h }}
-            </button>
-            <button
-              type="button"
-              class="absolute -right-1.5 -top-1.5 hidden size-4 items-center justify-center rounded-full border bg-background text-muted-foreground hover:text-foreground group-hover:flex"
-              title="删除该条"
-              @click.stop="dropHistory(h)"
-            >
-              <XIcon class="size-2.5" />
-            </button>
-          </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 px-1">
+          <button
+            v-for="h in history"
+            :key="h"
+            type="button"
+            class="text-xs text-muted-foreground hover:text-foreground"
+            :title="`搜索「${h}」`"
+            @click="searchTerm(h)"
+          >
+            {{ h }}
+          </button>
         </div>
       </div>
     </div>
