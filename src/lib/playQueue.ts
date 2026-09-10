@@ -35,6 +35,27 @@ export function persistPlayMode(mode: PlayMode) {
   }
 }
 
+const VOLUME_KEY = 'music-copilot:volume'
+
+/** 读取持久化的播放音量（0–1），缺失或损坏时回退为 1 */
+export function loadVolume(): number {
+  try {
+    const v = Number(localStorage.getItem(VOLUME_KEY))
+    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1
+  } catch {
+    return 1
+  }
+}
+
+/** 持久化播放音量，存储不可用时静默放弃 */
+export function persistVolume(volume: number) {
+  try {
+    localStorage.setItem(VOLUME_KEY, String(volume))
+  } catch {
+    // 仅保留内存态
+  }
+}
+
 function isValidSong(v: unknown): v is SongRecord {
   if (!v || typeof v !== 'object') return false
   const s = v as Partial<SongRecord>
