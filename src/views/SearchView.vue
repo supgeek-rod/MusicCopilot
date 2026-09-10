@@ -51,6 +51,9 @@ const lyricSong = ref<SongRecord | null>(null)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 
+// 首页（未搜索）状态：搜索框居中放大展示，历史记录平铺在下方
+const isHero = computed(() => !submitted.value && !loading.value)
+
 // 卸载后丢弃迟到响应，避免与路由切换产生更新竞态
 let disposed = false
 onBeforeUnmount(() => {
@@ -176,11 +179,15 @@ function onLyrics(song: SongRecord) {
 </script>
 
 <template>
-  <div>
+  <div :class="isHero ? 'flex min-h-[70vh] flex-col items-center justify-center' : ''">
     <!-- 搜索区 -->
-    <form class="flex gap-2" @submit.prevent="doSearch(1)">
+    <form
+      class="flex w-full gap-2"
+      :class="isHero ? 'max-w-2xl flex-col gap-3 sm:flex-row' : ''"
+      @submit.prevent="doSearch(1)"
+    >
       <Select v-model="plug">
-        <SelectTrigger class="w-[120px] shrink-0" title="选择音源">
+        <SelectTrigger class="shrink-0" :class="isHero ? 'w-full h-11 sm:w-[120px]' : 'w-[120px]'" title="选择音源">
           <SelectValue placeholder="音源" />
         </SelectTrigger>
         <SelectContent>
@@ -195,7 +202,7 @@ function onLyrics(song: SongRecord) {
         <Input
           v-model="keyword"
           placeholder="搜索歌曲 / 歌手 / 专辑，回车搜索"
-          class="h-9 pr-9"
+          :class="isHero ? 'h-11 pr-9 text-base' : 'h-9 pr-9'"
           @focus="onInputFocus"
           @blur="onInputBlur"
           @keydown.enter.prevent="doSearch(1)"
@@ -218,9 +225,9 @@ function onLyrics(song: SongRecord) {
             <span class="truncate">{{ t }}</span>
           </button>
         </div>
-        <!-- 搜索历史：聚焦且未输入关键词时展示 -->
+        <!-- 搜索历史：聚焦且未输入关键词时展示（首页状态改为下方平铺展示） -->
         <div
-          v-else-if="tipsOpen && !keyword.trim() && history.length"
+          v-else-if="tipsOpen && !keyword.trim() && history.length && !isHero"
           class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
         >
           <div
@@ -260,19 +267,56 @@ function onLyrics(song: SongRecord) {
         </div>
       </div>
 
-      <Button type="submit" :disabled="loading || !keyword.trim()">
+      <Button type="submit" :class="isHero ? 'h-11' : ''" :disabled="loading || !keyword.trim()">
         <SearchIcon class="size-4" />
         搜索
       </Button>
     </form>
 
-    <!-- 空态引导 -->
-    <div v-if="!submitted && !loading" class="flex flex-col items-center justify-center py-28 text-center">
+    <!-- 首页状态：标题 + 搜索历史平铺 -->
+    <div v-if="isHero" class="mt-10 flex w-full max-w-2xl flex-col items-center">
       <div class="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Music2Icon class="size-8" />
       </div>
       <h1 class="mt-4 text-xl font-semibold">搜索你想听的音乐</h1>
       <p class="mt-1 text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
+
+      <div v-if="history.length" class="mt-8 w-full">
+        <div class="mb-2 flex items-center justify-between px-1">
+          <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <HistoryIcon class="size-3.5" />
+            搜索历史
+          </span>
+          <button
+            type="button"
+            class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            @click="clearHistory"
+          >
+            <TrashIcon class="size-3.5" />
+            清空
+          </button>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2">
+          <div v-for="h in history" :key="h" class="group relative">
+            <button
+              type="button"
+              class="rounded-full border bg-muted/50 px-3 py-1.5 text-sm hover:bg-accent"
+              :title="`搜索「${h}」`"
+              @click="searchTerm(h)"
+            >
+              {{ h }}
+            </button>
+            <button
+              type="button"
+              class="absolute -right-1.5 -top-1.5 hidden size-4 items-center justify-center rounded-full border bg-background text-muted-foreground hover:text-foreground group-hover:flex"
+              title="删除该条"
+              @click.stop="dropHistory(h)"
+            >
+              <XIcon class="size-2.5" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 结果区 -->
