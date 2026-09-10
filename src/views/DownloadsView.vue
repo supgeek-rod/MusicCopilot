@@ -123,7 +123,11 @@ let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   disposed = false
   fetchTasks()
-  timer = setInterval(() => fetchTasks(true), POLL_MS)
+  timer = setInterval(() => {
+    // 页面在后台标签页时暂停轮询，回前台由下一次 tick 或手动刷新补齐
+    if (document.hidden) return
+    fetchTasks(true)
+  }, POLL_MS)
 })
 onBeforeUnmount(() => {
   disposed = true
@@ -149,23 +153,29 @@ async function runConfirm() {
   }
 }
 
-async function withToast(desc: string, fn: () => Promise<unknown>) {
+/** 行内操作进行中的任务 id：防止连点重复提交（确认框流程另有 acting 兜底） */
+const busyTaskId = ref<string | number | null>(null)
+
+async function withToast(desc: string, fn: () => Promise<unknown>, taskId?: string | number) {
+  if (taskId !== undefined && busyTaskId.value !== null) return
+  if (taskId !== undefined) busyTaskId.value = taskId
   try {
     await fn()
     toast.success(desc)
   } catch (e) {
     toast.error('操作失败', { description: e instanceof Error ? e.message : String(e) })
   } finally {
+    if (taskId !== undefined) busyTaskId.value = null
     fetchTasks(true)
   }
 }
 
 function retryTask(t: TaskInfo) {
-  withToast('已重新提交下载', () => taskApi.retryError(t.id))
+  withToast('已重新提交下载', () => taskApi.retryError(t.id), t.id)
 }
 
 function refreshTask(t: TaskInfo) {
-  withToast('任务已重新入队', () => taskApi.refreshTask(t.id))
+  withToast('任务已重新入队', () => taskApi.refreshTask(t.id), t.id)
 }
 
 function delTask(t: TaskInfo) {
@@ -186,9 +196,13 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
     success: { label: '成功', fn: taskApi.delSuccessTasks },
     waiting: { label: '等待中', fn: taskApi.delWaitingTasks },
   } as const
-  askConfirm(`删除${map[kind].label}任务`, `将清除所有状态为「${map[kind].label}」的任务记录。`, async () => {
-    await withToast('已删除', map[kind].fn)
-  })
+  askConfirm(
+    `删除${map[kind].label}任务`,
+    `将清除服务器上所有状态为「${map[kind].label}」的任务记录（当前筛选下共 ${total.value} 条，不受筛选影响，实际影响范围可能更大）。`,
+    async () => {
+      await withToast('已删除', map[kind].fn)
+    },
+  )
 }
 </script>
 
@@ -304,7 +318,7 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
                   variant="ghost"
                   size="icon-sm"
                   title="重试"
-                  :disabled="acting"
+                  :disabled="acting || busyTaskId === t.id"
                   @click="retryTask(t)"
                 >
                   <RotateCcwIcon class="size-4" />
@@ -314,7 +328,7 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
                   variant="ghost"
                   size="icon-sm"
                   title="重新入队"
-                  :disabled="acting"
+                  :disabled="acting || busyTaskId === t.id"
                   @click="refreshTask(t)"
                 >
                   <RefreshCwIcon class="size-4" />

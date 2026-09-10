@@ -14,15 +14,57 @@ case "${MC_AUTO_LOGIN:-true}" in
   *) AUTO_LOGIN=true ;;
 esac
 
+# ── 飞牛（fnOS）音乐库反代（可选）──
+# nginx 模板 include /etc/nginx/mc-fnos/*.conf（通配，无文件不报错）；
+# 配置了 MC_FNOS_BASE_URL 时按需生成 location 块，剥掉 /fnos 前缀转发到 fnOS 网关
+FNOS_ENABLED=false
+FNOS_AUTO_LOGIN=true
+if [ -n "${MC_FNOS_BASE_URL:-}" ]; then
+  FNOS_ENABLED=true
+  case "${MC_FNOS_AUTO_LOGIN:-true}" in
+    false | False | FALSE | 0 | no) FNOS_AUTO_LOGIN=false ;;
+    *) FNOS_AUTO_LOGIN=true ;;
+  esac
+  mkdir -p /etc/nginx/mc-fnos
+  cat > /etc/nginx/mc-fnos/fnos.conf <<EOF
+location /fnos/ {
+    proxy_pass ${MC_FNOS_BASE_URL}/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_read_timeout 300s;
+    proxy_buffering off;
+}
+EOF
+  echo "[mc] 已启用 /fnos 反代（目标：${MC_FNOS_BASE_URL}）"
+fi
+
 # 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端；
 # proxyTarget 为信息性字段，把反代目标带给浏览器供设置面板展示
+# JSON 转义：密码等环境变量含 " 或 \ 时避免生成损坏的 config.json
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+PROXY_TARGET=$(json_escape "${MC_API_BASE_URL}")
+USERNAME=$(json_escape "${MC_API_USERNAME:-}")
+PASSWORD=$(json_escape "${MC_API_PASSWORD:-}")
+FNOS_TARGET=$(json_escape "${MC_FNOS_BASE_URL:-}")
+FNOS_USERNAME=$(json_escape "${MC_FNOS_USERNAME:-}")
+FNOS_PASSWORD=$(json_escape "${MC_FNOS_PASSWORD:-}")
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
-  "proxyTarget": "${MC_API_BASE_URL}",
-  "username": "${MC_API_USERNAME:-}",
-  "password": "${MC_API_PASSWORD:-}",
-  "autoLogin": ${AUTO_LOGIN}
+  "proxyTarget": "${PROXY_TARGET}",
+  "username": "${USERNAME}",
+  "password": "${PASSWORD}",
+  "autoLogin": ${AUTO_LOGIN},
+  "fnos": {
+    "enabled": ${FNOS_ENABLED},
+    "proxyTarget": "${FNOS_TARGET}",
+    "username": "${FNOS_USERNAME}",
+    "password": "${FNOS_PASSWORD}",
+    "autoLogin": ${FNOS_AUTO_LOGIN}
+  }
 }
 EOF
 echo "[mc] 已生成 config.json（/api 反代目标：${MC_API_BASE_URL}）"

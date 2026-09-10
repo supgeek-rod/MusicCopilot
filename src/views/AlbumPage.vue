@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DownloadIcon, Music2Icon, PlayIcon } from '@lucide/vue'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
@@ -66,23 +66,34 @@ function trackOf(s: SongRecord): number {
   return Number.isFinite(t) ? t : 9999
 }
 
+// 卸载后丢弃迟到响应，避免与路由切换竞态；请求序号用于同组件路由复用（专辑 A→B）时丢弃旧结果
+// 注意：声明必须先于下方 immediate watch，否则回调同步执行时撞 TDZ（Cannot access before initialization）
+let disposed = false
+let loadSeq = 0
+onBeforeUnmount(() => {
+  disposed = true
+})
+
 watch([plug, albumId], load, { immediate: true })
 
 async function load() {
+  const seq = ++loadSeq
   info.value = null
   songs.value = []
   error.value = ''
   loading.value = true
   try {
     const data = await musicApi.albumInfoById(plug.value, albumId.value)
+    if (disposed || seq !== loadSeq) return
     info.value = data
     songs.value = (data.musics ?? [])
       .map(albumSongToRecord)
       .sort((a, b) => trackOf(a) - trackOf(b))
   } catch (e) {
+    if (disposed || seq !== loadSeq) return
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
-    loading.value = false
+    if (!disposed && seq === loadSeq) loading.value = false
   }
 }
 

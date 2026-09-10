@@ -1,14 +1,32 @@
 <script setup lang="ts">
-import { ListMusicIcon, ListXIcon, Music2Icon, XIcon } from '@lucide/vue'
+import { ListEndIcon, ListMusicIcon, ListXIcon, Music2Icon, RepeatIcon, ShuffleIcon, XIcon } from '@lucide/vue'
+import { computed } from 'vue'
 import { toast } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import type { PlayMode } from '@/lib/playQueue'
 import { formatDuration } from '@/lib/format'
 import { usePlayerStore } from '@/stores/player'
 
 const player = usePlayerStore()
+
+// 播放模式循环切换：列表循环 → 随机播放 → 播完停止
+const MODES: { value: PlayMode; label: string; icon: typeof RepeatIcon }[] = [
+  { value: 'loop', label: '列表循环', icon: RepeatIcon },
+  { value: 'shuffle', label: '随机播放', icon: ShuffleIcon },
+  { value: 'stop', label: '播完停止', icon: ListEndIcon },
+]
+
+const currentMode = computed(() => MODES.find((m) => m.value === player.playMode) ?? MODES[0]!)
+
+function cycleMode() {
+  const idx = MODES.findIndex((m) => m.value === player.playMode)
+  const next = MODES[(idx + 1) % MODES.length]!
+  player.setPlayMode(next.value)
+  toast.info(`播放模式：${next.label}`)
+}
 
 async function playAt(index: number) {
   try {
@@ -42,18 +60,29 @@ async function remove(index: number) {
             {{ player.queue.length }} 首
           </span>
         </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="清空队列并停止播放"
-          :disabled="!player.queue.length"
-          @click="player.stop()"
-        >
-          <ListXIcon class="size-4" />
-        </Button>
+        <div class="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :title="`播放模式：${currentMode.label}（点击切换）`"
+            :disabled="!player.queue.length"
+            @click="cycleMode"
+          >
+            <component :is="currentMode.icon" class="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="清空队列并停止播放"
+            :disabled="!player.queue.length"
+            @click="player.stop()"
+          >
+            <ListXIcon class="size-4" />
+          </Button>
+        </div>
       </div>
 
-      <ScrollArea class="max-h-80">
+      <ScrollArea class="max-h-[min(20rem,60vh)]">
         <div v-if="!player.queue.length" class="px-3 py-10 text-center text-sm text-muted-foreground">
           队列为空
         </div>

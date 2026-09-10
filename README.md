@@ -6,6 +6,12 @@
 
 📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `v0.1.x` 分支自动发布）
 
+## 仓库结构
+
+monorepo（2026-09-11 起）：根目录为 Web 前端（本 README 所述）；[`server/`](server/README.md) 为自建后端
+（**PHP / Laravel 13**，对接酷我音源，按 SQMusic 契约实现，含 Scalar/Scramble 文档测试台）；
+[`packages/api-contract`](packages/api-contract/README.md) 为前后端契约类型（由 `server/openapi.json` 自动生成）。
+
 ## 功能
 
 - **歌曲搜索**：酷我音源、搜索联想词（防抖）、搜索历史、分页、音质标签（按码率从高到低排序）

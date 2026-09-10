@@ -7,6 +7,19 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # 压缩与缓存：JS/CSS 单 chunk 较大，gzip 显著减少传输；
+    # /assets/* 为哈希文件名，可长期缓存
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
     # 后端反代：浏览器同源访问 /api，规避 CORS
     location /api {
         proxy_pass ${MC_API_BASE_URL};
@@ -15,6 +28,10 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 300s;
     }
+
+    # 飞牛（fnOS）音乐库反代（可选）：location 块由 40-generate-config.sh 按需
+    # 生成到 /etc/nginx/mc-fnos/；通配 include 在无匹配文件时不报错
+    include /etc/nginx/mc-fnos/*.conf;
 
     # SPA 兜底
     location / {

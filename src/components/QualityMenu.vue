@@ -61,8 +61,8 @@ async function direct(brType: string) {
     document.body.appendChild(a)
     a.click()
     a.remove()
-    toast.info('已打开下载链接', {
-      description: brTypeLabel(info.brType, app.brTypeList),
+    toast.info('已在新标签页打开下载地址', {
+      description: `${brTypeLabel(info.brType, app.brTypeList)}（跨域直链的保存文件名由浏览器决定）`,
     })
   } catch (e) {
     toast.error('获取下载链接失败', { description: e instanceof Error ? e.message : String(e) })

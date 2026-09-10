@@ -9,8 +9,8 @@ export default defineConfig({
   description: '基于 Vue 3 + TypeScript 的音乐搜索、试听与下载客户端',
   base,
   lastUpdated: true,
-  // 接口实测报告含内网部署细节，仅保留在仓库内，不发布到站点
-  srcExclude: ['**/api-test-report.md'],
+  // 接口实测报告与功能看板含内网部署细节，仅保留在仓库内，不发布到站点
+  srcExclude: ['**/api-test-report.md', '**/FNOS_LIBRARY_PLAN.md'],
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }]],
 
   themeConfig: {

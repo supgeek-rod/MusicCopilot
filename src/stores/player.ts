@@ -1,8 +1,17 @@
 import { defineStore } from 'pinia'
+import { fnosStreamUrl } from '@/api/fnos'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
 import { sortBrTypes } from '@/lib/format'
-import { loadPersistedQueue, persistQueue } from '@/lib/playQueue'
+import { recordRecentPlay } from '@/lib/recentPlays'
+import {
+  loadPersistedQueue,
+  loadPlayMode,
+  loadVolume,
+  persistPlayMode,
+  persistQueue,
+} from '@/lib/playQueue'
+import type { PlayMode } from '@/lib/playQueue'
 
 export const usePlayerStore = defineStore('player', {
   // 启动时恢复上次退出时的队列（url 不恢复，点播放时重新取链）
@@ -19,7 +28,9 @@ export const usePlayerStore = defineStore('player', {
       isPlaying: false,
       currentTime: 0,
       duration: 0,
-      volume: 1,
+      volume: loadVolume(),
+      /** 播放模式：loop 列表循环（默认）/ shuffle 随机播放 / stop 播完停止 */
+      playMode: loadPlayMode(),
     }
   },
 
@@ -31,9 +42,16 @@ export const usePlayerStore = defineStore('player', {
       return state.queue.length > 1 ? `${state.queueIndex + 1}/${state.queue.length}` : ''
     },
     hasNext(state): boolean {
-      return state.queueIndex >= 0 && state.queueIndex < state.queue.length - 1
+      if (state.queueIndex < 0) return false
+      // 随机模式多于 1 首总有一首可播；循环模式总是回绕；播完停止只在还有下一首时可用
+      if (state.playMode === 'shuffle') return state.queue.length > 1
+      if (state.playMode === 'loop') return state.queue.length > 0
+      return state.queueIndex < state.queue.length - 1
     },
     hasPrev(state): boolean {
+      if (state.queueIndex < 0) return false
+      if (state.playMode === 'shuffle') return state.queue.length > 1
+      if (state.playMode === 'loop') return state.queue.length > 0
       return state.queueIndex > 0
     },
   },
@@ -95,28 +113,59 @@ export const usePlayerStore = defineStore('player', {
       this.persist()
       this.loading = true
       try {
-        const brType = sortBrTypes(song.brTypes ?? [])[0] ?? ''
-        const info = await musicApi.getDownloadUrl(song.plugName, song.id, brType, song.brTypes ?? [])
-        // 若等待期间用户又切了歌，丢弃过期结果
-        if (this.queueIndex !== index) return
-        this.url = info.url
-        this.brType = info.brType
+        if (song.plugName === 'fnos') {
+          // fnOS 本地曲目：直链经同源 /fnos 反代，浏览器自动携带 music-token Cookie
+          if (this.queueIndex !== index) return
+          this.url = fnosStreamUrl(song.id)
+          this.brType = ''
+        } else {
+          const brType = sortBrTypes(song.brTypes ?? [])[0] ?? ''
+          const info = await musicApi.getDownloadUrl(song.plugName, song.id, brType, song.brTypes ?? [])
+          // 若等待期间用户又切了歌，丢弃过期结果
+          if (this.queueIndex !== index) return
+          this.url = info.url
+          this.brType = info.brType
+        }
         this.currentTime = 0
         this.duration = 0
         this.playSeq++
+        // 本地最近播放：只记 fnOS 曲目（音乐库首页「最近播放」数据源）
+        if (song.plugName === 'fnos') recordRecentPlay(song)
       } finally {
         this.loading = false
       }
     },
 
     next() {
-      if (this.hasNext) return this.jump(this.queueIndex + 1)
-      return Promise.resolve()
+      if (!this.hasNext) return Promise.resolve()
+      return this.jump(this.pickIndex('next'))
     },
 
     prev() {
-      if (this.hasPrev) return this.jump(this.queueIndex - 1)
-      return Promise.resolve()
+      if (!this.hasPrev) return Promise.resolve()
+      return this.jump(this.pickIndex('prev'))
+    },
+
+    /** 按播放模式计算切歌目标索引（调用前需确认 hasNext/hasPrev） */
+    pickIndex(dir: 'next' | 'prev'): number {
+      const len = this.queue.length
+      if (this.playMode === 'shuffle' && len > 1) {
+        // 随机播放：随机挑一首与当前不同的
+        let idx = this.queueIndex
+        while (idx === this.queueIndex) idx = Math.floor(Math.random() * len)
+        return idx
+      }
+      if (this.playMode === 'loop') {
+        return dir === 'next'
+          ? (this.queueIndex + 1) % len
+          : (this.queueIndex - 1 + len) % len
+      }
+      return dir === 'next' ? this.queueIndex + 1 : this.queueIndex - 1
+    },
+
+    setPlayMode(mode: PlayMode) {
+      this.playMode = mode
+      persistPlayMode(mode)
     },
 
     stop() {
