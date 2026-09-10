@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { SettingsIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -9,7 +8,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -48,7 +46,8 @@ function onQualityChange(value: unknown) {
 }
 
 // ---- 后端连接 ----
-const open = ref(false)
+// 由父组件控制打开（导航栏设置下拉里的「系统设置」入口）
+const open = defineModel<boolean>('open', { default: false })
 const baseUrl = ref('')
 const username = ref('')
 const password = ref('')
@@ -99,11 +98,6 @@ async function resetConnection() {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogTrigger as-child>
-      <Button variant="ghost" size="icon-sm" title="设置">
-        <SettingsIcon class="size-4" />
-      </Button>
-    </DialogTrigger>
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>设置</DialogTitle>
