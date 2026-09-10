@@ -6,6 +6,7 @@ import {
   MoonIcon,
   Music2Icon,
   SearchIcon,
+  SettingsIcon,
   SunIcon,
   TrashIcon,
   XIcon,
@@ -15,6 +16,12 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { musicApi } from '@/api/music'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import { clearSearchHistory, loadSearchHistory, removeSearchHistory } from '@/lib/searchHistory'
@@ -30,15 +37,13 @@ const toggleDark = useToggle(isDark)
 
 const statusTitle = computed(() => `${app.statusMsg}｜后端：${app.apiBase || '同源'}`)
 
-const navs = computed(() => {
-  const list = [
-    { path: '/search', label: '搜索', icon: SearchIcon },
-    { path: '/downloads', label: '下载任务', icon: ListMusicIcon },
-  ]
-  // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示
-  if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
-  return list
-})
+// 导航仅保留「音乐库」入口（仅在配置了 fnOS 接入时显示），搜索走右侧快捷搜索框，其余入口收敛进设置下拉
+const navs = computed(() =>
+  fnos.enabled ? [{ path: '/library', label: '音乐库', icon: LibraryIcon }] : [],
+)
+
+// 系统设置弹窗由设置下拉里的入口打开
+const settingsOpen = ref(false)
 
 function isActive(path: string): boolean {
   return path === '/library' ? route.path.startsWith('/library') : route.path === path
@@ -145,7 +150,23 @@ function clearHistory() {
         </div>
       </RouterLink>
 
-      <nav class="ml-auto flex items-center gap-1">
+      <!-- 导航：靠左，仅音乐库 -->
+      <nav class="flex items-center gap-1">
+        <Button
+          v-for="nav in navs"
+          :key="nav.path"
+          :variant="isActive(nav.path) ? 'secondary' : 'ghost'"
+          size="sm"
+          as-child
+        >
+          <RouterLink :to="nav.path">
+            <component :is="nav.icon" class="size-4" />
+            {{ nav.label }}
+          </RouterLink>
+        </Button>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-1">
         <!-- 快捷搜索：聚焦显历史、输入显联想，选中/回车跳转搜索页（面板交互与搜索页一致） -->
         <div ref="searchBoxRef" class="relative mr-2 hidden md:block">
           <SearchIcon
@@ -221,26 +242,32 @@ function clearHistory() {
           </div>
         </div>
 
-        <Button
-          v-for="nav in navs"
-          :key="nav.path"
-          :variant="isActive(nav.path) ? 'secondary' : 'ghost'"
-          size="sm"
-          as-child
-        >
-          <RouterLink :to="nav.path">
-            <component :is="nav.icon" class="size-4" />
-            {{ nav.label }}
-          </RouterLink>
-        </Button>
-
-        <SettingsDialog />
-
-        <Button variant="ghost" size="icon-sm" :title="isDark ? '切换浅色' : '切换深色'" @click="toggleDark()">
-          <SunIcon v-if="isDark" class="size-4" />
-          <MoonIcon v-else class="size-4" />
-        </Button>
-      </nav>
+        <!-- 设置下拉：下载任务 / 主题切换 / 系统设置 -->
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="icon-sm" title="设置">
+              <SettingsIcon class="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" class="w-40">
+            <DropdownMenuItem @click="router.push('/downloads')">
+              <ListMusicIcon class="size-4" />
+              下载任务
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="toggleDark()">
+              <SunIcon v-if="isDark" class="size-4" />
+              <MoonIcon v-else class="size-4" />
+              {{ isDark ? '切换浅色' : '切换深色' }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="settingsOpen = true">
+              <SettingsIcon class="size-4" />
+              系统设置
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
+
+    <SettingsDialog v-model:open="settingsOpen" />
   </header>
 </template>
