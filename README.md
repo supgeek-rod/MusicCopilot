@@ -7,10 +7,25 @@
 ## 当前进度
 
 - [x] 酷我接口调研：搜索 / 详情 / 歌词 / 直链解析 全链路 curl 实测通过（2026-09-10）
-- [ ] Laravel 13 骨架（计划用 Docker 内 Composer 生成，本机无 PHP）
-- [ ] API 封装（{code,msg,data} 契约 + sqmusic token 鉴权）
+- [x] Laravel 13 骨架（`laravel/`，WSL PHP 8.4 运行，`php artisan serve --port=8097`）
+- [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，SQMusic `{code,msg,data}` 契约，
+      字段对齐 MusicCopilot 前端 `SongRecord/ArtistRecord/AlbumRecord`）
+- [ ] 鉴权（登录 + sqmusic token 头）
+- [ ] 歌词 / 歌曲详情 / 直链解析 / 下载链接
 - [ ] 下载队列与任务管理
 - [ ] Dockerfile / docker-compose
+
+### 搜索 API 用法
+
+```bash
+# 服务：cd laravel && php artisan serve --port=8097
+curl 'http://127.0.0.1:8097/api/music/searchSong?plugName=kw&keyword=晴天&pageIndex=1&pageSize=3'
+curl 'http://127.0.0.1:8097/api/music/searchArtist?plugName=kw&keyword=周杰伦'
+curl 'http://127.0.0.1:8097/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
+```
+
+`pageIndex` 从 1 开始（内部转酷我 pn=pageIndex-1）；`pageSize` 上限 100。
+错误统一 `{code:500, msg, data:null}`：keyword 缺失、plugName 未注册、上游请求失败。
 
 ## 目录结构
 
