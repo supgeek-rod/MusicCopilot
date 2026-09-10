@@ -8,6 +8,33 @@ export interface PersistedQueue {
   index: number
 }
 
+export type PlayMode = 'loop' | 'shuffle' | 'stop'
+
+const PLAY_MODE_KEY = 'music-copilot:play-mode'
+
+export function isValidPlayMode(v: unknown): v is PlayMode {
+  return v === 'loop' || v === 'shuffle' || v === 'stop'
+}
+
+/** 读取持久化的播放模式，缺失或损坏时回退为列表循环 */
+export function loadPlayMode(): PlayMode {
+  try {
+    const mode = localStorage.getItem(PLAY_MODE_KEY)
+    return isValidPlayMode(mode) ? mode : 'loop'
+  } catch {
+    return 'loop'
+  }
+}
+
+/** 持久化播放模式，存储不可用时静默放弃 */
+export function persistPlayMode(mode: PlayMode) {
+  try {
+    localStorage.setItem(PLAY_MODE_KEY, mode)
+  } catch {
+    // 仅保留内存态
+  }
+}
+
 function isValidSong(v: unknown): v is SongRecord {
   if (!v || typeof v !== 'object') return false
   const s = v as Partial<SongRecord>
