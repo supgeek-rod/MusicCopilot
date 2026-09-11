@@ -41,13 +41,15 @@ docker compose pull && docker compose up -d
 
 ### 方式二：克隆仓库，使用自带 Compose
 
-仓库自带的 `docker-compose.yml` 同样默认拉取预构建镜像（写有 `image:`，加 `--build` 时改为本地构建），并直接复用开发用的 `.env`（`MC_PORT` 可覆盖对外端口）：
+仓库自带的 `docker-compose.yml` 各分支内容相同：默认拉取 `latest`（稳定线），加 `--build` 时改为本地构建，并直接复用开发用的 `.env`（`MC_PORT` 覆盖对外端口，`MC_IMAGE_TAG` 覆盖镜像 tag）：
 
 ```bash
 git clone https://github.com/supgeek-rod/MusicCopilot.git
 cd MusicCopilot
 cp .env.example .env    # 填写后端地址与账号（.env 不入库）
+# 可选：MC_IMAGE_TAG=development 跟随开发分支预构建镜像
 docker compose up -d
+# 或跟当前代码：docker compose up -d --build
 ```
 
 ### 方式三：docker run
@@ -74,6 +76,7 @@ docker run -d -p 17016:80 \
 - `MC_API_BASE_URL` 必填（nginx 反代目标）。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用 `http://host.docker.internal:8096`（自带 compose 已配好 host-gateway 映射）或宿主机局域网 IP。
 - 密码避免包含 `"` 或 `\`。
 - 对外端口默认 `17016`；克隆仓库部署时可在 `.env` 里用 `MC_PORT` 覆盖。
+- 仓库自带 compose 的镜像 tag 默认 `latest`；在 `.env` 里用 `MC_IMAGE_TAG` 覆盖（如 `development`），不要按分支改 yaml。
 - 容器启动失败先看 `docker logs music-copilot`，多为缺少 `MC_API_BASE_URL`。
 
 ### 镜像 tag 说明
@@ -101,6 +104,6 @@ docker run -d -p 17016:80 \
 | 文件 | 说明 |
 | --- | --- |
 | `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
-| `docker-compose.yml` | 一键编排（默认拉取预构建镜像，env_file 复用 `.env`） |
+| `docker-compose.yml` | 一键编排（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；env_file 复用 `.env`） |
 | `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
 | `.github/workflows/docker-publish.yml` | 镜像自动构建与发布（GHCR + Docker Hub） |
