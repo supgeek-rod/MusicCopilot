@@ -16,6 +16,15 @@ const app = useAppStore()
 // 构建时由 vite.config.ts 注入（取自 package.json version）
 const appVersion = import.meta.env.VITE_APP_VERSION
 
+// 构建信息（git hash/时间/dirty），vite.config.ts 经 define 注入；dev 降级 hash 为 'dev'
+const buildInfo = __BUILD_INFO__
+const buildTime = computed(() => {
+  if (!buildInfo.time) return ''
+  const d = new Date(buildInfo.time)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+})
+
 // 设置页左侧导航分区
 const sections = [
   { id: 'general', label: '通用', icon: SlidersHorizontalIcon },
@@ -291,6 +300,15 @@ async function resetConnection() {
             <span class="rounded-full border px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
               v{{ appVersion }}
             </span>
+          </div>
+
+          <!-- 构建信息：排查「线上跑的是不是这次构建」时与 git 提交对照 -->
+          <div class="flex items-center gap-2">
+            <span class="font-medium">构建</span>
+            <span class="rounded-full border px-2 py-0.5 text-xs font-mono tabular-nums text-muted-foreground">
+              {{ buildInfo.hash }}<template v-if="buildInfo.time"> · {{ buildTime }}</template>
+            </span>
+            <span v-if="buildInfo.dirty" class="text-xs text-amber-500">含未提交改动</span>
           </div>
 
           <dl class="space-y-2">

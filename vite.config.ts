@@ -138,7 +138,22 @@ export default defineConfig(({ command, mode }) => {
   const appVersion = (JSON.parse(fs.readFileSync('package.json', 'utf-8')) as { version: string })
     .version
   process.env.VITE_APP_VERSION = appVersion
+  // 构建信息（git hash/时间/dirty），由 scripts/gen-build-info.mjs 在 build 前生成到
+  // src/build-info.json；文件缺失（未跑前置脚本、无 git）时降级 dev，仅禁用版本检测
+  let buildInfo: { hash: string; time: string; dirty: boolean } = {
+    hash: 'dev',
+    time: '',
+    dirty: false,
+  }
+  try {
+    buildInfo = JSON.parse(fs.readFileSync('src/build-info.json', 'utf-8'))
+  } catch {
+    // 保持降级值
+  }
   return {
+    define: {
+      __BUILD_INFO__: JSON.stringify(buildInfo),
+    },
     plugins: [
       vue(),
       tailwindcss(),
