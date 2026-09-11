@@ -121,6 +121,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* 禁用双击缩放（保留滚动与点击；配合 viewport user-scalable=no 限制移动端缩放） */
+    @apply touch-manipulation;
+  }
   body {
     @apply bg-background text-foreground;
     @apply font-sans;
