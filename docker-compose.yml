@@ -70,6 +70,8 @@ services:
     container_name: music-copilot-scraper
     profiles: [scraper]
     environment:
+      # 显式固定：.env 的 MC_PORT 是 web 对外端口，会经 env_file 污染 scraper 监听端口
+      MC_PORT: 8098
       MC_MUSIC_DIR: /music
       MC_DATA_DIR: /data
       MC_SERVER_URL: http://server:8097
