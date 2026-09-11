@@ -35,10 +35,10 @@
 | music（歌词） | `POST /api/music/getLyric` | ✅ |
 | music（详情/直链） | `GET /api/music/artistAlbumById`（歌手详情 + 全部专辑）、`GET /api/music/albumInfoById`（专辑详情 + 曲目） | ✅ |
 | | `POST /api/music/getDownloadUrl`（plugName / id / brType / brTypes） | ✅ |
-| download | `POST /api/download/downloadSong`（完整歌曲记录 + 可选 brType，省略自动选最高音质） | ⬜ |
-| | `POST /api/download/downloadAlbum`（专辑记录 + 可选 bit 整数码率）、`POST /api/download/downloadArtistAlbum`（歌手记录 + 可选 bit） | ⬜ |
-| task | `POST /api/task/list`（分页 + 状态筛选）、`POST /api/task/del`、`POST /api/task/refreshTask`（重新入队）、`POST /api/task/errorTaskRetry` | ⬜ |
-| | `GET /api/task/againTask`（全部错误重试）、`GET /api/task/delErrorTask`、`GET /api/task/delWaitingTask`、`GET /api/task/delSuccessTask`（⚠️ SQMusic 语义 = 清空全部成功记录） | ⬜ |
+| download | `POST /api/download/downloadSong`（完整歌曲记录 + 可选 brType，省略自动选最高音质） | ✅ |
+| | `POST /api/download/downloadAlbum`（专辑记录 + 可选 bit 整数码率）、`POST /api/download/downloadArtistAlbum`（歌手记录 + 可选 bit） | ✅ |
+| task | `POST /api/task/list`（分页 + 状态筛选）、`POST /api/task/del`、`POST /api/task/refreshTask`（重新入队）、`POST /api/task/errorTaskRetry` | ✅ |
+| | `GET /api/task/againTask`（全部错误重试）、`GET /api/task/delErrorTask`、`GET /api/task/delWaitingTask`、`GET /api/task/delSuccessTask`（⚠️ SQMusic 语义 = 清空全部成功记录） | ✅ |
 
 ## 4. 里程碑与任务清单
 
@@ -82,16 +82,27 @@
 - albumlist 每条专辑自带大段 `info` 简介，响应可达数百 KB；WSL2 NAT 链路 10s 传不完导致超时，`KUWO_TIMEOUT` 默认提到 30s（参考实现的 rn=10000 口径收敛为 500，远超现实专辑数）
 - 直链 CDN（kw-er.kuwo.cn）实测不限区域：320k mp3（M800 前缀）与 2000k FLAC（F000 前缀）均解析成功且可下载
 
-### M3 下载队列与任务管理 ⬜
+### M3 下载队列与任务管理 ✅（2026-09-12）
 
 | 任务 | 状态 |
 | --- | --- |
-| 迁移：`tasks` 表（plugName / 歌曲记录 / brType / 状态 / 进度 / 落盘路径 / 错误信息 / 时间戳）+ Model | ⬜ |
-| `POST /api/download/downloadSong|downloadAlbum|downloadArtistAlbum`：建任务入队；整张 / 歌手全部专辑展开为单曲任务 | ⬜ |
-| `queue:work` worker：即时直链解析 → 下载 → 进度与状态回写；并发控制、失败重试 | ⬜ |
-| `/api/task/*` 8 端点（list 分页筛选 / del / refreshTask / errorTaskRetry / againTask / delErrorTask / delWaitingTask / delSuccessTask⚠️） | ⬜ |
-| Dockerfile + worker 进程编排（§10 建议 5/6） | ⬜ |
-| 契约固化 + 测试 + 端到端真机（下载一首 mp3 落盘、任务状态流转） | ⬜ |
+| 迁移：`download_tasks` 表（plugName / 歌曲与专辑 / brType / brTypes / 上游原始条目 JSON / 状态 / 进度 / 落盘路径 / 错误信息 / 下载与更新时间）+ Model + 契约映射 `toContract()` | ✅ |
+| `POST /api/download/downloadSong`（完整歌曲记录，brType 省略 worker 自动选最高可用音质） | ✅ |
+| `POST /api/download/downloadAlbum`（bit 整数码率 → KW_* 反查；同步展开曲目，返回任务数组供前端计数） | ✅ |
+| `POST /api/download/downloadArtistAlbum`（专辑多、每张一次上游请求 → `ExpandArtistAlbumJob` 队列异步展开，任务渐进出现） | ✅ |
+| `DownloadSongJob`：waiting→loading→downloading→success/error；直链即用即取、Guzzle sink 流式落盘（`.part` → 改名）、「歌手 - 标题」命名（非法字符清洗 + 重名序号）、任务中途被删则丢弃文件；失败不自动重试（error 由用户重试，对齐 SQMusic） | ✅ |
+| `/api/task/*` 8 端点（list 分页状态筛选 / del / refreshTask / errorTaskRetry / againTask / delErrorTask / delSuccessTask⚠️ / delWaitingTask） | ✅ |
+| Dockerfile（php:8.4-cli-alpine 多阶段 vendor 分层）+ entrypoint（migrate + APP_KEY 自动生成）+ compose `server`/`server-worker` 服务（`profiles: [server]`、server-data 卷） | ✅（docker build 随 CI 验证，同 scraper M5 先例） |
+| 契约固化（openapi.json 24 端点 → `packages/api-contract` 重生成） | ✅ |
+| `php artisan test`：47 tests / 291 assertions 全绿（新增 17 例：任务创建/展开/状态机/文件名清洗与碰撞/删除丢弃/任务管理 8 端点） | ✅ |
+| 端到端真机：queue:work 真实下载晴天 128k → `周杰伦 - 晴天.mp3` 4,317,292 字节（ID3 头、与调研口径一致）、状态 waiting→downloading→success、del/delSuccessTask/list 全通 | ✅ |
+
+实现备注（2026-09-12）：
+
+- `downloadMusicInfo` 按契约存**上游原始条目 JSON**（顶层 MINFO/N_MINFO），前端 `taskSizeBytes` 据此按入队音质估算大小
+- 前端 `downloadAlbum` 响应为数组时取长度做计数提示——故整张专辑同步展开返回任务数组；歌手全部专辑异步展开（HTTP 立即返回）
+- 状态机五枚举与前端筛选器一致：waiting / downloading / loading（解析中）/ success / error
+- 测试坑记录：Laravel `Http::response()` stub 的响应体流被首次请求耗尽，同一 stub 多次请求（sink 落盘）须用闭包 fake 或 `Http::sequence()->push()`——见 DownloadFlowTest
 
 ### M4 下载完成自动刮削写标签 ⬜
 
@@ -124,3 +135,4 @@
 - 2026-09-11：第 5 期启动。worktree 建立（env 复制、npm/composer 依赖安装）；看板建立；roadmap 第 5 期标 🚧 并修订技术栈表述（M0 完成）
 - 2026-09-11：M1 完成（鉴权五端点 + `sqmusic` 中间件 + token 落库；契约 9 端点固化；18 tests 全绿；真机与 scraper 冒烟通过）。注意：根 package.json 未声明 workspaces，契约生成须在 `packages/api-contract` 内 `npm run gen`
 - 2026-09-12：M2 完成（联想词/歌手详情/专辑详情/直链四端点；契约 13 端点；30 tests 全绿；真机全链路含真实直链解析通过）。发现并处理：albumlist 大响应在 WSL2 链路超时（KUWO_TIMEOUT→30s、rn 收敛 500）
+- 2026-09-12：M3 完成（download 3 端点 + task 8 端点 + SQLite 队列 worker；契约 24 端点；47 tests 全绿；端到端真机下载晴天 128k 落盘 4.3MB 成功）。至此前端契约 20/20 端点全部落地，SQMusic 契约面补齐

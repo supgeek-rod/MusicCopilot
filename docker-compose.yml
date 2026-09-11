@@ -20,3 +20,42 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+
+  # ── 自建后端（第 5 期 M3，profile: server；启用：docker compose --profile server up -d）──
+  # API 进程（php artisan serve，LAN 自用足够）与下载 worker 同镜像分进程；
+  # SQLite 库与下载文件都在 server-data 卷。镜像由 CI 随 M5 发布，当前本地构建。
+  server:
+    build: ./server
+    image: supgeekrod/music-copilot-server:${MC_IMAGE_TAG:-latest}
+    container_name: music-copilot-server
+    profiles: [server]
+    ports:
+      - "${MC_SERVER_PORT:-8097}:8097"
+    environment:
+      DB_DATABASE: /data/database.sqlite
+      MC_DOWNLOAD_DIR: /data/downloads
+    env_file:
+      - .env
+    volumes:
+      - server-data:/data
+    restart: unless-stopped
+
+  server-worker:
+    build: ./server
+    image: supgeekrod/music-copilot-server:${MC_IMAGE_TAG:-latest}
+    container_name: music-copilot-server-worker
+    profiles: [server]
+    command: ["php", "artisan", "queue:work", "--tries=1", "--timeout=3600"]
+    environment:
+      DB_DATABASE: /data/database.sqlite
+      MC_DOWNLOAD_DIR: /data/downloads
+    env_file:
+      - .env
+    volumes:
+      - server-data:/data
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  server-data:

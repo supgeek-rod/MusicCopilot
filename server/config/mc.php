@@ -11,4 +11,9 @@ return [
         'token_name' => 'sqmusic',
     ],
 
+    // 下载引擎：文件落盘目录（目标部署时指向 fnOS 音乐库目录，由刮削工具接管写标签）
+    'download' => [
+        'dir' => env('MC_DOWNLOAD_DIR', storage_path('app/downloads')),
+    ],
+
 ];

@@ -333,6 +333,421 @@
                 }
             }
         },
+        "/download/downloadSong": {
+            "post": {
+                "operationId": "download.downloadSong",
+                "summary": "\u5355\u66f2\u4e0b\u8f7d\uff1abody \u4e3a\u641c\u7d22\u8fd4\u56de\u7684\u5b8c\u6574\u6b4c\u66f2\u8bb0\u5f55\uff0cbrType \u7701\u7565\u65f6 worker \u81ea\u52a8\u9009\u6700\u9ad8\u97f3\u8d28",
+                "tags": [
+                    "Download"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "plugName": {
+                                        "type": "string"
+                                    },
+                                    "brType": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "id",
+                                    "name",
+                                    "plugName"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u6b4c\u66f2\u8bb0\u5f55\u7f3a\u5c11 id/name"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/download/downloadAlbum": {
+            "post": {
+                "operationId": "download.downloadAlbum",
+                "summary": "\u6574\u5f20\u4e13\u8f91\u4e0b\u8f7d\uff1abody \u4e3a\u4e13\u8f91\u8bb0\u5f55 + \u53ef\u9009 bit\uff08\u6574\u6570\u7801\u7387\uff0c\u7701\u7565=\u81ea\u52a8\u6700\u9ad8\uff09\u3002\n\u540c\u6b65\u5c55\u5f00\u66f2\u76ee\uff08\u4e00\u6b21\u4e0a\u6e38\u8bf7\u6c42\uff09\u5e76\u8fd4\u56de\u4efb\u52a1\u6570\u7ec4\uff0c\u524d\u7aef\u53d6\u6570\u7ec4\u957f\u5ea6\u505a\u8ba1\u6570\u63d0\u793a",
+                "tags": [
+                    "Download"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "albumid": {
+                                        "type": "string"
+                                    },
+                                    "plugName": {
+                                        "type": "string"
+                                    },
+                                    "bit": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "albumid",
+                                    "plugName"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "downloadGid": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadTime": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadFile": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadMusicId": {
+                                                                "type": "string"
+                                                            },
+                                                            "downloadPlugName": {
+                                                                "type": "string"
+                                                            },
+                                                            "downloadBrType": {
+                                                                "type": "string"
+                                                            },
+                                                            "downloadMusicname": {
+                                                                "type": "string"
+                                                            },
+                                                            "downloadArtistname": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadAlbumname": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadMsg": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadMusicInfo": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "downloadStatus": {
+                                                                "type": "string"
+                                                            },
+                                                            "springName": {
+                                                                "type": "null"
+                                                            },
+                                                            "audioBook": {
+                                                                "type": "null"
+                                                            },
+                                                            "downloadUpdateTime": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "rewriteMp3tag": {
+                                                                "type": "null"
+                                                            },
+                                                            "downloadBits": {
+                                                                "type": "null"
+                                                            },
+                                                            "downloadBrTypes": {
+                                                                "type": [
+                                                                    "array",
+                                                                    "null"
+                                                                ],
+                                                                "items": {}
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "downloadGid",
+                                                            "downloadTime",
+                                                            "downloadFile",
+                                                            "downloadMusicId",
+                                                            "downloadPlugName",
+                                                            "downloadBrType",
+                                                            "downloadMusicname",
+                                                            "downloadArtistname",
+                                                            "downloadAlbumname",
+                                                            "downloadMsg",
+                                                            "downloadMusicInfo",
+                                                            "downloadStatus",
+                                                            "springName",
+                                                            "audioBook",
+                                                            "downloadUpdateTime",
+                                                            "rewriteMp3tag",
+                                                            "downloadBits",
+                                                            "downloadBrTypes"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/download/downloadArtistAlbum": {
+            "post": {
+                "operationId": "download.downloadArtistAlbum",
+                "summary": "\u6b4c\u624b\u5168\u90e8\u4e13\u8f91\u4e0b\u8f7d\uff1a\u4e13\u8f91\u591a\uff08\u6bcf\u5f20\u4e00\u6b21\u4e0a\u6e38\u8bf7\u6c42\uff09\uff0c\u5165\u961f\u5f02\u6b65\u5c55\u5f00\uff0c\u4efb\u52a1\u5728 task/list \u4e2d\u6e10\u8fdb\u51fa\u73b0",
+                "tags": [
+                    "Download"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "artistid": {
+                                        "type": "string"
+                                    },
+                                    "plugName": {
+                                        "type": "string"
+                                    },
+                                    "bit": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "artistid",
+                                    "plugName"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/music/searchSong": {
             "get": {
                 "operationId": "musicSearch.searchSong",
@@ -1148,6 +1563,556 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/task/list": {
+            "post": {
+                "operationId": "task.list",
+                "summary": "\u4efb\u52a1\u5217\u8868\uff08\u5206\u9875 + \u72b6\u6001\u7b5b\u9009\uff1b\u53e6\u63a5\u53d7 SQMusic \u5951\u7ea6\u4e2d\u7684\u5176\u4f59\u7b5b\u9009\u5b57\u6bb5\u4f46\u4ec5\u5b9e\u73b0\u72b6\u6001\u7b5b\u9009\uff09",
+                "tags": [
+                    "Task"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "pageIndex": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "pageSize": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 200
+                                    },
+                                    "downloadStatus": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "records": {
+                                                    "type": "string"
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "size": {
+                                                    "type": "integer"
+                                                },
+                                                "current": {
+                                                    "type": "integer"
+                                                },
+                                                "pages": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "records",
+                                                "total",
+                                                "size",
+                                                "current",
+                                                "pages"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/task/del": {
+            "post": {
+                "operationId": "task.del",
+                "summary": "\u5220\u9664\u5355\u4e2a\u4efb\u52a1\u8bb0\u5f55\uff08\u4e0d\u5220\u5df2\u843d\u76d8\u6587\u4ef6\uff09",
+                "tags": [
+                    "Task"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/task/refreshTask": {
+            "post": {
+                "operationId": "task.refreshTask",
+                "summary": "\u91cd\u65b0\u5165\u961f\uff1a\u7b49\u5f85/\u89e3\u6790/\u4f20\u8f93\u4e2d\u5361\u4f4f\u7684\u4efb\u52a1\u91cd\u65b0\u6392\u961f\uff08\u6210\u529f/\u5931\u8d25\u8d70\u4e13\u95e8\u7aef\u70b9\uff09",
+                "tags": [
+                    "Task"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u5931\u8d25\u4efb\u52a1\u8bf7\u4f7f\u7528\u91cd\u8bd5"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u5df2\u5b8c\u6210\u7684\u4efb\u52a1\u65e0\u9700\u91cd\u65b0\u5165\u961f"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u4efb\u52a1\u4e0d\u5b58\u5728"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/task/errorTaskRetry": {
+            "post": {
+                "operationId": "task.errorTaskRetry",
+                "summary": "\u91cd\u8bd5\u5931\u8d25\u4efb\u52a1",
+                "tags": [
+                    "Task"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u4ec5\u5931\u8d25\u4efb\u52a1\u53ef\u91cd\u8bd5"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u4efb\u52a1\u4e0d\u5b58\u5728"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/task/againTask": {
+            "get": {
+                "operationId": "task.againTask",
+                "summary": "\u5168\u90e8\u5931\u8d25\u4efb\u52a1\u91cd\u8bd5",
+                "tags": [
+                    "Task"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/task/delErrorTask": {
+            "get": {
+                "operationId": "task.delErrorTask",
+                "tags": [
+                    "Task"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "count": {}
+                                            },
+                                            "required": [
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/task/delSuccessTask": {
+            "get": {
+                "operationId": "task.delSuccessTask",
+                "summary": "\u26a0\ufe0f \u6e05\u7a7a\u5168\u90e8\u6210\u529f\u4efb\u52a1\u8bb0\u5f55\uff08\u4e0d\u5220\u843d\u76d8\u6587\u4ef6\uff1bSQMusic \u5951\u7ea6\u8bed\u4e49\uff0c\u524d\u7aef\u6709\u786e\u8ba4\u5f39\u7a97\uff09",
+                "tags": [
+                    "Task"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "count": {}
+                                            },
+                                            "required": [
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/task/delWaitingTask": {
+            "get": {
+                "operationId": "task.delWaitingTask",
+                "tags": [
+                    "Task"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "count": {}
+                                            },
+                                            "required": [
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }

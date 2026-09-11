@@ -19,9 +19,9 @@
 - [x] 歌词：`POST /api/music/getLyric`（酷我 newlyric 代理，2026-09-11 随第 4 期 M1 落地）
 - [x] 歌曲详情 / 直链解析：`GET searchTips|artistAlbumById|albumInfoById` + `POST getDownloadUrl`
       （2026-09-12 第 5 期 M2；⚠️ 直链有大陆 IP 区域限制，海外出口 code:407）
-- [ ] 下载链接落库（downloadSong/downloadAlbum/downloadArtistAlbum）
-- [ ] 下载队列与任务管理
-- [ ] Dockerfile / docker-compose
+- [x] 下载任务：`POST /api/download/downloadSong|downloadAlbum|downloadArtistAlbum` +
+      `POST /api/task/*` 8 端点（2026-09-12 第 5 期 M3，SQLite 队列 + queue:work worker）
+- [ ] Dockerfile / docker-compose（Dockerfile 与 compose 编排已就位，镜像构建随 CI 验证）
 
 ## 开发
 
@@ -57,6 +57,26 @@ curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:8097/api/config/get
   `data.tokenName/tokenValue`；`isLogin` 恒返回 200，登录态在 `data` 布尔值上（不复制 SQMusic 无 token 也返回 true 的瑕疵）
 - token 有效期 7 天（`MC_AUTH_TTL`），库里只存 sha256 摘要（`auth_tokens` 表），`logout` 撤销、多设备并存
 - 凭证经 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD` 配置（默认 admin/admin，见 `.env.example`）
+
+### 下载与任务队列（第 5 期 M3）
+
+```bash
+# 启动 worker（开发期；Docker 部署由 server-worker 容器承担）
+php artisan queue:work --tries=1 --timeout=3600
+
+# 创建单曲任务（body 为搜索返回的完整歌曲记录；brType 省略自动选最高可用音质）
+curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @song.json 'http://127.0.0.1:8097/api/download/downloadSong'
+
+# 任务列表（分页 + downloadStatus 筛选：waiting/downloading/loading/success/error）
+curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"pageIndex":1,"pageSize":20}' 'http://127.0.0.1:8097/api/task/list'
+```
+
+- 状态机：waiting → loading（解析直链）→ downloading → success / error；失败经 `errorTaskRetry` 回 waiting
+- 落盘「歌手 - 标题.格式」，重名追加序号；目录 `MC_DOWNLOAD_DIR`（默认 `storage/app/downloads`）
+- 整张专辑同步展开（响应为任务数组，前端取长度计数）；歌手全部专辑队列异步展开、任务渐进出现
+- 删除任务记录不删已落盘文件；`delSuccessTask` 清空全部成功记录（契约保留，前端有确认弹窗）
 
 ### API 文档与在线测试（Scalar + Scramble）
 
