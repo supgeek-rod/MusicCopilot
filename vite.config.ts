@@ -162,6 +162,10 @@ export default defineConfig(({ command, mode }) => {
   } catch {
     // 保持降级值
   }
+  // 本地 dev/preview 端口取 .env 的 MC_PORT（与 Docker 对外端口共用一个变量；
+  // 未配置或非法值回退 5173）。端口被占用时 Vite 默认自动 +1，不设 strictPort。
+  const mcPortRaw = Number(mcEnv(env, 'MC_PORT'))
+  const localPort = Number.isInteger(mcPortRaw) && mcPortRaw > 0 ? mcPortRaw : 5173
   return {
     define: {
       __BUILD_INFO__: JSON.stringify(buildInfo),
@@ -227,13 +231,14 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     server: {
-      port: 5173,
+      port: localPort,
       ...(allowedHosts.length ? { allowedHosts } : {}),
       ...(apiProxy || fnosProxy || scraperProxy
         ? { proxy: { ...apiProxy, ...fnosProxy, ...scraperProxy } }
         : {}),
     },
     preview: {
+      port: localPort,
       ...(allowedHosts.length ? { allowedHosts } : {}),
       ...(apiProxy || fnosProxy || scraperProxy
         ? { proxy: { ...apiProxy, ...fnosProxy, ...scraperProxy } }

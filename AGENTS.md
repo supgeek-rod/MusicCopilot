@@ -6,7 +6,7 @@
 
 - 后端服务地址: http://192.168.31.31:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
 - 官方接口文档: https://59799517.github.io/simple_sq_music_plus/#/README
-- 前端开发服务器: http://localhost:5173 （`npm run dev`，`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
+- 前端开发服务器: `npm run dev`（端口取 `.env` 的 `MC_PORT`，默认 5173；`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
 - 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
 
 ## 必读记忆
@@ -24,7 +24,7 @@
 
 ## 常用命令
 
-- `npm run dev` —— Vite 开发服务器（端口 5173）
+- `npm run dev` —— Vite 开发服务器（端口取 `.env` 的 `MC_PORT`，默认 5173）
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
 - `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过

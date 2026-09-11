@@ -21,7 +21,7 @@ cd MusicCopilot
 npm install
 
 cp .env.example .env    # 填写后端地址与账号（.env 不入库）
-npm run dev             # http://localhost:5173，/api 由 Vite 代理转发到后端
+npm run dev             # http://localhost:<MC_PORT>（默认 5173），/api 由 Vite 代理转发到后端
 ```
 
 ## 构建
