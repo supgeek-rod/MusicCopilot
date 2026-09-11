@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HistoryIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
+import { HistoryIcon, PlayIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
 import { onClickOutside, watchDebounced } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -10,22 +10,17 @@ import SongList from '@/components/SongList.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   clearSearchHistory,
   loadSearchHistory,
   recordSearchHistory,
   removeSearchHistory,
 } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
+import { usePlayerStore } from '@/stores/player'
 import { useRoute, useRouter } from 'vue-router'
 
 const app = useAppStore()
+const player = usePlayerStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -33,7 +28,7 @@ const PAGE_SIZE = 30
 
 const plug = ref('kw')
 const keyword = ref('')
-const submitted = ref<{ kw: string; plug: string } | null>(null)
+const submitted = ref<{ kw: string } | null>(null)
 const results = ref<SongRecord[]>([])
 const total = ref(0)
 const pageIndex = ref(1)
@@ -41,6 +36,8 @@ const loading = ref(false)
 
 const tips = ref<string[]>([])
 const tipsOpen = ref(false)
+// 联想词键盘选中项（-1 = 未选中，↑↓ 移动，Enter 确认）
+const tipsActive = ref(-1)
 const searchBoxRef = ref<HTMLElement | null>(null)
 
 // 搜索历史（localStorage 持久化，最新在前）
@@ -67,9 +64,10 @@ function onInputFocus() {
 }
 function onInputBlur() {
   tipsOpen.value = false
+  tipsActive.value = -1
 }
 
-// 音源下拉：优先用后端返回的启用插件列表
+// 音源不做界面选择：自动采用后端返回的第一个启用插件（无列表时保持默认 kw）
 watch(
   () => app.plugOptions,
   (options) => {
@@ -87,25 +85,41 @@ watchDebounced(
     const q = kw.trim()
     if (!q) {
       tips.value = []
+      tipsActive.value = -1
       return
     }
     try {
       const data = await musicApi.searchTips(plug.value, q)
       if (disposed) return
       tips.value = Array.isArray(data) ? data.slice(0, 8) : []
+      tipsActive.value = -1
     } catch {
       tips.value = []
+      tipsActive.value = -1
     }
   },
   { debounce: 300 },
 )
 
-onClickOutside(searchBoxRef, () => (tipsOpen.value = false))
-
-function cleanLabel(label: string): string {
-  const clean = label.replace(/\s*[（(].*$/, '').trim()
-  return clean || label
+/** ↑↓ 在联想词间移动选中项（到边停，↑ 在第一项时取消选中） */
+function onTipsArrow(delta: number) {
+  if (!tips.value.length) return
+  tipsOpen.value = true
+  const i = tipsActive.value + delta
+  tipsActive.value = i < 0 || i >= tips.value.length ? (delta > 0 ? tips.value.length - 1 : -1) : i
 }
+
+/** Enter：有键盘选中的联想词则搜索它，否则按输入框内容搜索 */
+function onSearchEnter() {
+  const active = tipsActive.value
+  if (tipsOpen.value && active >= 0 && tips.value[active]) {
+    searchTerm(tips.value[active]!)
+    return
+  }
+  doSearch(1)
+}
+
+onClickOutside(searchBoxRef, () => (tipsOpen.value = false))
 
 async function doSearch(page = 1) {
   const kw = keyword.value.trim()
@@ -121,7 +135,7 @@ async function doSearch(page = 1) {
     results.value = data.records ?? []
     total.value = data.searchTotal ?? results.value.length
     pageIndex.value = page
-    submitted.value = { kw, plug: plug.value }
+    submitted.value = { kw }
     history.value = recordSearchHistory(kw)
     // 搜索条件同步进 URL（replace 不新增历史记录，可刷新恢复/分享）
     if (route.query.q !== kw) router.replace({ query: { q: kw } }).catch(() => {})
@@ -142,6 +156,7 @@ function searchTerm(term: string) {
   keyword.value = term
   tipsOpen.value = false
   tips.value = []
+  tipsActive.value = -1
   doSearch(1)
 }
 
@@ -158,10 +173,27 @@ function goPage(page: number) {
   doSearch(page)
 }
 
-// 切换音源后重搜
-watch(plug, () => {
-  if (submitted.value) doSearch(1)
-})
+/** 立即播放本页搜索结果（替换播放队列，从第一首开始） */
+function playAll() {
+  if (!results.value.length) return
+  player.playAll(results.value, 0).catch((e) =>
+    toast.error('获取试听链接失败', { description: e instanceof Error ? e.message : String(e) }),
+  )
+}
+
+/** 回到首页引导视图：清空全部搜索状态（点 LOGO 等入口跳到无 q 的 /search 时调用） */
+function resetToHome() {
+  searchSeq++ // 作废在途搜索响应，防止迟到响应把页面又拉回结果态
+  keyword.value = ''
+  submitted.value = null
+  results.value = []
+  total.value = 0
+  pageIndex.value = 1
+  loading.value = false
+  tips.value = []
+  tipsOpen.value = false
+  tipsActive.value = -1
+}
 
 // 顶部导航栏快捷搜索 / 链接直达：读取并监听 ?q=
 // （跳过与当前已提交关键词相同的值，避免 doSearch 内 router.replace 触发循环）
@@ -170,6 +202,9 @@ function searchFromRoute() {
   if (typeof q === 'string' && q && q !== submitted.value?.kw) {
     keyword.value = q
     doSearch(1)
+  } else if (!q && submitted.value) {
+    // q 被移除（如点击 LOGO）：离开结果态回到首页
+    resetToHome()
   }
 }
 searchFromRoute()
@@ -195,19 +230,7 @@ function onLyrics(song: SongRecord) {
       :class="isHero ? 'mt-6 max-w-2xl flex-col gap-3 sm:flex-row' : ''"
       @submit.prevent="doSearch(1)"
     >
-      <!-- 首页大搜索区不显示音源选择，保持聚焦；搜索结果页提供音源切换 -->
-      <Select v-if="!isHero" v-model="plug">
-        <SelectTrigger class="w-[120px] shrink-0" title="选择音源">
-          <SelectValue placeholder="音源" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="o in app.plugOptions" :key="o.value" :value="o.value" :title="o.label">
-            {{ cleanLabel(o.label) }}
-          </SelectItem>
-          <SelectItem v-if="!app.plugOptions.length" value="kw">酷我</SelectItem>
-        </SelectContent>
-      </Select>
-
+      <!-- 首页大搜索区与搜索结果页均不提供音源切换，音源由后端启用插件自动决定 -->
       <div ref="searchBoxRef" class="relative flex-1">
         <Input
           v-model="keyword"
@@ -217,7 +240,9 @@ function onLyrics(song: SongRecord) {
           :class="isHero ? 'h-12 pr-9 text-base' : 'h-9 pr-9'"
           @focus="onInputFocus"
           @blur="onInputBlur"
-          @keydown.enter.prevent="doSearch(1)"
+          @keydown.down.prevent="onTipsArrow(1)"
+          @keydown.up.prevent="onTipsArrow(-1)"
+          @keydown.enter.prevent="onSearchEnter"
           @keydown.esc="tipsOpen = false"
         />
         <SearchIcon class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -226,11 +251,13 @@ function onLyrics(song: SongRecord) {
           class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
         >
           <button
-            v-for="t in tips"
+            v-for="(t, i) in tips"
             :key="t"
             type="button"
             class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+            :class="i === tipsActive ? 'bg-muted' : ''"
             @mousedown.prevent
+            @mouseenter="tipsActive = i"
             @click="searchTerm(t)"
           >
             <SearchIcon class="size-3.5 shrink-0 text-muted-foreground" />
@@ -306,16 +333,28 @@ function onLyrics(song: SongRecord) {
           </button>
         </div>
         <div class="flex flex-wrap gap-x-4 gap-y-1 px-1">
-          <button
+          <div
             v-for="h in history"
             :key="h"
-            type="button"
-            class="text-xs text-muted-foreground hover:text-foreground"
-            :title="`搜索「${h}」`"
-            @click="searchTerm(h)"
+            class="group flex items-center gap-0.5 text-xs text-muted-foreground"
           >
-            {{ h }}
-          </button>
+            <button
+              type="button"
+              class="hover:text-foreground"
+              :title="`搜索「${h}」`"
+              @click="searchTerm(h)"
+            >
+              {{ h }}
+            </button>
+            <button
+              type="button"
+              class="rounded p-0.5 opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+              title="删除该条"
+              @click.stop="dropHistory(h)"
+            >
+              <XIcon class="size-3" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -324,9 +363,21 @@ function onLyrics(song: SongRecord) {
     <template v-else>
       <div class="mb-2 mt-6 flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          音源「{{ submitted?.plug }}」找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
+          找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
         </span>
-        <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
+        <div class="flex items-center gap-3">
+          <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
+          <Button
+            size="sm"
+            variant="secondary"
+            :disabled="!results.length"
+            title="立即播放本页全部歌曲"
+            @click="playAll"
+          >
+            <PlayIcon class="size-4" />
+            立即播放
+          </Button>
+        </div>
       </div>
 
       <div class="rounded-lg border py-1">

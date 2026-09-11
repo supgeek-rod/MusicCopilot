@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { installKeyboardShortcuts } from '@/lib/playback'
 import { persistVolume } from '@/lib/playQueue'
 import { startTaskToasts } from '@/lib/taskToaster'
+import { checkForNewVersion } from '@/lib/versionCheck'
 import { useAppStore } from '@/stores/app'
 import { usePlayerStore } from '@/stores/player'
 
@@ -17,9 +18,19 @@ const player = usePlayerStore()
 // 快捷键速查弹窗：`?` 键或导航栏设置下拉唤出
 const shortcutsOpen = ref(false)
 
+// 启动与回前台时与线上 version.json 比对构建 hash：部署了新构建则提示刷新
+// （PWA 静默换 SW 用户无感知，这里负责「告知」；手动兜底在设置页的清除缓存按钮）
+function onVisibilityChange() {
+  if (!document.hidden) checkForNewVersion()
+}
+
 onMounted(() => {
   app.init()
+  checkForNewVersion()
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
+
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisibilityChange))
 
 // 全局快捷键：空格播放/暂停、`/` 聚焦搜索、Ctrl+←/→ 切歌、Ctrl+↑/↓ 音量
 let uninstallShortcuts: (() => void) | null = null

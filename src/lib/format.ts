@@ -1,5 +1,16 @@
 import type { BrTypeInfo } from '@/api/types'
 
+/**
+ * 解码文本中的 HTML 实体（酷我接口把外文歌手名/专辑名的空格存成 &nbsp; 等实体，
+ * 经 {{ }} 文本插值会原样露出）。仅用于按纯文本展示的字段；富文本走 useSanitizedHtml。
+ */
+export function decodeHtmlEntities(text: string): string {
+  if (!text.includes('&')) return text
+  const el = document.createElement('textarea')
+  el.innerHTML = text
+  return el.value
+}
+
 /** 毫秒时长 → m:ss */
 export function formatDuration(ms?: string | number | null): string {
   const n = Number(ms)

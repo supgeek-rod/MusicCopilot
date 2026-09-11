@@ -18,11 +18,14 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { albumDetailToSearchRecord } from '@/lib/adapter'
+import { albumDetailToSearchRecord, albumSongToRecord } from '@/lib/adapter'
+import { decodeHtmlEntities } from '@/lib/format'
 import { useSanitizedHtml } from '@/lib/sanitize'
 import { usePlayerStore } from '@/stores/player'
 
-const PAGE_SIZE = 50
+// SQMusic 没有「按歌手拉歌曲」的接口（按歌手名搜歌会混入大量无关歌曲），
+// 曲目改为从歌手专辑逐批聚合：每批并行拉 ALBUM_BATCH 张专辑详情
+const ALBUM_BATCH = 5
 
 const route = useRoute()
 const router = useRouter()
@@ -37,10 +40,9 @@ const infoLoading = ref(false)
 const infoError = ref('')
 
 const songs = ref<SongRecord[]>([])
-const songTotal = ref(0)
 const songsLoading = ref(false)
-const songPage = ref(0)
-let hasDupPage = false
+// 必须是 ref：hasMore/按钮显隐依赖它，普通 let 不会触发 computed 重算
+const albumCursor = ref(0)
 
 const expanded = ref(false)
 const describe = useSanitizedHtml(() => info.value?.musicArtistsDescribe)
@@ -52,15 +54,12 @@ const confirm = reactive<{
   action: (() => Promise<void>) | null
 }>({ open: false, title: '', desc: '', action: null })
 
-const hasMore = computed(
-  () => songTotal.value > 0 && songs.value.length < songTotal.value && !hasDupPage,
-)
+const hasMore = computed(() => albumCursor.value < albums.value.length)
 
-// 卸载后丢弃迟到响应，避免与路由切换竞态；两级序号分别使旧的歌手详情与歌曲分页请求失效
+// 卸载后丢弃迟到响应，避免与路由切换竞态；序号使旧的歌手详情请求失效
 // 注意：声明必须先于下方 immediate watch，否则回调同步执行时撞 TDZ（Cannot access before initialization）
 let disposed = false
 let artistSeq = 0
-let songsSeq = 0
 onBeforeUnmount(() => {
   disposed = true
 })
@@ -72,16 +71,22 @@ async function loadAll() {
   info.value = null
   albums.value = []
   songs.value = []
-  songPage.value = 0
-  songTotal.value = 0
+  albumCursor.value = 0
   infoError.value = ''
   infoLoading.value = true
   try {
     const data = await musicApi.artistAlbumById(plug.value, artistId.value)
     if (disposed || seq !== artistSeq) return
-    info.value = data
-    albums.value = data.albums ?? []
-    await loadSongs(true)
+    // 酷我把外文歌手名/专辑名的空格存成 &nbsp; 实体，按纯文本展示前先解码
+    info.value = {
+      ...data,
+      musicArtistsName: decodeHtmlEntities(data.musicArtistsName),
+      albums: data.albums?.map((a) =>
+        a.albumName ? { ...a, albumName: decodeHtmlEntities(a.albumName) } : a,
+      ),
+    }
+    albums.value = info.value.albums ?? []
+    await collectSongs()
   } catch (e) {
     if (disposed || seq !== artistSeq) return
     infoError.value = e instanceof Error ? e.message : String(e)
@@ -90,28 +95,36 @@ async function loadAll() {
   }
 }
 
-async function loadSongs(reset = false) {
-  if (!info.value?.musicArtistsName) return
-  const seq = ++songsSeq
+/** 聚合下一批专辑的曲目：专辑属于该歌手，从源头保证歌曲归属正确；按 (plugName,id) 去重 */
+async function collectSongs() {
+  if (songsLoading.value || albumCursor.value >= albums.value.length) return
   const seqAtStart = artistSeq
+  const batch = albums.value.slice(albumCursor.value, albumCursor.value + ALBUM_BATCH)
   songsLoading.value = true
   try {
-    const page = reset ? 1 : songPage.value + 1
-    const data = await musicApi.searchSong(plug.value, info.value.musicArtistsName, page, PAGE_SIZE)
-    // 歌手已切换（artistSeq 变化）或有更新的分页请求时丢弃本次结果
-    if (disposed || seq !== songsSeq || seqAtStart !== artistSeq) return
-    const fresh = (data.records ?? []).filter(
-      (s) => !songs.value.some((old) => old.id === s.id),
+    const results = await Promise.allSettled(
+      batch.map((a) => musicApi.albumInfoById(plug.value, String(a.albumId))),
     )
-    hasDupPage = !reset && fresh.length === 0
-    songs.value = reset ? fresh : [...songs.value, ...fresh]
-    songTotal.value = data.searchTotal ?? songs.value.length
-    songPage.value = page
-  } catch (e) {
-    if (disposed || seq !== songsSeq || seqAtStart !== artistSeq) return
-    toast.error('获取歌手歌曲失败', { description: e instanceof Error ? e.message : String(e) })
+    // 歌手已切换（artistSeq 变化）时丢弃本次结果
+    if (disposed || seqAtStart !== artistSeq) return
+    const failed = results.filter((r) => r.status === 'rejected').length
+    if (failed) toast.error(`有 ${failed} 张专辑曲目获取失败，可点「加载更多」重试`)
+    const seen = new Set(songs.value.map((s) => `${s.plugName}:${s.id}`))
+    const fresh: SongRecord[] = []
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue
+      for (const m of r.value.musics ?? []) {
+        const rec = albumSongToRecord(m)
+        const key = `${rec.plugName}:${rec.id}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        fresh.push(rec)
+      }
+    }
+    songs.value = [...songs.value, ...fresh]
+    albumCursor.value += batch.length
   } finally {
-    if (!disposed && seq === songsSeq) songsLoading.value = false
+    if (!disposed && seqAtStart === artistSeq) songsLoading.value = false
   }
 }
 
@@ -213,7 +226,7 @@ function queueAllAlbums() {
         <h1 class="truncate text-2xl font-semibold">{{ info.musicArtistsName }}</h1>
         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
           <Badge variant="secondary">{{ albums.length }} 张专辑</Badge>
-          <Badge v-if="songTotal" variant="secondary">{{ songTotal }} 首歌曲</Badge>
+          <Badge v-if="songs.length" variant="secondary">{{ songs.length }} 首歌曲</Badge>
         </div>
         <div class="mt-3 flex flex-wrap gap-2">
           <Button size="sm" :disabled="!songs.length" @click="playAll">
@@ -235,7 +248,19 @@ function queueAllAlbums() {
 
     <!-- 全部歌曲 -->
     <section class="mt-8">
-      <h2 class="mb-2 text-lg font-semibold">全部歌曲</h2>
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">全部歌曲</h2>
+        <Button
+          size="sm"
+          variant="secondary"
+          :disabled="!songs.length"
+          title="立即播放本页全部歌曲"
+          @click="playAll"
+        >
+          <PlayIcon class="size-4" />
+          立即播放
+        </Button>
+      </div>
       <div class="rounded-lg border py-1">
         <SongList :songs="songs" :loading="songsLoading && !songs.length" />
         <div v-if="!infoLoading && !songs.length" class="py-12 text-center text-sm text-muted-foreground">
@@ -243,7 +268,7 @@ function queueAllAlbums() {
         </div>
       </div>
       <div v-if="hasMore" class="mt-4 flex justify-center">
-        <Button variant="outline" size="sm" :disabled="songsLoading" @click="loadSongs()">
+        <Button variant="outline" size="sm" :disabled="songsLoading" @click="collectSongs">
           <LoaderCircleIcon v-if="songsLoading" class="size-4 animate-spin" />
           加载更多
         </Button>

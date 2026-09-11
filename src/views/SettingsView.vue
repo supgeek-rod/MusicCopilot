@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpenIcon, CopyrightIcon, KeyboardIcon, PlugIcon, SlidersHorizontalIcon } from '@lucide/vue'
+import { BookOpenIcon, CopyrightIcon, KeyboardIcon, PlugIcon, RefreshCwIcon, SlidersHorizontalIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -9,12 +9,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { brBit, brTypeLabel } from '@/lib/format'
 import { FALLBACK_QUALITY_OPTIONS } from '@/lib/settings'
 import { SHORTCUTS } from '@/lib/shortcuts'
+import { clearServiceWorkerAndCaches } from '@/lib/versionCheck'
 import { useAppStore } from '@/stores/app'
 
 const app = useAppStore()
 
 // 构建时由 vite.config.ts 注入（取自 package.json version）
 const appVersion = import.meta.env.VITE_APP_VERSION
+
+// 构建信息（git hash/时间/dirty），vite.config.ts 经 define 注入；dev 降级 hash 为 'dev'
+const buildInfo = __BUILD_INFO__
+const buildTime = computed(() => {
+  if (!buildInfo.time) return ''
+  const d = new Date(buildInfo.time)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+})
+
+/** 卸载 Service Worker、清空 Cache Storage 后刷新（versionCheck 的手动兜底入口） */
+function clearCaches() {
+  toast.info('正在清除 Service Worker 与页面缓存…')
+  clearServiceWorkerAndCaches()
+}
 
 // 设置页左侧导航分区
 const sections = [
@@ -291,6 +307,28 @@ async function resetConnection() {
             <span class="rounded-full border px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
               v{{ appVersion }}
             </span>
+          </div>
+
+          <!-- 构建信息：排查「线上跑的是不是这次构建」时与 git 提交对照 -->
+          <div class="flex items-center gap-2">
+            <span class="font-medium">构建</span>
+            <span class="rounded-full border px-2 py-0.5 text-xs font-mono tabular-nums text-muted-foreground">
+              {{ buildInfo.hash }}<template v-if="buildInfo.time"> · {{ buildTime }}</template>
+            </span>
+            <span v-if="buildInfo.dirty" class="text-xs text-amber-500">含未提交改动</span>
+          </div>
+
+          <!-- 缓存异常兜底：卸载 SW 并清空页面缓存后刷新（页面有新版本时会自动提示，无需手动操作） -->
+          <div class="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              @click="clearCaches"
+            >
+              <RefreshCwIcon class="size-4" />
+              清除缓存并刷新
+            </Button>
+            <span class="text-xs text-muted-foreground">怀疑页面用了旧版本时的一键修复</span>
           </div>
 
           <dl class="space-y-2">

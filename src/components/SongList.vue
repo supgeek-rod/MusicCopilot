@@ -117,7 +117,7 @@ async function enqueue(song: SongRecord) {
       <div
         v-for="song in songs"
         :key="`${song.plugName}-${song.id}`"
-        class="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/60"
+        class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/60"
         title="双击播放"
         @dblclick="onRowDblClick($event, song)"
       >
