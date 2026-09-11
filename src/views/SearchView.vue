@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HistoryIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
+import { HistoryIcon, PlayIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
 import { onClickOutside, watchDebounced } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -16,9 +16,11 @@ import {
   removeSearchHistory,
 } from '@/lib/searchHistory'
 import { useAppStore } from '@/stores/app'
+import { usePlayerStore } from '@/stores/player'
 import { useRoute, useRouter } from 'vue-router'
 
 const app = useAppStore()
+const player = usePlayerStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -144,6 +146,14 @@ function clearHistory() {
 function goPage(page: number) {
   if (page < 1 || page > totalPages.value) return
   doSearch(page)
+}
+
+/** 立即播放本页搜索结果（替换播放队列，从第一首开始） */
+function playAll() {
+  if (!results.value.length) return
+  player.playAll(results.value, 0).catch((e) =>
+    toast.error('获取试听链接失败', { description: e instanceof Error ? e.message : String(e) }),
+  )
 }
 
 // 顶部导航栏快捷搜索 / 链接直达：读取并监听 ?q=
@@ -297,7 +307,19 @@ function onLyrics(song: SongRecord) {
         <span>
           找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
         </span>
-        <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
+        <div class="flex items-center gap-3">
+          <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
+          <Button
+            size="sm"
+            variant="secondary"
+            :disabled="!results.length"
+            title="立即播放本页全部歌曲"
+            @click="playAll"
+          >
+            <PlayIcon class="size-4" />
+            立即播放
+          </Button>
+        </div>
       </div>
 
       <div class="rounded-lg border py-1">

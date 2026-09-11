@@ -237,6 +237,18 @@ function queueAlbum(bit?: number) {
 
       <!-- 曲目列表 -->
       <section class="mt-8">
+        <div class="mb-2 flex justify-end">
+          <Button
+            size="sm"
+            variant="secondary"
+            :disabled="!songs.length"
+            title="立即播放本页全部歌曲"
+            @click="playAll"
+          >
+            <PlayIcon class="size-4" />
+            立即播放
+          </Button>
+        </div>
         <div class="rounded-lg border py-1">
           <SongList :songs="songs" :loading="false" />
           <div v-if="!songs.length" class="py-12 text-center text-sm text-muted-foreground">

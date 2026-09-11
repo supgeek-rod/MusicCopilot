@@ -243,7 +243,19 @@ function queueAllAlbums() {
 
     <!-- 全部歌曲 -->
     <section class="mt-8">
-      <h2 class="mb-2 text-lg font-semibold">全部歌曲</h2>
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">全部歌曲</h2>
+        <Button
+          size="sm"
+          variant="secondary"
+          :disabled="!songs.length"
+          title="立即播放本页全部歌曲"
+          @click="playAll"
+        >
+          <PlayIcon class="size-4" />
+          立即播放
+        </Button>
+      </div>
       <div class="rounded-lg border py-1">
         <SongList :songs="songs" :loading="songsLoading && !songs.length" />
         <div v-if="!infoLoading && !songs.length" class="py-12 text-center text-sm text-muted-foreground">
