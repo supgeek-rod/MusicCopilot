@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { albumDetailToSearchRecord } from '@/lib/adapter'
+import { decodeHtmlEntities } from '@/lib/format'
 import { useSanitizedHtml } from '@/lib/sanitize'
 import { usePlayerStore } from '@/stores/player'
 
@@ -79,8 +80,15 @@ async function loadAll() {
   try {
     const data = await musicApi.artistAlbumById(plug.value, artistId.value)
     if (disposed || seq !== artistSeq) return
-    info.value = data
-    albums.value = data.albums ?? []
+    // 酷我把外文歌手名/专辑名的空格存成 &nbsp; 实体，按纯文本展示前先解码
+    info.value = {
+      ...data,
+      musicArtistsName: decodeHtmlEntities(data.musicArtistsName),
+      albums: data.albums?.map((a) =>
+        a.albumName ? { ...a, albumName: decodeHtmlEntities(a.albumName) } : a,
+      ),
+    }
+    albums.value = info.value.albums ?? []
     await loadSongs(true)
   } catch (e) {
     if (disposed || seq !== artistSeq) return
