@@ -115,13 +115,31 @@
 | server 测试：50/50 全绿（新增通知 3 例：真值载荷与 token 头 / 通知失败任务仍 success / 未配置不发请求）；scraper tsc 构建通过 | ✅ |
 | 端到端三进程联调（server + worker + scraper 共享落盘目录）：晴天 128k 下载 4.3MB → 通知 → scraper 写入 albumArtist + 封面 106KB + 歌词 8716 字符（与 getLyric 实测长度一致），title/artist/album 与上游标签一致被正确跳过；`.mc-backup/` 备份生成 | ✅ |
 
-### M5 前端切换与 SQMusic 下线 ⬜
+### M5 前端切换与 SQMusic 下线 ✅（2026-09-12）
 
 | 任务 | 状态 |
 | --- | --- |
-| `.env` 的 `MC_API_BASE_URL` 切自建后端，前端全链路回归：登录 / 搜索 / 详情 / 下载 / 任务管理 / 播放取流（`player.ts` 亦走 getDownloadUrl） | ⬜ |
-| 部署 fnOS-Just4fun：镜像 + compose，nginx `/api/*` 反代目标切换 | ⬜ |
-| SQMusic 退役；`/v2` 清理版契约规划（`packages/api-contract/README.md` 契约策略） | ⬜ |
+| 本地全链路回归（dev 代理切自建后端 127.0.0.1:8097，浏览器实测）：自动登录 / 搜索 3587 首（音源选项 + 音质徽章）/ 播放取流（CDN 流式进度走动）/ 服务端下载（自动最高音质 + 大小估算展示）/ 任务页状态与下载中流转 | ✅ |
+| 部署编排：compose server/scraper profile 完整化（音乐库目录 bind 挂载 `MC_MUSIC_HOST_DIR`、scraper CI 镜像回归、scraper 通知走 compose 网络） | ✅ |
+| fnOS-Just4fun 部署：web 重建 + server/worker/scraper 四容器上线 + `/api` 反代切自建后端（`http://server:8097`） | ✅ |
+| fnOS-Just4fun 全链路验证：12312 登录/搜索 3587 首/任务列表（SQMusic 历史清零）→ 下载晴天 128k 约 25 秒落库音乐目录 → scraper 自动刮削（albumArtist + 封面 + 歌词 written，errorCount 0）→ 文件 4,436,339 字节（含标签体积） | ✅ |
+| SQMusic 退役：`sqmusic_web/main/mysql` 三容器已停（数据与卷保留，`docker start` 可逆） | ✅ |
+| `/v2` 清理版契约规划（见下） | ✅ |
+
+**部署踩坑记录（fnOS-Just4fun，均已在仓库修复）**：
+
+- NAS 构建需 composer 走阿里镜像 + `--no-scripts`（vendor 阶段无 artisan，post-autoload-dump 必失败）
+- `.dockerignore` 必须排除 `bootstrap/cache/*.php`：本地 dev 的包发现清单含 pail 等 dev 依赖 provider，`--no-dev` 镜像启动即崩
+- NAS `.env` 的 `MC_PORT`（web 对外端口）会经 `env_file` 污染 scraper 监听端口 → compose 显式 `MC_PORT: 8098`
+- web 的 `/mc` 反代改 Docker DNS 运行时解析：scraper 容器缺失/重启时 web 降级 502 而非 nginx emerg 拒绝启动
+- 开发联调（非容器）注意：WSL→Windows 环回/NAT 网关被防火墙拦截，走宿主 LAN IP
+
+**`/v2` 清理版契约规划**（SQMusic 退役后作为独立小迭代，不阻塞本期）：
+
+1. **信封与状态码**：弃 `{code,msg,data}`（code=200 成功）→ 标准 HTTP 状态码 + 裸 JSON，错误体 `{error, message}`
+2. **类型规范化**：消除字符串数字（duration 毫秒字符串→int、total/total 专辑数→int）与冗余字段（downloadGid / downloadBits / springName / audioBook / rewriteMp3tag / 双写 albumid/albumId）
+3. **端点收敛（REST 化）**：`/api/v2/auth/*`、`/api/v2/search/{songs,artists,albums,tips}`、`/api/v2/{songs,albums,artists}/{id}`、`/api/v2/songs/{id}/download-url`、`POST /api/v2/downloads` + `GET|DELETE /api/v2/downloads/{id}`、`POST /api/v2/downloads/{id}/retry`；插件层（SourcePlugin/KuwoPlugin）不动，仅外壳清理
+4. **落地方式**：契约先进 `packages/api-contract`（openapi-typescript），前端 `src/api/*` 基于生成类型机械化重写；scraper 的 server 客户端同步迁移
 
 ## 5. 风险与备选
 
@@ -140,3 +158,4 @@
 - 2026-09-12：M2 完成（联想词/歌手详情/专辑详情/直链四端点；契约 13 端点；30 tests 全绿；真机全链路含真实直链解析通过）。发现并处理：albumlist 大响应在 WSL2 链路超时（KUWO_TIMEOUT→30s、rn 收敛 500）
 - 2026-09-12：M3 完成（download 3 端点 + task 8 端点 + SQLite 队列 worker；契约 24 端点；47 tests 全绿；端到端真机下载晴天 128k 落盘 4.3MB 成功）。至此前端契约 20/20 端点全部落地，SQMusic 契约面补齐
 - 2026-09-12：M4 完成（server 推送真值元数据 → scraper `POST /downloads` 真值写标签；50 tests 全绿；三进程端到端联调通过——封面 106KB、歌词 8716 字符成功嵌入）。环境坑记录：WSL→Windows 环回/NAT 网关均不可达（防火墙），开发联调走宿主 LAN IP；容器部署无此问题
+- 2026-09-12：M5 完成，**第 5 期收官，SQMusic 退役**。本地浏览器全链路回归通过；fnOS-Just4fun 四容器上线（web 12312 + server/worker + scraper），12312 经 nginx 反代自建后端，下载→自动刮削→音乐库入库闭环验证通过（晴天 128k 约 25 秒落库并嵌入封面歌词）；sqmusic 三容器停止（数据保留）。部署踩坑五条已回填仓库（见 M5 节）
