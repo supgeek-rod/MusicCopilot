@@ -125,4 +125,24 @@
     @apply bg-background text-foreground;
     @apply font-sans;
   }
+  /* 可点击元素统一手形指针（Tailwind v4 preflight 把 button 重置为 cursor: default）；
+     禁用态保持默认光标，交给 data-disabled/aria-disabled 判定 */
+  button:not(:disabled),
+  a[href],
+  summary,
+  label:has(> input:not(:disabled)),
+  input[type='range']:not(:disabled),
+  [role='button']:not([data-disabled], [aria-disabled='true']),
+  [role='combobox']:not([data-disabled], [aria-disabled='true']),
+  [role='checkbox']:not([data-disabled], [aria-disabled='true']),
+  [role='radio']:not([data-disabled], [aria-disabled='true']),
+  [role='switch']:not([data-disabled], [aria-disabled='true']),
+  [role='tab']:not([data-disabled], [aria-disabled='true']),
+  [role='slider']:not([data-disabled], [aria-disabled='true']),
+  [role='menuitem']:not([data-disabled], [aria-disabled='true']),
+  [role='menuitemcheckbox']:not([data-disabled], [aria-disabled='true']),
+  [role='menuitemradio']:not([data-disabled], [aria-disabled='true']),
+  [role='option']:not([data-disabled], [aria-disabled='true']) {
+    cursor: pointer;
+  }
 }
