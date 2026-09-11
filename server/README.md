@@ -17,7 +17,9 @@
 - [x] API 文档 + 在线测试台：Scalar（本地化）+ Scramble 自动生成 OpenAPI 3.1 规范（2026-09-11）
 - [x] 鉴权：`POST /api/config/login|logout`、`GET|POST /api/config/isLogin`、`GET /api/config/getOption|getPlugBrTypeList`（2026-09-11 第 5 期 M1，`sqmusic` 头中间件 + token 落库）
 - [x] 歌词：`POST /api/music/getLyric`（酷我 newlyric 代理，2026-09-11 随第 4 期 M1 落地）
-- [ ] 歌曲详情 / 直链解析 / 下载链接
+- [x] 歌曲详情 / 直链解析：`GET searchTips|artistAlbumById|albumInfoById` + `POST getDownloadUrl`
+      （2026-09-12 第 5 期 M2；⚠️ 直链有大陆 IP 区域限制，海外出口 code:407）
+- [ ] 下载链接落库（downloadSong/downloadAlbum/downloadArtistAlbum）
 - [ ] 下载队列与任务管理
 - [ ] Dockerfile / docker-compose
 

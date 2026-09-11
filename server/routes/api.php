@@ -23,5 +23,9 @@ Route::middleware('sqmusic.auth')->prefix('music')->group(function () {
     Route::get('searchSong', [MusicSearchController::class, 'searchSong']);
     Route::get('searchArtist', [MusicSearchController::class, 'searchArtist']);
     Route::get('searchAlbum', [MusicSearchController::class, 'searchAlbum']);
+    Route::get('searchTips', [MusicSearchController::class, 'searchTips']);
+    Route::get('artistAlbumById', [MusicSearchController::class, 'artistAlbumById']);
+    Route::get('albumInfoById', [MusicSearchController::class, 'albumInfoById']);
     Route::post('getLyric', [MusicSearchController::class, 'getLyric']);
+    Route::post('getDownloadUrl', [MusicSearchController::class, 'getDownloadUrl']);
 });

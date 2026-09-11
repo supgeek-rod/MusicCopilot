@@ -82,6 +82,181 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
         ];
     }
 
+    /**
+     * 搜索联想词（openapi searchKey）：data[] 内为 "RELWORD=词\r\nSNUM=...\r\n..." 多行串，取 RELWORD。
+     */
+    public function searchTips(string $keyword): array
+    {
+        $keyword = trim($keyword);
+        if ($keyword === '') {
+            return [];
+        }
+
+        $response = Http::timeout((int) config('kuwo.timeout'))
+            ->withHeaders(['User-Agent' => (string) config('kuwo.tips_user_agent')])
+            ->get((string) config('kuwo.tips_url'), [
+                'key' => $keyword,
+                'httpsStatus' => '1',
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('酷我接口 HTTP '.$response->status());
+        }
+
+        $json = $response->json();
+        if (! is_array($json) || (int) ($json['code'] ?? 0) !== 200) {
+            throw new RuntimeException('酷我联想词接口返回异常');
+        }
+
+        $tips = [];
+        foreach ($json['data'] ?? [] as $item) {
+            if (is_string($item) && preg_match('/RELWORD=([^\r\n]*)/', $item, $m) === 1 && $m[1] !== '') {
+                $tips[] = $m[1];
+            }
+        }
+
+        return $tips;
+    }
+
+    /**
+     * 歌手详情 + 全部专辑（r.s stype=artistinfo / albumlist 两次请求聚合）。
+     * 字段契约对齐前端 ArtistInfo（MusicCopilot src/api/types.ts）。
+     */
+    public function artistAlbum(string $artistId): array
+    {
+        $artistId = trim($artistId);
+        if ($artistId === '') {
+            throw new RuntimeException('artistid 不能为空');
+        }
+
+        $info = $this->rS([
+            'stype' => 'artistinfo',
+            'encoding' => 'utf8',
+            'artistid' => $artistId,
+            'pcjson' => '1',
+        ]);
+        $albums = $this->rS([
+            'pn' => '0',
+            // rn=10000（参考实现口径）响应过大，WSL2 NAT 链路 10s 超时都传不完；500 张专辑远超现实需求
+            'rn' => '500',
+            'artistid' => $artistId,
+            'stype' => 'albumlist',
+            'sortby' => '1',
+            'alflac' => '1',
+            'show_copyright_off' => '1',
+            'pcmp4' => '1',
+            'encoding' => 'utf8',
+            'plat' => 'pc',
+            'vipver' => 'MUSIC_9.1.1.2_BCS2',
+            'devid' => '38668888',
+            'pcjson' => '1',
+        ]);
+
+        $describe = trim((string) ($info['desc'] ?? ''));
+        if ($describe === '') {
+            $describe = trim((string) ($info['info'] ?? ''));
+        }
+
+        return [
+            'id' => $artistId,
+            'musicArtistsName' => (string) ($info['name'] ?? ''),
+            'musicArtistsSex' => ($info['gender'] ?? '') !== '' ? (string) $info['gender'] : null,
+            'musicArtistsPhoto' => $this->artistPicOf((string) ($info['hts_pic'] ?? ''), (string) ($info['pic'] ?? '')),
+            'musicArtistsDescribe' => $describe !== '' ? $describe : null,
+            'musicArtistsAlias' => ($info['aartist'] ?? '') !== '' ? (string) $info['aartist'] : null,
+            'albums' => array_map($this->mapAlbumDetail(...), $albums['albumlist'] ?? []),
+        ];
+    }
+
+    /**
+     * 专辑详情 + 曲目列表（r.s stype=albuminfo，musiclist 与 abslist 键名大小写混杂）。
+     * 字段契约对齐前端 AlbumInfo / AlbumSong。
+     */
+    public function albumInfo(string $albumId): array
+    {
+        $albumId = trim($albumId);
+        if ($albumId === '') {
+            throw new RuntimeException('albumid 不能为空');
+        }
+
+        $json = $this->rS([
+            'pn' => '0',
+            'rn' => '300',
+            'albumid' => $albumId,
+            'stype' => 'albuminfo',
+            'show_copyright_off' => '1',
+            'alflac' => '1',
+            'pcmp4' => '1',
+            'encoding' => 'utf8',
+            'plat' => 'pc',
+            'vipver' => 'MUSIC_9.1.1.2_BCS2',
+            'devid' => '38668888',
+            'newver' => '1',
+            'pcjson' => '1',
+        ]);
+
+        return [
+            'albumId' => (string) ($json['albumid'] ?? $albumId),
+            'albumName' => (string) ($json['name'] ?? ''),
+            'albumTime' => ($json['pub'] ?? '') !== '' ? (string) $json['pub'] : null,
+            'albumDescribe' => ($json['info'] ?? '') !== '' ? (string) $json['info'] : null,
+            'albumArtist' => ($json['artist'] ?? '') !== '' ? (string) $json['artist'] : null,
+            'albumArtistId' => ($json['artistid'] ?? '') !== '' ? (string) $json['artistid'] : null,
+            'albumImg' => $this->albumImgOf($json),
+            'musics' => array_map($this->mapAlbumSong(...), $json['musiclist'] ?? []),
+        ];
+    }
+
+    /**
+     * 直链解析（mobi convert_url_with_sign）：KW_* 别名换酷我 br 值请求。
+     * ⚠️ 该接口有大陆 IP 区域限制，海外出口返回 code:407（docs/kuwo-api-notes.md §0/§6）；
+     * 直链带签名与时效，只能即用即取，不能持久化。
+     */
+    public function downloadUrl(string $songId, string $brType, array $brTypes = []): array
+    {
+        $spring = $this->brSpring($brType);
+        if ($spring === null) {
+            throw new RuntimeException("不支持的音质 brType：{$brType}");
+        }
+
+        $response = Http::timeout((int) config('kuwo.timeout'))
+            ->withHeaders(['User-Agent' => (string) config('kuwo.mobi_user_agent')])
+            ->get((string) config('kuwo.mobi_url'), [
+                'f' => 'web',
+                'user' => '0',
+                'source' => 'kwplayer_ar_5.0.0.0_B_jiakong_vh.apk',
+                'type' => 'convert_url_with_sign',
+                'rid' => $songId,
+                'br' => $spring,
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('酷我直链接口 HTTP '.$response->status());
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            throw new RuntimeException('酷我直链接口返回非 JSON 数据');
+        }
+
+        $code = (int) ($json['code'] ?? 0);
+        $url = (string) ($json['data']['url'] ?? '');
+        if ($code !== 200 || $url === '' || $url === 'None') {
+            $hint = $code === 407 ? '（该接口有大陆 IP 区域限制，海外出口不可用）' : '';
+
+            throw new RuntimeException("上游返回 code={$code}{$hint}");
+        }
+
+        $format = (string) ($json['data']['format'] ?? '');
+
+        return [
+            'url' => $url,
+            'brType' => $brType,
+            'duration' => isset($json['data']['duration']) ? (int) $json['data']['duration'] : null,
+            'format' => $format !== '' ? $format : null,
+        ];
+    }
+
     public function getLyric(string $songId): ?string
     {
         $songId = trim($songId);
@@ -169,20 +344,26 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
 
     private function search(string $keyword, int $pageIndex, int $pageSize, string $type): array
     {
+        return $this->rS([
+            'client' => 'kt',
+            'encoding' => 'utf8',
+            'rformat' => 'json',
+            'mobi' => '1',
+            'vipver' => '1',
+            'pn' => max(0, $pageIndex - 1),
+            'rn' => $pageSize,
+            'correct' => '1',
+            'all' => $keyword,
+            'ft' => $type,
+        ]);
+    }
+
+    /** r.s 详情族公共 GET（stype=albuminfo/artistinfo/albumlist 等），UA 与搜索一致 */
+    private function rS(array $params): array
+    {
         $response = Http::timeout((int) config('kuwo.timeout'))
             ->withHeaders(['User-Agent' => (string) config('kuwo.user_agent')])
-            ->get((string) config('kuwo.search_url'), [
-                'client' => 'kt',
-                'encoding' => 'utf8',
-                'rformat' => 'json',
-                'mobi' => '1',
-                'vipver' => '1',
-                'pn' => max(0, $pageIndex - 1),
-                'rn' => $pageSize,
-                'correct' => '1',
-                'all' => $keyword,
-                'ft' => $type,
-            ]);
+            ->get((string) config('kuwo.search_url'), $params);
 
         if ($response->failed()) {
             throw new RuntimeException('酷我接口 HTTP '.$response->status());
@@ -288,6 +469,79 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
         }
 
         return array_keys($types);
+    }
+
+    /** 对外 KW_* 别名 → 酷我 br 值（直链解析请求用）；与 BR_TYPES 互为双向映射 */
+    private function brSpring(string $brType): ?string
+    {
+        foreach (self::BR_TYPES as $item) {
+            if ($item['id'] === $brType) {
+                return $item['springName'];
+            }
+        }
+
+        return null;
+    }
+
+    /** 字段契约对齐前端 AlbumDetailRecord（artistAlbumById.albums 元素） */
+    private function mapAlbumDetail(array $e): array
+    {
+        return [
+            'albumId' => (string) ($e['albumid'] ?? ''),
+            'albumName' => (string) ($e['name'] ?? ''),
+            'albumTime' => ($e['pub'] ?? '') !== '' ? (string) $e['pub'] : null,
+            'albumDescribe' => ($e['info'] ?? '') !== '' ? (string) $e['info'] : null,
+            'albumArtist' => ($e['artist'] ?? '') !== '' ? (string) $e['artist'] : null,
+            'albumArtistId' => ($e['artistid'] ?? '') !== '' ? (string) $e['artistid'] : null,
+            'albumImg' => $this->albumImgOf($e),
+            'dataInfo' => $e,
+        ];
+    }
+
+    /**
+     * 字段契约对齐前端 AlbumSong（albumInfoById.musics 元素）。
+     * musiclist 键名为小写（musicrid/name/artist/album/duration），与搜索 abslist 的大写键不同。
+     */
+    private function mapAlbumSong(array $e): array
+    {
+        $id = preg_replace('/^MUSIC_/', '', (string) ($e['musicrid'] ?? $e['MUSICRID'] ?? ''));
+        if ($id === '') {
+            $id = (string) ($e['id'] ?? '');
+        }
+
+        $album = (string) ($e['album'] ?? $e['ALBUM'] ?? '');
+
+        return [
+            'id' => $id,
+            'musicName' => (string) ($e['name'] ?? $e['NAME'] ?? ''),
+            'musicArtists' => $this->splitAmp((string) ($e['artist'] ?? $e['ARTIST'] ?? '')),
+            'musicAlbum' => $album !== '' ? $album : null,
+            'musicImage' => $this->picOf(
+                (string) ($e['web_albumpic_short'] ?? ''),
+                (string) ($e['web_artistpic_short'] ?? ''),
+            ),
+            // musiclist 的 duration 为秒（SQMusic 专辑契约口径，与搜索接口的毫秒不同）
+            'musicDuration' => (int) ($e['duration'] ?? $e['DURATION'] ?? 0),
+            'bits' => $this->brTypesFromMinfo((string) ($e['N_MINFO'] ?? $e['MINFO'] ?? '')),
+            'plugName' => $this->plugName(),
+            'albumId' => isset($e['albumId']) ? (string) $e['albumId'] : (isset($e['albumid']) ? (string) $e['albumid'] : null),
+            'artistsIds' => $this->splitAmp((string) ($e['allartistid'] ?? '')),
+            'dataInfo' => $e,
+        ];
+    }
+
+    /** 专辑封面：img 为绝对地址（/240 规格），pic 为相对路径；统一取 /500 大图 */
+    private function albumImgOf(array $e): ?string
+    {
+        if (($e['img'] ?? '') !== '') {
+            return $this->coverSize((string) $e['img']);
+        }
+
+        if (($e['pic'] ?? '') !== '') {
+            return $this->coverSize((string) config('kuwo.song_cover_url').$e['pic']);
+        }
+
+        return null;
     }
 
     /** 歌手名/ID 按多歌手分隔符 & 拆分，去空 */

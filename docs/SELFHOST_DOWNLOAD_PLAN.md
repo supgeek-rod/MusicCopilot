@@ -31,10 +31,10 @@
 | | `POST /api/config/logout`、`GET /api/config/isLogin` | ✅ |
 | | `GET /api/config/getOption`（插件清单）、`GET /api/config/getPlugBrTypeList`（音质清单） | ✅ |
 | music（搜索） | `GET /api/music/searchSong` / `searchArtist` / `searchAlbum` | ✅（kw 插件） |
-| | `GET /api/music/searchTips`（联想词） | ⬜ |
+| | `GET /api/music/searchTips`（联想词） | ✅ |
 | music（歌词） | `POST /api/music/getLyric` | ✅ |
-| music（详情/直链） | `GET /api/music/artistAlbumById`（歌手详情 + 全部专辑）、`GET /api/music/albumInfoById`（专辑详情 + 曲目） | ⬜ |
-| | `POST /api/music/getDownloadUrl`（plugName / id / brType / brTypes） | ⬜ |
+| music（详情/直链） | `GET /api/music/artistAlbumById`（歌手详情 + 全部专辑）、`GET /api/music/albumInfoById`（专辑详情 + 曲目） | ✅ |
+| | `POST /api/music/getDownloadUrl`（plugName / id / brType / brTypes） | ✅ |
 | download | `POST /api/download/downloadSong`（完整歌曲记录 + 可选 brType，省略自动选最高音质） | ⬜ |
 | | `POST /api/download/downloadAlbum`（专辑记录 + 可选 bit 整数码率）、`POST /api/download/downloadArtistAlbum`（歌手记录 + 可选 bit） | ⬜ |
 | task | `POST /api/task/list`（分页 + 状态筛选）、`POST /api/task/del`、`POST /api/task/refreshTask`（重新入队）、`POST /api/task/errorTaskRetry` | ⬜ |
@@ -64,15 +64,23 @@
 | 真机验证：登录/错密码/device 缺失/isLogin/getOption/brType/受保护路由 403/真实酷我搜索（晴天 228908）/logout 撤销 全部符合预期 | ✅ |
 | 配套：scraper server 客户端 403 自动登录重试（`MC_SERVER_USERNAME/PASSWORD`），tsx 冒烟通过 | ✅ |
 
-### M2 联想词 / 详情 / 直链解析 ⬜
+### M2 联想词 / 详情 / 直链解析 ✅（2026-09-12）
 
 | 任务 | 状态 |
 | --- | --- |
-| `SourcePlugin` 接口扩展为九方法 + `KwBrType` 枚举双向映射（§10 建议 1/3） | ⬜ |
-| `GET /api/music/searchTips`（酷我联想词） | ⬜ |
-| `GET /api/music/artistAlbumById`、`GET /api/music/albumInfoById`（`scripts/kw-album.sh` / `kw-artist.sh` 现成口径） | ⬜ |
-| `POST /api/music/getDownloadUrl`（mobi `convert_url_with_sign`；大陆 IP 区域限制记录在案） | ⬜ |
-| 契约固化 + 测试 + 真机验证（大陆出口，本机 curl 一律 `--noproxy '*'`） | ⬜ |
+| `SourcePlugin` 接口扩展：searchTips / artistAlbum / albumInfo / downloadUrl（songInfo / artistSongs 无前端消费点，待需要时再补，见风险节） | ✅ |
+| `GET /api/music/searchTips`（openapi searchKey，RELWORD 提取，空项过滤） | ✅ |
+| `GET /api/music/artistAlbumById`（r.s artistinfo + albumlist 两次请求聚合；封面统一取 /500 大图） | ✅ |
+| `GET /api/music/albumInfoById`（r.s albuminfo；musiclist 小写键映射，`MUSIC_` 前缀与大写键兜底，duration 秒） | ✅ |
+| `POST /api/music/getDownloadUrl`（mobi `convert_url_with_sign`；KW_* ↔ 酷我 br 双向映射，407 映射为大陆 IP 限制提示） | ✅ |
+| 契约固化（openapi.json 13 端点 → `packages/api-contract` 重生成） | ✅ |
+| `php artisan test`：30 tests / 166 assertions 全绿（新增 4 个端点测试文件共 12 例，字段样例取自真实响应） | ✅ |
+| 真机验证：联想词（晴天 10 条）、歌手详情（336：45 专辑 / 别名 / 头像 / 12KB 简介）、专辑详情（1293：11 曲目全对）、直链 320k 与 FLAC 均返回真实签名 URL（duration/format 正确） | ✅ |
+
+实现备注（2026-09-12）：
+
+- albumlist 每条专辑自带大段 `info` 简介，响应可达数百 KB；WSL2 NAT 链路 10s 传不完导致超时，`KUWO_TIMEOUT` 默认提到 30s（参考实现的 rn=10000 口径收敛为 500，远超现实专辑数）
+- 直链 CDN（kw-er.kuwo.cn）实测不限区域：320k mp3（M800 前缀）与 2000k FLAC（F000 前缀）均解析成功且可下载
 
 ### M3 下载队列与任务管理 ⬜
 
@@ -104,6 +112,7 @@
 ## 5. 风险与备选
 
 - **酷我解析接口变动频繁** → 解析收敛在插件内，单个音源失效不影响整体（路线图风险提示）；接口家族现状见 kuwo-api-notes §8 失效端点记录
+- **接口能力与前端消费对齐**：`songInfo` / `artistSongs`（§10 九方法之列）暂无前端调用点，未实现；待 M3 下载链路或后续功能需要时按需补充，避免死代码
 - **直链解析大陆 IP 区域限制**（海外 407；搜索/详情/歌词海外可用）→ 部署目标为内网 NAS；开发机测试统一 `--noproxy '*'`（kuwo-api-notes §9）
 - **`delSuccessTask` 会清空服务器全部成功下载记录**（根 AGENTS.md 明示禁止随意调用）→ 契约保留以对齐前端，实现与使用从谨慎
 - **歌词接口按 IP 分钟级限流** → 结果永久缓存 + 长退避重试（KuwoPlugin 已有实现先例）
@@ -114,3 +123,4 @@
 
 - 2026-09-11：第 5 期启动。worktree 建立（env 复制、npm/composer 依赖安装）；看板建立；roadmap 第 5 期标 🚧 并修订技术栈表述（M0 完成）
 - 2026-09-11：M1 完成（鉴权五端点 + `sqmusic` 中间件 + token 落库；契约 9 端点固化；18 tests 全绿；真机与 scraper 冒烟通过）。注意：根 package.json 未声明 workspaces，契约生成须在 `packages/api-contract` 内 `npm run gen`
+- 2026-09-12：M2 完成（联想词/歌手详情/专辑详情/直链四端点；契约 13 端点；30 tests 全绿；真机全链路含真实直链解析通过）。发现并处理：albumlist 大响应在 WSL2 链路超时（KUWO_TIMEOUT→30s、rn 收敛 500）

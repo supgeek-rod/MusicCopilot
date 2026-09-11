@@ -136,6 +136,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/music/searchTips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 搜索联想词（酷我 openapi searchKey，RELWORD 提取） */
+        get: operations["musicSearch.searchTips"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/music/artistAlbumById": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 歌手详情 + 全部专辑（酷我 r.s artistinfo + albumlist 聚合） */
+        get: operations["musicSearch.artistAlbumById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/music/albumInfoById": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 专辑详情 + 曲目列表（酷我 r.s albuminfo） */
+        get: operations["musicSearch.albumInfoById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/music/getLyric": {
         parameters: {
             query?: never;
@@ -151,6 +202,26 @@ export interface paths {
          *     把 LRC 文本放 data（SQMusic 放 msg，前端 music.ts getLyric 两种均兼容）。
          */
         post: operations["musicSearch.getLyric"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/music/getDownloadUrl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 获取下载/试听直链（酷我 mobi convert_url_with_sign，⚠️ 大陆 IP 区域限制）
+         *     契约对齐 SQMusic：POST，body 带 plugName/id/brType，brTypes（完整歌曲对象）兼容接收但不参与解析
+         */
+        post: operations["musicSearch.getDownloadUrl"];
         delete?: never;
         options?: never;
         head?: never;
@@ -498,6 +569,75 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "musicSearch.searchTips": {
+        parameters: {
+            query: {
+                keyword: string;
+                plugName?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "musicSearch.artistAlbumById": {
+        parameters: {
+            query: {
+                id: string;
+                plugName?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "musicSearch.albumInfoById": {
+        parameters: {
+            query: {
+                id: string;
+                plugName?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "musicSearch.getLyric": {
         parameters: {
             query?: never;
@@ -536,6 +676,35 @@ export interface operations {
                         msg: string;
                         data: null;
                     };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "musicSearch.getDownloadUrl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: string;
+                    brType: string;
+                    plugName?: string;
+                    brTypes?: string[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             422: components["responses"]["ValidationException"];
