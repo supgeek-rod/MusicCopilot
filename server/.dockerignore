@@ -3,6 +3,8 @@
 /tests
 /storage/app/*
 /storage/*.key
+# 本地 dev 的包发现清单含 dev 依赖 provider（如 pail），生产 vendor 为 --no-dev 会崩
+/bootstrap/cache/*.php
 /research
 /docs
 /scripts
