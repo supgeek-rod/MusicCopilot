@@ -10,13 +10,6 @@ import SongList from '@/components/SongList.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   clearSearchHistory,
   loadSearchHistory,
   recordSearchHistory,
@@ -33,7 +26,7 @@ const PAGE_SIZE = 30
 
 const plug = ref('kw')
 const keyword = ref('')
-const submitted = ref<{ kw: string; plug: string } | null>(null)
+const submitted = ref<{ kw: string } | null>(null)
 const results = ref<SongRecord[]>([])
 const total = ref(0)
 const pageIndex = ref(1)
@@ -69,7 +62,7 @@ function onInputBlur() {
   tipsOpen.value = false
 }
 
-// 音源下拉：优先用后端返回的启用插件列表
+// 音源不做界面选择：自动采用后端返回的第一个启用插件（无列表时保持默认 kw）
 watch(
   () => app.plugOptions,
   (options) => {
@@ -102,11 +95,6 @@ watchDebounced(
 
 onClickOutside(searchBoxRef, () => (tipsOpen.value = false))
 
-function cleanLabel(label: string): string {
-  const clean = label.replace(/\s*[（(].*$/, '').trim()
-  return clean || label
-}
-
 async function doSearch(page = 1) {
   const kw = keyword.value.trim()
   if (!kw) return
@@ -121,7 +109,7 @@ async function doSearch(page = 1) {
     results.value = data.records ?? []
     total.value = data.searchTotal ?? results.value.length
     pageIndex.value = page
-    submitted.value = { kw, plug: plug.value }
+    submitted.value = { kw }
     history.value = recordSearchHistory(kw)
     // 搜索条件同步进 URL（replace 不新增历史记录，可刷新恢复/分享）
     if (route.query.q !== kw) router.replace({ query: { q: kw } }).catch(() => {})
@@ -158,11 +146,6 @@ function goPage(page: number) {
   doSearch(page)
 }
 
-// 切换音源后重搜
-watch(plug, () => {
-  if (submitted.value) doSearch(1)
-})
-
 // 顶部导航栏快捷搜索 / 链接直达：读取并监听 ?q=
 // （跳过与当前已提交关键词相同的值，避免 doSearch 内 router.replace 触发循环）
 function searchFromRoute() {
@@ -195,19 +178,7 @@ function onLyrics(song: SongRecord) {
       :class="isHero ? 'mt-6 max-w-2xl flex-col gap-3 sm:flex-row' : ''"
       @submit.prevent="doSearch(1)"
     >
-      <!-- 首页大搜索区不显示音源选择，保持聚焦；搜索结果页提供音源切换 -->
-      <Select v-if="!isHero" v-model="plug">
-        <SelectTrigger class="w-[120px] shrink-0" title="选择音源">
-          <SelectValue placeholder="音源" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="o in app.plugOptions" :key="o.value" :value="o.value" :title="o.label">
-            {{ cleanLabel(o.label) }}
-          </SelectItem>
-          <SelectItem v-if="!app.plugOptions.length" value="kw">酷我</SelectItem>
-        </SelectContent>
-      </Select>
-
+      <!-- 首页大搜索区与搜索结果页均不提供音源切换，音源由后端启用插件自动决定 -->
       <div ref="searchBoxRef" class="relative flex-1">
         <Input
           v-model="keyword"
@@ -324,7 +295,7 @@ function onLyrics(song: SongRecord) {
     <template v-else>
       <div class="mb-2 mt-6 flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          音源「{{ submitted?.plug }}」找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
+          找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
         </span>
         <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
       </div>
