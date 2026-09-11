@@ -4,7 +4,9 @@ FROM php:8.4-cli-alpine AS vendor
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --no-progress
+# 大陆部署（fnOS NAS）拉包走阿里镜像；海外可用，无碍
+RUN composer config -g repos.packagist composer https://mirrors.aliyun.com/composer/ \
+    && composer install --no-dev --no-interaction --prefer-dist --no-progress
 
 FROM php:8.4-cli-alpine
 WORKDIR /app
