@@ -316,16 +316,28 @@ function onLyrics(song: SongRecord) {
           </button>
         </div>
         <div class="flex flex-wrap gap-x-4 gap-y-1 px-1">
-          <button
+          <div
             v-for="h in history"
             :key="h"
-            type="button"
-            class="text-xs text-muted-foreground hover:text-foreground"
-            :title="`搜索「${h}」`"
-            @click="searchTerm(h)"
+            class="group flex items-center gap-0.5 text-xs text-muted-foreground"
           >
-            {{ h }}
-          </button>
+            <button
+              type="button"
+              class="hover:text-foreground"
+              :title="`搜索「${h}」`"
+              @click="searchTerm(h)"
+            >
+              {{ h }}
+            </button>
+            <button
+              type="button"
+              class="rounded p-0.5 opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+              title="删除该条"
+              @click.stop="dropHistory(h)"
+            >
+              <XIcon class="size-3" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
