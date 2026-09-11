@@ -15,8 +15,8 @@
 - [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，SQMusic `{code,msg,data}` 契约，
       字段对齐 MusicCopilot 前端 `SongRecord/ArtistRecord/AlbumRecord`）
 - [x] API 文档 + 在线测试台：Scalar（本地化）+ Scramble 自动生成 OpenAPI 3.1 规范（2026-09-11）
+- [x] 鉴权：`POST /api/config/login|logout`、`GET|POST /api/config/isLogin`、`GET /api/config/getOption|getPlugBrTypeList`（2026-09-11 第 5 期 M1，`sqmusic` 头中间件 + token 落库）
 - [x] 歌词：`POST /api/music/getLyric`（酷我 newlyric 代理，2026-09-11 随第 4 期 M1 落地）
-- [ ] 鉴权（登录 + sqmusic token 头）
 - [ ] 歌曲详情 / 直链解析 / 下载链接
 - [ ] 下载队列与任务管理
 - [ ] Dockerfile / docker-compose
@@ -38,6 +38,23 @@ curl 'http://127.0.0.1:8097/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
 
 `pageIndex` 从 1 开始（内部转酷我 pn=pageIndex-1）；`pageSize` 上限 100。
 错误统一 `{code:500, msg, data:null}`：keyword 缺失、plugName 未注册、上游请求失败。
+
+### 鉴权（第 5 期 M1 起）
+
+除 `POST /api/config/login` 与 `config/isLogin` 外，所有 `/api/*` 端点要求 `sqmusic` 请求头；
+缺失/无效/过期返回 **HTTP 403**（前端 `http.ts` 据此自动重登并重试）：
+
+```bash
+TOKEN=$(curl -s --noproxy '*' -X POST 'http://127.0.0.1:8097/api/config/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin","device":"web"}' | jq -r .data.tokenValue)
+curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:8097/api/config/getOption'
+```
+
+- 登录 body 必须带 `device` 字段（缺失报「请填写登录设备类型」），返回 sa-token 风格
+  `data.tokenName/tokenValue`；`isLogin` 恒返回 200，登录态在 `data` 布尔值上（不复制 SQMusic 无 token 也返回 true 的瑕疵）
+- token 有效期 7 天（`MC_AUTH_TTL`），库里只存 sha256 摘要（`auth_tokens` 表），`logout` 撤销、多设备并存
+- 凭证经 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD` 配置（默认 admin/admin，见 `.env.example`）
 
 ### API 文档与在线测试（Scalar + Scramble）
 

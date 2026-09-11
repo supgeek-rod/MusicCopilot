@@ -11,6 +11,16 @@ interface SourcePlugin
     /** 插件标识，即请求参数 plugName（如 kw） */
     public function plugName(): string;
 
+    /** 插件展示名（getOption 的 label，如「酷我音乐」） */
+    public function label(): string;
+
+    /**
+     * 插件可用音质枚举（getPlugBrTypeList）
+     *
+     * @return list<array{id: string, value: string, type: string, bit: int, plugName: string, springName: string}>
+     */
+    public function brTypeList(): array;
+
     /**
      * 搜索单曲
      *

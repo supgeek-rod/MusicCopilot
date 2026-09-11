@@ -32,7 +32,7 @@
 
 ## server/ 子目录（自建后端，Laravel 13）
 
-- 定位：第 5 期替换 SQMusic 的自建后端（原 MusicCopilotServer 仓库 subtree 并入），音源插件化（`app/Plugins/Sources/`），已实现酷我搜索三端点；进度与用法见 `server/README.md`
+- 定位：第 5 期替换 SQMusic 的自建后端（原 MusicCopilotServer 仓库 subtree 并入），音源插件化（`app/Plugins/Sources/`），已实现酷我搜索三端点与鉴权/config 端点；进度与用法见 `server/README.md`
 - 文档与测试台：`http://127.0.0.1:8097/api-docs.html`（Scalar）、`/docs/api`（Stoplight Elements）、`/docs/api.json` 与 `server/openapi.json`（规范固化，契约类型源）
 - 契约策略：过渡期保持 SQMusic 对齐契约；**新端点不复制历史瑕疵**；SQMusic 退役后以 /v2 出清理版（详见 `packages/api-contract/README.md`）
 - 酷我直链解析有**大陆 IP 区域限制**（海外 407），本机测酷我 curl 一律 `--noproxy '*'`；Windows mingw curl 的 argv 中文会转 GBK（先经 node `encodeURIComponent` 编码）——详见 `server/docs/kuwo-api-notes.md`
@@ -53,4 +53,4 @@
 
 - 第 2 期：`config.json` 去掉明文密码，改「登录框 + 记住 token」模式（鉴权细节见 docs/roadmap.md 前置建议）
 - monorepo 已于 2026-09-11 提前落地（前端在根、后端在 `server/`）：本文件为根级（前端 + 通用约定），`server/` 特有约定见 `server/AGENTS.md`
-- 新增后端能力时，先更新 `docs/architecture.md` 的模块边界，再动代码；接口契约类型收敛到 `packages/api-contract`（已落地：由 `server/openapi.json` 经 openapi-typescript 生成，`npm run gen -w packages/api-contract` 重新生成）
+- 新增后端能力时，先更新 `docs/architecture.md` 的模块边界，再动代码；接口契约类型收敛到 `packages/api-contract`（已落地：由 `server/openapi.json` 经 openapi-typescript 生成，在 `packages/api-contract` 内 `npm run gen` 重新生成；根 package.json 未声明 workspaces，`-w` 写法无效）

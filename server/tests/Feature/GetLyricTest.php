@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class GetLyricTest extends TestCase
 {
+    use RefreshDatabase;
+
     /** 构造酷我 newlyric 响应体：tp=content\r\n\r\n + zlib(base64(xor(gb18030(lrc)))) */
     private function fakeLyricPayload(string $lrc): string
     {
@@ -33,7 +36,8 @@ class GetLyricTest extends TestCase
             'newlyric.kuwo.cn/*' => Http::response($this->fakeLyricPayload("[00:01.00]晴天\n[00:02.00]故事的小黄花")),
         ]);
 
-        $response = $this->postJson('/api/music/getLyric', ['id' => '228908', 'plugName' => 'kw']);
+        $response = $this->withSqmusicToken()
+            ->postJson('/api/music/getLyric', ['id' => '228908', 'plugName' => 'kw']);
 
         $response->assertOk()
             ->assertJsonPath('code', 200)
@@ -49,7 +53,8 @@ class GetLyricTest extends TestCase
                 ->push($this->fakeLyricPayload('[00:01.00]ok')),
         ]);
 
-        $response = $this->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'kw']);
+        $response = $this->withSqmusicToken()
+            ->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'kw']);
 
         $response->assertOk()->assertJsonPath('code', 200)->assertJsonPath('data', '[00:01.00]ok');
     }
@@ -60,7 +65,8 @@ class GetLyricTest extends TestCase
             'newlyric.kuwo.cn/*' => Http::response('tp=error'."\r\n\r\n".'TP=ERROR REQUEST'),
         ]);
 
-        $response = $this->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'kw']);
+        $response = $this->withSqmusicToken()
+            ->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'kw']);
 
         $response->assertOk()->assertJsonPath('code', 500);
         Http::assertSentCount(3);
@@ -68,15 +74,24 @@ class GetLyricTest extends TestCase
 
     public function test_unknown_plugin_fails(): void
     {
-        $response = $this->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'xx']);
+        $response = $this->withSqmusicToken()
+            ->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'xx']);
 
         $response->assertOk()->assertJsonPath('code', 500);
     }
 
     public function test_missing_id_fails_with_contract_envelope(): void
     {
-        $response = $this->postJson('/api/music/getLyric', ['plugName' => 'kw']);
+        $response = $this->withSqmusicToken()
+            ->postJson('/api/music/getLyric', ['plugName' => 'kw']);
 
         $response->assertOk()->assertJsonPath('code', 500);
+    }
+
+    public function test_requires_sqmusic_token(): void
+    {
+        $response = $this->postJson('/api/music/getLyric', ['id' => '1', 'plugName' => 'kw']);
+
+        $response->assertStatus(403)->assertJsonPath('code', 403);
     }
 }

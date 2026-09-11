@@ -10,6 +10,9 @@ export interface Env {
   token: string
   /** 音源后端（Laravel server/）基址：搜索与歌词代理 */
   serverUrl: string
+  /** 音源后端登录凭证（server M1 起接口要求 sqmusic 请求头；留空=仅兼容未开启鉴权的后端） */
+  serverUsername: string
+  serverPassword: string
 }
 
 export function loadEnv(): Env {
@@ -19,6 +22,8 @@ export function loadEnv(): Env {
     dataDir: resolve(process.env.MC_DATA_DIR ?? 'data'),
     token: process.env.MC_SCRAPER_TOKEN ?? '',
     serverUrl: (process.env.MC_SERVER_URL ?? 'http://127.0.0.1:8097').replace(/\/+$/, ''),
+    serverUsername: process.env.MC_SERVER_USERNAME ?? '',
+    serverPassword: process.env.MC_SERVER_PASSWORD ?? '',
   }
   mkdirSync(env.dataDir, { recursive: true })
   return env

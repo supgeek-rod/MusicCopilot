@@ -17,9 +17,36 @@ use RuntimeException;
  */
 class KuwoPlugin implements SourcePlugin, LyricPlugin
 {
+    /**
+     * 对外音质枚举（getPlugBrTypeList）：id 即搜索结果 brTypes 里的值，
+     * springName 为酷我 br 值（后续直链解析用），与 brTypesFromMinfo 的识别集合保持一致。
+     *
+     * @var list<array{id: string, value: string, type: string, bit: int, springName: string}>
+     */
+    private const BR_TYPES = [
+        ['id' => 'KW_MP3_128', 'value' => 'KW_MP3_128', 'type' => 'MP3', 'bit' => 128, 'springName' => '128kmp3'],
+        ['id' => 'KW_MP3_192', 'value' => 'KW_MP3_192', 'type' => 'MP3', 'bit' => 192, 'springName' => '192kmp3'],
+        ['id' => 'KW_MP3_320', 'value' => 'KW_MP3_320', 'type' => 'MP3', 'bit' => 320, 'springName' => '320kmp3'],
+        ['id' => 'KW_APE_1000', 'value' => 'KW_APE_1000', 'type' => 'APE', 'bit' => 1000, 'springName' => '1000kape'],
+        ['id' => 'KW_FLAC_2000', 'value' => 'KW_FLAC_2000', 'type' => 'FLAC', 'bit' => 2000, 'springName' => '2000kflac'],
+    ];
+
     public function plugName(): string
     {
         return 'kw';
+    }
+
+    public function label(): string
+    {
+        return '酷我音乐';
+    }
+
+    public function brTypeList(): array
+    {
+        return array_map(
+            fn (array $item): array => $item + ['plugName' => $this->plugName()],
+            self::BR_TYPES,
+        );
     }
 
     public function searchSong(string $keyword, int $pageIndex, int $pageSize): array

@@ -10,6 +10,329 @@
         }
     ],
     "paths": {
+        "/config/login": {
+            "post": {
+                "operationId": "config.login",
+                "summary": "\u767b\u5f55\uff1abody \u5fc5\u987b\u5e26 device \u5b57\u6bb5\uff08\u5bf9\u9f50 SQMusic\uff0c\u7f3a\u5931\u62a5\u300c\u8bf7\u586b\u5199\u767b\u5f55\u8bbe\u5907\u7c7b\u578b\u300d\uff09",
+                "tags": [
+                    "Config"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "username": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "device": {
+                                        "type": "string",
+                                        "maxLength": 32
+                                    }
+                                },
+                                "required": [
+                                    "username",
+                                    "password",
+                                    "device"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "tokenName": {
+                                                            "type": "string"
+                                                        },
+                                                        "tokenValue": {
+                                                            "type": "string"
+                                                        },
+                                                        "isLogin": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "loginId": {
+                                                            "type": "string"
+                                                        },
+                                                        "loginDevice": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "tokenName",
+                                                        "tokenValue",
+                                                        "isLogin",
+                                                        "loginId",
+                                                        "loginDevice"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "\u7528\u6237\u540d\u6216\u5bc6\u7801\u9519\u8bef"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/config/isLogin": {
+            "get": {
+                "operationId": "config.isLogin_1",
+                "summary": "\u767b\u5f55\u6001\u67e5\u8be2\uff1aGET/POST \u5747\u53ef\uff08\u5bf9\u9f50 SQMusic\uff09\uff1b\u6052\u8fd4\u56de 200\uff0c\u767b\u5f55\u6001\u5728 data \u5e03\u5c14\u503c\u4e0a",
+                "tags": [
+                    "Config"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "config.isLogin_2",
+                "summary": "\u767b\u5f55\u6001\u67e5\u8be2\uff1aGET/POST \u5747\u53ef\uff08\u5bf9\u9f50 SQMusic\uff09\uff1b\u6052\u8fd4\u56de 200\uff0c\u767b\u5f55\u6001\u5728 data \u5e03\u5c14\u503c\u4e0a",
+                "tags": [
+                    "Config"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/config/logout": {
+            "post": {
+                "operationId": "config.logout",
+                "summary": "\u6ce8\u9500\uff1a\u64a4\u9500\u5f53\u524d token\uff08\u53d7\u9274\u6743\u4fdd\u62a4\uff09",
+                "tags": [
+                    "Config"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/config/getOption": {
+            "get": {
+                "operationId": "config.getOption",
+                "summary": "\u5df2\u6ce8\u518c\u97f3\u6e90\u63d2\u4ef6\u6e05\u5355\uff08\u524d\u7aef\u4ec5\u6d88\u8d39 value=kw \u7684\u9879\uff09",
+                "tags": [
+                    "Config"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "label": {
+                                                        "type": "string"
+                                                    },
+                                                    "value": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "label",
+                                                    "value"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/config/getPlugBrTypeList": {
+            "get": {
+                "operationId": "config.getPlugBrTypeList",
+                "summary": "\u5404\u63d2\u4ef6\u53ef\u7528\u97f3\u8d28\u679a\u4e3e\uff08\u524d\u7aef\u7528 id \u4f5c brType \u952e\u3001type+bit \u62fc\u5c55\u793a\u6807\u7b7e\uff09",
+                "tags": [
+                    "Config"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/music/searchSong": {
             "get": {
                 "operationId": "musicSearch.searchSong",

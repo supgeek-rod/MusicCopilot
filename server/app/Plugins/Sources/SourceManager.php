@@ -34,4 +34,10 @@ class SourceManager
 
         return $this->plugins[$plugName];
     }
+
+    /** @return array<string, SourcePlugin> 全部已注册插件（按注册顺序） */
+    public function all(): array
+    {
+        return $this->plugins;
+    }
 }

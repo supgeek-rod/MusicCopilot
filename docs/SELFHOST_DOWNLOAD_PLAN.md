@@ -27,9 +27,9 @@
 
 | 分组 | 端点 | server/ 现状 |
 | --- | --- | --- |
-| config（鉴权/配置） | `POST /api/config/login`（username / password / device:"web"） | ⬜ |
-| | `POST /api/config/logout`、`GET /api/config/isLogin` | ⬜ |
-| | `GET /api/config/getOption`（插件清单）、`GET /api/config/getPlugBrTypeList`（音质清单） | ⬜ |
+| config（鉴权/配置） | `POST /api/config/login`（username / password / device:"web"） | ✅ |
+| | `POST /api/config/logout`、`GET /api/config/isLogin` | ✅ |
+| | `GET /api/config/getOption`（插件清单）、`GET /api/config/getPlugBrTypeList`（音质清单） | ✅ |
 | music（搜索） | `GET /api/music/searchSong` / `searchArtist` / `searchAlbum` | ✅（kw 插件） |
 | | `GET /api/music/searchTips`（联想词） | ⬜ |
 | music（歌词） | `POST /api/music/getLyric` | ✅ |
@@ -50,15 +50,19 @@
 | `docs/roadmap.md`：第 5 期标 🚧 + 技术栈表述修订（Node.js → PHP / Laravel 13，对齐架构决策 #7） | ✅ |
 | 本看板建立 | ✅ |
 
-### M1 鉴权与 config 端点 ⬜
+### M1 鉴权与 config 端点 ✅（2026-09-11）
 
 | 任务 | 状态 |
 | --- | --- |
-| `POST /api/config/login`：`device:"web"` 校验、token 发放，返回 `LoginInfo` 形状（以 api-test-report.md 实测口径为准） | ⬜ |
-| `GET /api/config/isLogin`、`POST /api/config/logout` | ⬜ |
-| `GET /api/config/getOption`（插件启停清单）、`GET /api/config/getPlugBrTypeList`（kw 可用音质清单，brType 映射见 kuwo-api-notes §1） | ⬜ |
-| `sqmusic` 请求头鉴权中间件（401/403 语义与前端 `http.ts` 自动重登对齐） | ⬜ |
-| 契约固化（openapi.json + `npm run gen -w packages/api-contract`）+ `php artisan test` + 真机 curl | ⬜ |
+| `POST /api/config/login`：`device:"web"` 校验、token 发放，sa-token 风格 `LoginInfo`（tokenName/tokenValue/isLogin/loginId/loginDevice） | ✅ |
+| `GET|POST /api/config/isLogin`（恒 200，登录态在 `data` 布尔值上，不复制 SQMusic 无 token 也返回 true 的瑕疵）、`POST /api/config/logout`（撤销 token） | ✅ |
+| `GET /api/config/getOption`（注册插件清单）、`GET /api/config/getPlugBrTypeList`（kw 五档音质枚举，id 与搜索 brTypes 同源） | ✅ |
+| `sqmusic` 请求头鉴权中间件：缺失/无效/过期一律 HTTP 403 + `{code:403}`（前端 `http.ts` 403 自动重登重试契约）；`SourcePlugin` 接口扩展 `label()`/`brTypeList()` | ✅ |
+| token：随机 64 位 hex、`auth_tokens` 表只存 sha256 摘要、7 天有效期、多设备并存、过期顺手清理 | ✅ |
+| 契约固化（`scramble:export --path=openapi.json`，9 端点 → `packages/api-contract` 重生成） | ✅ |
+| `php artisan test`：18 tests / 80 assertions 全绿（新增 ConfigAuthTest 10 例，GetLyricTest 适配鉴权 + 403 用例） | ✅ |
+| 真机验证：登录/错密码/device 缺失/isLogin/getOption/brType/受保护路由 403/真实酷我搜索（晴天 228908）/logout 撤销 全部符合预期 | ✅ |
+| 配套：scraper server 客户端 403 自动登录重试（`MC_SERVER_USERNAME/PASSWORD`），tsx 冒烟通过 | ✅ |
 
 ### M2 联想词 / 详情 / 直链解析 ⬜
 
@@ -109,3 +113,4 @@
 ## 6. 进度日志
 
 - 2026-09-11：第 5 期启动。worktree 建立（env 复制、npm/composer 依赖安装）；看板建立；roadmap 第 5 期标 🚧 并修订技术栈表述（M0 完成）
+- 2026-09-11：M1 完成（鉴权五端点 + `sqmusic` 中间件 + token 落库；契约 9 端点固化；18 tests 全绿；真机与 scraper 冒烟通过）。注意：根 package.json 未声明 workspaces，契约生成须在 `packages/api-contract` 内 `npm run gen`

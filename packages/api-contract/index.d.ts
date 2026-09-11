@@ -1,4 +1,90 @@
 export interface paths {
+    "/config/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 登录：body 必须带 device 字段（对齐 SQMusic，缺失报「请填写登录设备类型」） */
+        post: operations["config.login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/isLogin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 登录态查询：GET/POST 均可（对齐 SQMusic）；恒返回 200，登录态在 data 布尔值上 */
+        get: operations["config.isLogin_1"];
+        put?: never;
+        /** 登录态查询：GET/POST 均可（对齐 SQMusic）；恒返回 200，登录态在 data 布尔值上 */
+        post: operations["config.isLogin_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 注销：撤销当前 token（受鉴权保护） */
+        post: operations["config.logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/getOption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 已注册音源插件清单（前端仅消费 value=kw 的项） */
+        get: operations["config.getOption"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/getPlugBrTypeList": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 各插件可用音质枚举（前端用 id 作 brType 键、type+bit 拼展示标签） */
+        get: operations["config.getPlugBrTypeList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/music/searchSong": {
         parameters: {
             query?: never;
@@ -100,6 +186,174 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "config.login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    username: string;
+                    password: string;
+                    device: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: {
+                            tokenName: string;
+                            tokenValue: string;
+                            isLogin: boolean;
+                            loginId: string;
+                            loginDevice: string;
+                        };
+                    } | {
+                        /** @constant */
+                        code: 500;
+                        /** @constant */
+                        msg: "用户名或密码错误";
+                        data: null;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "config.isLogin_1": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: boolean;
+                    };
+                };
+            };
+        };
+    };
+    "config.isLogin_2": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: boolean;
+                    };
+                };
+            };
+        };
+    };
+    "config.logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: null;
+                    };
+                };
+            };
+        };
+    };
+    "config.getOption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: {
+                            label: string;
+                            value: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    "config.getPlugBrTypeList": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: string[];
+                    };
+                };
+            };
+        };
+    };
     "musicSearch.searchSong": {
         parameters: {
             query: {
