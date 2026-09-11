@@ -64,6 +64,8 @@ function isActive(path: string): boolean {
 const keyword = ref('')
 const tips = ref<string[]>([])
 const tipsOpen = ref(false)
+// 联想词键盘选中项（-1 = 未选中，↑↓ 移动，Enter 确认）——交互与搜索页一致
+const tipsActive = ref(-1)
 const history = ref<string[]>([])
 const searchBoxRef = ref<HTMLElement | null>(null)
 
@@ -82,6 +84,7 @@ function onInputFocus() {
 }
 function onInputBlur() {
   tipsOpen.value = false
+  tipsActive.value = -1
 }
 
 // 搜索联想（防抖），与搜索页一致；失败静默降级为无联想
@@ -91,19 +94,40 @@ watchDebounced(
     const q = kw.trim()
     if (!q) {
       tips.value = []
+      tipsActive.value = -1
       return
     }
     try {
       const data = await musicApi.searchTips(defaultPlug.value, q)
       if (disposed) return
       tips.value = Array.isArray(data) ? data.slice(0, 8) : []
+      tipsActive.value = -1
     } catch {
       if (disposed) return
       tips.value = []
+      tipsActive.value = -1
     }
   },
   { debounce: 300 },
 )
+
+/** ↑↓ 在联想词间移动选中项（到边停，↑ 在第一项时取消选中） */
+function onTipsArrow(delta: number) {
+  if (!tips.value.length) return
+  tipsOpen.value = true
+  const i = tipsActive.value + delta
+  tipsActive.value = i < 0 || i >= tips.value.length ? (delta > 0 ? tips.value.length - 1 : -1) : i
+}
+
+/** Enter：有键盘选中的联想词则跳转搜索它，否则按输入框内容搜索 */
+function onSearchEnter() {
+  const active = tipsActive.value
+  if (tipsOpen.value && active >= 0 && tips.value[active]) {
+    searchTerm(tips.value[active]!)
+    return
+  }
+  submitQuickSearch()
+}
 
 onClickOutside(searchBoxRef, () => (tipsOpen.value = false))
 
@@ -122,6 +146,7 @@ function submitQuickSearch() {
 function searchTerm(term: string) {
   tipsOpen.value = false
   tips.value = []
+  tipsActive.value = -1
   keyword.value = ''
   if (route.path === '/search' && route.query.q === term) return
   router.push({ path: '/search', query: { q: term } })
@@ -193,7 +218,9 @@ function clearHistory() {
             @focus="onInputFocus"
             @click="onInputFocus"
             @blur="onInputBlur"
-            @keydown.enter.prevent="submitQuickSearch"
+            @keydown.down.prevent="onTipsArrow(1)"
+            @keydown.up.prevent="onTipsArrow(-1)"
+            @keydown.enter.prevent="onSearchEnter"
             @keydown.esc="tipsOpen = false"
           />
           <!-- 搜索联想（输入时） -->
@@ -202,11 +229,13 @@ function clearHistory() {
             class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
           >
             <button
-              v-for="t in tips"
+              v-for="(t, i) in tips"
               :key="t"
               type="button"
               class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+              :class="i === tipsActive ? 'bg-muted' : ''"
               @mousedown.prevent
+              @mouseenter="tipsActive = i"
               @click="searchTerm(t)"
             >
               <SearchIcon class="size-3.5 shrink-0 text-muted-foreground" />

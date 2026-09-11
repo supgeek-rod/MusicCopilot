@@ -36,6 +36,8 @@ const loading = ref(false)
 
 const tips = ref<string[]>([])
 const tipsOpen = ref(false)
+// 联想词键盘选中项（-1 = 未选中，↑↓ 移动，Enter 确认）
+const tipsActive = ref(-1)
 const searchBoxRef = ref<HTMLElement | null>(null)
 
 // 搜索历史（localStorage 持久化，最新在前）
@@ -62,6 +64,7 @@ function onInputFocus() {
 }
 function onInputBlur() {
   tipsOpen.value = false
+  tipsActive.value = -1
 }
 
 // 音源不做界面选择：自动采用后端返回的第一个启用插件（无列表时保持默认 kw）
@@ -82,18 +85,39 @@ watchDebounced(
     const q = kw.trim()
     if (!q) {
       tips.value = []
+      tipsActive.value = -1
       return
     }
     try {
       const data = await musicApi.searchTips(plug.value, q)
       if (disposed) return
       tips.value = Array.isArray(data) ? data.slice(0, 8) : []
+      tipsActive.value = -1
     } catch {
       tips.value = []
+      tipsActive.value = -1
     }
   },
   { debounce: 300 },
 )
+
+/** ↑↓ 在联想词间移动选中项（到边停，↑ 在第一项时取消选中） */
+function onTipsArrow(delta: number) {
+  if (!tips.value.length) return
+  tipsOpen.value = true
+  const i = tipsActive.value + delta
+  tipsActive.value = i < 0 || i >= tips.value.length ? (delta > 0 ? tips.value.length - 1 : -1) : i
+}
+
+/** Enter：有键盘选中的联想词则搜索它，否则按输入框内容搜索 */
+function onSearchEnter() {
+  const active = tipsActive.value
+  if (tipsOpen.value && active >= 0 && tips.value[active]) {
+    searchTerm(tips.value[active]!)
+    return
+  }
+  doSearch(1)
+}
 
 onClickOutside(searchBoxRef, () => (tipsOpen.value = false))
 
@@ -132,6 +156,7 @@ function searchTerm(term: string) {
   keyword.value = term
   tipsOpen.value = false
   tips.value = []
+  tipsActive.value = -1
   doSearch(1)
 }
 
@@ -198,7 +223,9 @@ function onLyrics(song: SongRecord) {
           :class="isHero ? 'h-12 pr-9 text-base' : 'h-9 pr-9'"
           @focus="onInputFocus"
           @blur="onInputBlur"
-          @keydown.enter.prevent="doSearch(1)"
+          @keydown.down.prevent="onTipsArrow(1)"
+          @keydown.up.prevent="onTipsArrow(-1)"
+          @keydown.enter.prevent="onSearchEnter"
           @keydown.esc="tipsOpen = false"
         />
         <SearchIcon class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -207,11 +234,13 @@ function onLyrics(song: SongRecord) {
           class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
         >
           <button
-            v-for="t in tips"
+            v-for="(t, i) in tips"
             :key="t"
             type="button"
             class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+            :class="i === tipsActive ? 'bg-muted' : ''"
             @mousedown.prevent
+            @mouseenter="tipsActive = i"
             @click="searchTerm(t)"
           >
             <SearchIcon class="size-3.5 shrink-0 text-muted-foreground" />
