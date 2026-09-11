@@ -20,6 +20,16 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # 入口页与版本指纹不缓存：每次协商校验，部署新版本后 HTML 入口立即生效
+    # （前端 versionCheck 靠拉 /version.json 发现新构建提示刷新）
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    location = /version.json {
+        add_header Cache-Control "no-cache";
+    }
+
     # 后端反代：浏览器同源访问 /api，规避 CORS
     location /api {
         proxy_pass ${MC_API_BASE_URL};

@@ -67,7 +67,11 @@ function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
  * 该机制仅服务于手动放置/编辑的部署配置；设置面板的连接配置只写浏览器存储，
  * 不会生成这个文件。
  */
-function runtimeConfigPlugin(env: Record<string, string>, proxyTarget: string): Plugin {
+function runtimeConfigPlugin(
+  env: Record<string, string>,
+  proxyTarget: string,
+  buildInfo: { hash: string; time: string; dirty: boolean },
+): Plugin {
   let root = process.cwd()
   let outDir = 'dist'
   const makeServeConfig =
@@ -94,8 +98,16 @@ function runtimeConfigPlugin(env: Record<string, string>, proxyTarget: string): 
     },
     closeBundle() {
       const cfg = buildAppConfig(env, proxyTarget)
-      if (!cfg.username) return
-      fs.writeFileSync(path.join(outDir, 'config.json'), JSON.stringify(cfg, null, 2))
+      if (cfg.username) {
+        fs.writeFileSync(path.join(outDir, 'config.json'), JSON.stringify(cfg, null, 2))
+      }
+      // 版本指纹无条件写入（与后端配置无关）：供前端 versionCheck 比对发现新构建。
+      // 无 hash 文件名、构建后写入，天然不进 SW precache（glob 只含 js/css/html）；
+      // nginx 对它 no-cache，前端带时间戳请求。
+      fs.writeFileSync(
+        path.join(outDir, 'version.json'),
+        JSON.stringify({ hash: buildInfo.hash, time: buildInfo.time }, null, 2),
+      )
     },
   }
 }
@@ -157,7 +169,7 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       vue(),
       tailwindcss(),
-      runtimeConfigPlugin(env, proxyTarget),
+      runtimeConfigPlugin(env, proxyTarget, buildInfo),
       // PWA：autoUpdate 静默更新；/api 与 config.json 永不入缓存（后者容器内运行时生成）
       VitePWA({
         registerType: 'autoUpdate',
@@ -179,7 +191,7 @@ export default defineConfig(({ command, mode }) => {
         },
         workbox: {
           navigateFallback: 'index.html',
-          navigateFallbackDenylist: [/^\/api\//, /^\/fnos\//, /^\/mc\//, /\/config\.json$/],
+          navigateFallbackDenylist: [/^\/api\//, /^\/fnos\//, /^\/mc\//, /\/config\.json$/, /\/version\.json$/],
           runtimeCaching: [
             {
               // 专辑/歌手封面等图片：SWR 缓存（含外链 CDN），限额防膨胀
