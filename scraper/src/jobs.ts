@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { ScraperConfig } from './config.js'
 import type { Db, JobRow, TrackRow } from './db.js'
+import { buildDownloadPlan, resolveDownloadTarget, type DownloadTagPayload } from './downloads.js'
 import type { Env } from './env.js'
 import { matchTrack, type MatchResult } from './matcher.js'
 import { scanLibrary, isMessyName } from './scanner.js'
 import { applyPlan, buildPlan, planRename } from './writer.js'
 
-export type JobKind = 'scan' | 'match' | 'write'
+export type JobKind = 'scan' | 'match' | 'write' | 'download-tag'
 export type JobStatus = 'queued' | 'running' | 'done' | 'error'
 
 export interface JobState {
@@ -91,9 +92,12 @@ export class JobRunner {
     this.db.saveJob(row)
   }
 
-  private enqueue(kind: JobKind, params: Record<string, unknown>): JobState {
-    const existing = this.activeOfKind(kind)
-    if (existing) throw new ConflictError(`${kind} 任务正在进行中（${existing.id}）`)
+  private enqueue(kind: JobKind, params: Record<string, unknown>, allowQueued = false): JobState {
+    if (!allowQueued) {
+      // 单例任务（scan/match/write）：同一时刻只允许一个，避免重复扫描/写入竞态
+      const existing = this.activeOfKind(kind)
+      if (existing) throw new ConflictError(`${kind} 任务正在进行中（${existing.id}）`)
+    }
 
     const job: JobState = {
       id: randomUUID(),
@@ -138,6 +142,9 @@ export class JobRunner {
               break
             case 'write':
               await this.runWrite(job)
+              break
+            case 'download-tag':
+              await this.runDownloadTag(job)
               break
           }
           job.status = 'done'
@@ -322,6 +329,20 @@ export class JobRunner {
     }
   }
 
+  /** 下载完成自动刮削（server/ 推送通知）：单文件真值写标签，可多个排队串行执行 */
+  private async runDownloadTag(job: JobState): Promise<void> {
+    const payload = job.params as unknown as DownloadTagPayload
+    job.total = 1
+    this.touch(job, 0, payload.fileName)
+
+    const abs = await resolveDownloadTarget(this.env, payload.fileName)
+    const plan = await buildDownloadPlan(this.env, abs, payload, this.getConfig())
+    const result = await applyPlan(this.env, plan, this.getConfig())
+
+    job.result = { fileName: payload.fileName, ...result }
+    this.touch(job, 1, null)
+  }
+
   enqueueScan(): JobState {
     return this.enqueue('scan', {})
   }
@@ -332,6 +353,10 @@ export class JobRunner {
 
   enqueueWrite(trackIds: number[], dryRun: boolean, selections: Record<string, number>): JobState {
     return this.enqueue('write', { trackIds, dryRun, selections })
+  }
+
+  enqueueDownloadTag(payload: DownloadTagPayload): JobState {
+    return this.enqueue('download-tag', payload as unknown as Record<string, unknown>, true)
   }
 }
 

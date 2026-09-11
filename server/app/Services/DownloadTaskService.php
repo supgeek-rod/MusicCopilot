@@ -79,6 +79,7 @@ class DownloadTaskService
 
         $albumName = (string) ($song['albumName'] ?? $song['musicAlbum'] ?? '');
         $albumId = (string) ($song['albumid'] ?? $song['albumId'] ?? '');
+        $pic = (string) ($song['pic'] ?? $song['musicImage'] ?? '');
         $brTypes = array_values(array_filter(
             is_array($song['brTypes'] ?? $song['bits'] ?? null) ? ($song['brTypes'] ?? $song['bits']) : [],
             fn ($v) => is_string($v) && $v !== '',
@@ -92,6 +93,7 @@ class DownloadTaskService
             'artist_name' => $artists !== [] ? implode('&', $artists) : null,
             'album_name' => $albumName !== '' ? $albumName : null,
             'album_id' => $albumId !== '' ? $albumId : null,
+            'pic' => $pic !== '' ? $pic : null,
             'br_type' => $brType,
             'br_types' => $brTypes !== [] ? $brTypes : null,
             'music_info' => $raw !== [] ? json_encode($raw, JSON_UNESCAPED_UNICODE) : null,

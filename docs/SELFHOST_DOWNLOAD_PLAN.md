@@ -16,7 +16,7 @@
 | 契约策略 | 过渡期严格对齐 SQMusic：`{code,msg,data}` 信封（code=200 成功）、`sqmusic` 请求头、登录 `device:"web"`、`pageIndex/pageSize` 分页；契约固化 `server/openapi.json` → `packages/api-contract` 重生成；SQMusic 退役后以 `/v2` 出清理版（见 `packages/api-contract/README.md`） |
 | 音源插件 | `SourcePlugin` 接口扩展为完整九方法：searchSong / searchArtist / searchAlbum / albumInfo / artistAlbum / artistSongs / songInfo / lyric / downloadUrl（`server/docs/kuwo-api-notes.md` §10 建议 1），`plugName=kw` 路由到 KuwoPlugin，为 netease/mg 留扩展点 |
 | 下载队列 | database queue（SQLite）+ `queue:work`，Docker 内独立 worker 进程；直链有时效，即时解析即时下载、不落库，任务表只存状态/路径/音质（§10 建议 5） |
-| 下载完成刮削 | 复用第 4 期 `scraper/` 写入能力（taglib-wasm，dry-run/备份先例）；server↔scraper 调用边界在 M4 定稿（架构决策 #2：文件级写操作归 scraper/ 容器，server 只做音源解析与下载） |
+| 下载完成刮削 | 复用第 4 期 `scraper/` 写入能力（taglib-wasm，dry-run/备份先例）；**M4 定稿（2026-09-12）**：server 下载成功后 fire-and-forget HTTP 推送**真值元数据**到 scraper `POST /mc/api/downloads`（只带音乐目录根下文件名 + 歌名/歌手/专辑/封面地址/kw 歌曲id，scraper 按自身 MC_MUSIC_DIR 定位文件）——不走模糊匹配，标题/歌手/专辑按覆盖写入；通知失败仅记日志不回滚任务（体检页兜底）；部署期 server 与 scraper 容器经 compose 网络直连（`MC_SCRAPER_URL`） |
 | 音质 | 酷我 brType 枚举（128kmp3…2000kflac）与对外别名双向映射（§10 建议 3）；`getDownloadUrl` 需完整歌曲对象 + `brTypes`，否则解析码率失败 |
 | 部署 | Docker；容器需大陆出口环境（酷我直链海外返回 `code:407`，§10 建议 6），目标 fnOS-Just4fun；nginx `/api/*` 反代目标由 SQMusic 切到 server（架构决策 #9 前缀稳定思路） |
 | 前端切换 | `src/api/*` 调用面已收敛（`http.ts` 统一信封解包/token 头/403 重登），切换仅改 `.env`；token 头名前端已动态化（`stores/app.ts` tokenName，默认 `sqmusic`） |
@@ -104,13 +104,16 @@
 - 状态机五枚举与前端筛选器一致：waiting / downloading / loading（解析中）/ success / error
 - 测试坑记录：Laravel `Http::response()` stub 的响应体流被首次请求耗尽，同一 stub 多次请求（sink 落盘）须用闭包 fake 或 `Http::sequence()->push()`——见 DownloadFlowTest
 
-### M4 下载完成自动刮削写标签 ⬜
+### M4 下载完成自动刮削写标签 ✅（2026-09-12）
 
 | 任务 | 状态 |
 | --- | --- |
-| server↔scraper 边界定稿：下载完成如何触发写入（事件通知 / 任务轮询）、目标目录约定（= fnOS 音乐库目录） | ⬜ |
-| 标签补全 + 内嵌封面 + 内嵌歌词（复用 `scraper/` writer 与 taglib-wasm 能力，写入安全策略沿用 dry-run/备份先例） | ⬜ |
-| 端到端：下载 → 文件落库目录 → 标签完整 → fnOS「音乐」应用自动扫描入库 | ⬜ |
+| server↔scraper 边界定稿：HTTP 推送真值元数据（见已确认决策表），不采用任务轮询与 sidecar 文件 | ✅ |
+| scraper 新增 `POST /mc/api/downloads` + `download-tag` job（可多个排队串行）：真值覆盖写标题/歌手/专辑/专辑歌手 + 按配置嵌入封面与歌词（拉取失败降级跳过），复用 `applyPlan`（备份/原子替换/安全守卫全套） | ✅ |
+| 路径防护：仅接受音乐目录根下文件名（拒绝路径穿越），server 侧只传 basename（容器路径差异由卷映射吸收） | ✅ |
+| server：`download_tasks` 加 `pic` 列；worker 落盘成功后推送通知（`MC_SCRAPER_URL` / `MC_SCRAPER_TOKEN`，10s 超时，失败仅记日志） | ✅ |
+| server 测试：50/50 全绿（新增通知 3 例：真值载荷与 token 头 / 通知失败任务仍 success / 未配置不发请求）；scraper tsc 构建通过 | ✅ |
+| 端到端三进程联调（server + worker + scraper 共享落盘目录）：晴天 128k 下载 4.3MB → 通知 → scraper 写入 albumArtist + 封面 106KB + 歌词 8716 字符（与 getLyric 实测长度一致），title/artist/album 与上游标签一致被正确跳过；`.mc-backup/` 备份生成 | ✅ |
 
 ### M5 前端切换与 SQMusic 下线 ⬜
 
@@ -136,3 +139,4 @@
 - 2026-09-11：M1 完成（鉴权五端点 + `sqmusic` 中间件 + token 落库；契约 9 端点固化；18 tests 全绿；真机与 scraper 冒烟通过）。注意：根 package.json 未声明 workspaces，契约生成须在 `packages/api-contract` 内 `npm run gen`
 - 2026-09-12：M2 完成（联想词/歌手详情/专辑详情/直链四端点；契约 13 端点；30 tests 全绿；真机全链路含真实直链解析通过）。发现并处理：albumlist 大响应在 WSL2 链路超时（KUWO_TIMEOUT→30s、rn 收敛 500）
 - 2026-09-12：M3 完成（download 3 端点 + task 8 端点 + SQLite 队列 worker；契约 24 端点；47 tests 全绿；端到端真机下载晴天 128k 落盘 4.3MB 成功）。至此前端契约 20/20 端点全部落地，SQMusic 契约面补齐
+- 2026-09-12：M4 完成（server 推送真值元数据 → scraper `POST /downloads` 真值写标签；50 tests 全绿；三进程端到端联调通过——封面 106KB、歌词 8716 字符成功嵌入）。环境坑记录：WSL→Windows 环回/NAT 网关均不可达（防火墙），开发联调走宿主 LAN IP；容器部署无此问题

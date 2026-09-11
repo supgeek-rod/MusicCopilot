@@ -16,6 +16,8 @@ return new class extends Migration
             $table->text('artist_name')->nullable();
             $table->string('album_name')->nullable();
             $table->string('album_id', 64)->nullable();
+            // 封面地址（M4 下载完成通知 scraper 嵌入封面用）
+            $table->text('pic')->nullable();
             // 指定音质（KW_* 别名），空串 = 自动选最高可用
             $table->string('br_type', 32)->default('');
             $table->json('br_types')->nullable();

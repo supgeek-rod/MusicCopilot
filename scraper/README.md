@@ -43,6 +43,14 @@ docker compose --profile scraper up -d
 
 安全设计：体检流程永远先 dry-run 预览、写入需显式确认、写前备份默认开（`.mc-backup/`，fnOS 扫描忽略点开头目录）、重命名默认关且冲突跳过、低置信候选（< 0.8）不自动写入。
 
+## 下载完成自动刮削（M4，server 推送）
+
+server/ 的下载 worker 落盘成功后 fire-and-forget 推送真值元数据到本工具
+`POST /mc/api/downloads`（`fileName` 为音乐目录根下文件名 + 歌名/歌手/专辑/封面地址/kw 歌曲 id）。
+本工具排队（`download-tag` job，可多个串行）后**覆盖写**标题/歌手/专辑/专辑歌手（下载元数据是事实而非猜测，
+区别于体检页 fill-missing 模糊匹配）、按配置嵌入封面与歌词（拉取失败跳过不阻断）、备份沿用 `.mc-backup/`。
+server 侧经 `MC_SCRAPER_URL` / `MC_SCRAPER_TOKEN` 配置（空 = 关闭，标签可经体检页手动补）。
+
 ## API 一览
 
-`GET /status` · `POST /scan` · `GET /tracks?filter=&search=&page=` · `POST /match {trackIds}` · `POST /write {trackIds,dryRun,selections}` · `GET /jobs[/:id]` · `GET|PUT /config` · `GET|POST|DELETE /ignore`
+`GET /status` · `POST /scan` · `GET /tracks?filter=&search=&page=` · `POST /match {trackIds}` · `POST /write {trackIds,dryRun,selections}` · `POST /downloads {fileName,name,artist,album,coverUrl,musicId}` · `GET /jobs[/:id]` · `GET|PUT /config` · `GET|POST|DELETE /ignore`

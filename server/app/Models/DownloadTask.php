@@ -17,7 +17,7 @@ class DownloadTask extends Model
     public const STATUS_ERROR = 'error';
 
     protected $fillable = [
-        'plug_name', 'music_id', 'music_name', 'artist_name', 'album_name', 'album_id',
+        'plug_name', 'music_id', 'music_name', 'artist_name', 'album_name', 'album_id', 'pic',
         'br_type', 'br_types', 'music_info', 'status', 'progress', 'file_path', 'error_msg',
         'download_gid', 'download_time', 'update_time',
     ];

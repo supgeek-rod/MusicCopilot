@@ -105,6 +105,43 @@ class DownloadSongJob implements ShouldQueue
             'download_time' => now(),
             'update_time' => now(),
         ])->save();
+
+        $this->notifyScraper($task, basename($final));
+    }
+
+    /**
+     * M4 自动刮削：fire-and-forget 通知 scraper 写标签（真值元数据，见 scraper /mc/api/downloads）。
+     * 通知失败仅记录日志不回滚任务——scraper 不可达时标签可经体检页手动补。
+     */
+    private function notifyScraper(DownloadTask $task, string $fileName): void
+    {
+        $url = rtrim((string) config('mc.download.scraper_url'), '/');
+        if ($url === '') {
+            return;
+        }
+
+        $headers = [];
+        $token = (string) config('mc.download.scraper_token');
+        if ($token !== '') {
+            $headers['x-mc-token'] = $token;
+        }
+
+        try {
+            Http::timeout(10)
+                ->withHeaders($headers)
+                ->post($url.'/downloads', [
+                    'fileName' => $fileName,
+                    'plugName' => $task->plug_name,
+                    'musicId' => $task->music_id,
+                    'name' => $task->music_name,
+                    'artist' => $task->artist_name,
+                    'album' => $task->album_name,
+                    'coverUrl' => $task->pic,
+                ])
+                ->throw();
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /** 自动音质：任务可用清单 ∩ 插件枚举取码率最高；无参照时退 320k */
