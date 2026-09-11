@@ -181,6 +181,20 @@ function playAll() {
   )
 }
 
+/** 回到首页引导视图：清空全部搜索状态（点 LOGO 等入口跳到无 q 的 /search 时调用） */
+function resetToHome() {
+  searchSeq++ // 作废在途搜索响应，防止迟到响应把页面又拉回结果态
+  keyword.value = ''
+  submitted.value = null
+  results.value = []
+  total.value = 0
+  pageIndex.value = 1
+  loading.value = false
+  tips.value = []
+  tipsOpen.value = false
+  tipsActive.value = -1
+}
+
 // 顶部导航栏快捷搜索 / 链接直达：读取并监听 ?q=
 // （跳过与当前已提交关键词相同的值，避免 doSearch 内 router.replace 触发循环）
 function searchFromRoute() {
@@ -188,6 +202,9 @@ function searchFromRoute() {
   if (typeof q === 'string' && q && q !== submitted.value?.kw) {
     keyword.value = q
     doSearch(1)
+  } else if (!q && submitted.value) {
+    // q 被移除（如点击 LOGO）：离开结果态回到首页
+    resetToHome()
   }
 }
 searchFromRoute()
