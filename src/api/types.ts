@@ -196,6 +196,8 @@ export interface AlbumDetailRecord {
   albumArtistId?: string | null
   albumImg?: string | null
   dataInfo?: Record<string, unknown>
+  /** 结构同 AlbumSong，但实测恒为空数组——歌手页曲目需逐专辑调 albumInfoById 获取 */
+  musics?: AlbumSong[] | null
 }
 
 /** 专辑详情（albumInfoById），musics 为专辑内曲目 */
