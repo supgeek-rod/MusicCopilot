@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ListMusicIcon, RefreshCwIcon, RotateCcwIcon, Trash2Icon } from '@lucide/vue'
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { taskApi } from '@/api/task'
 import type { TaskInfo, TaskStatus } from '@/api/types'
 import QualityBadge from '@/components/QualityBadge.vue'
 import { formatSize, taskSizeBytes } from '@/lib/format'
+import { usePlayerStore } from '@/stores/player'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -204,10 +205,29 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
     },
   )
 }
+
+// ── 视口锁定布局（参考搜索页）：页面高度=视口，任务表内部滚动 ──
+const player = usePlayerStore()
+
+// 高度 = 视口 - header(3.5rem) - main 上边距(1.5rem) - 底部留白（播放条 6rem / 1.5rem）
+const viewClass = computed(() =>
+  player.song ? 'h-[calc(100vh-11rem)]' : 'h-[calc(100vh-6.5rem)]',
+)
+
+// 滚动条自动隐藏：滚动中或悬停时可见（样式见 style.css 的 .scroll-auto-hide）
+const listEl = ref<HTMLElement | null>(null)
+const listScrolling = ref(false)
+let scrollTimer: ReturnType<typeof setTimeout> | undefined
+function onListScroll() {
+  listScrolling.value = true
+  clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => (listScrolling.value = false), 800)
+}
+onBeforeUnmount(() => clearTimeout(scrollTimer))
 </script>
 
 <template>
-  <div>
+  <div :class="['flex min-h-[420px] flex-col overflow-hidden', viewClass]">
     <!-- 工具栏 -->
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <h2 class="mr-auto text-lg font-semibold">下载任务</h2>
@@ -250,8 +270,13 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
       </DropdownMenu>
     </div>
 
-    <!-- 任务表 -->
-    <div class="overflow-hidden rounded-lg border">
+    <!-- 任务表：占据剩余高度内部滚动，滚动条自动隐藏 -->
+    <div
+      ref="listEl"
+      class="scroll-auto-hide min-h-0 flex-1 overflow-y-auto rounded-lg border"
+      :class="listScrolling ? 'scrolling' : ''"
+      @scroll="onListScroll"
+    >
       <Table>
         <TableHeader>
           <TableRow class="bg-muted/50 hover:bg-muted/50">
