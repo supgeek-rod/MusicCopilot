@@ -1,11 +1,21 @@
 import { randomUUID } from 'node:crypto'
+import { join, resolve } from 'node:path'
 import type { ScraperConfig } from './config.js'
 import type { Db, JobRow, TrackRow } from './db.js'
-import { buildDownloadPlan, resolveDownloadTarget, type DownloadTagPayload } from './downloads.js'
+import { buildDownloadPlan, fetchAlbumContext, resolveDownloadTarget, type DownloadTagPayload } from './downloads.js'
 import type { Env } from './env.js'
 import { matchTrack, type MatchResult } from './matcher.js'
+import { relocateDownload } from './relocate.js'
 import { scanLibrary, isMessyName } from './scanner.js'
+import { reportPath } from './sources.js'
 import { applyPlan, buildPlan, planRename } from './writer.js'
+
+/** 绝对路径 → 相对音乐目录的 posix 风格路径 */
+function relOfAbs(env: Env, abs: string): string {
+  const root = resolve(env.musicDir)
+  const full = resolve(abs)
+  return full.startsWith(root) ? full.slice(root.length + 1).split('\\').join('/') : abs
+}
 
 export type JobKind = 'scan' | 'match' | 'write' | 'download-tag'
 export type JobStatus = 'queued' | 'running' | 'done' | 'error'
@@ -339,7 +349,39 @@ export class JobRunner {
     const plan = await buildDownloadPlan(this.env, abs, payload, this.getConfig())
     const result = await applyPlan(this.env, plan, this.getConfig())
 
-    job.result = { fileName: payload.fileName, ...result }
+    // 标签写好后按目录模板重排（Navidrome 友好）；失败保持原位，不回滚已写入的标签
+    let finalRel = relOfAbs(this.env, abs)
+    let relocateError: string | undefined
+    let moved = false
+    if (result.status === 'written' || result.status === 'skipped') {
+      const ctx = await fetchAlbumContext(this.env, payload)
+      const artistOf = plan.changes.find((c) => c.field === 'artist')?.to ?? payload.artist ?? ''
+      const values = {
+        albumArtist: ctx.albumArtist || artistOf,
+        album: ctx.album || payload.album || '',
+        artist: artistOf,
+        title: plan.changes.find((c) => c.field === 'title')?.to ?? payload.name,
+        year: ctx.year,
+        trackNo: ctx.trackNo,
+        ext: '',
+      }
+      const rel = await relocateDownload(this.env, finalRel, this.getConfig().dirTemplate, values)
+      finalRel = rel.relPath
+      relocateError = rel.error
+      moved = rel.moved
+    }
+
+    // 新路径回写 server 任务记录（best-effort，失败不影响本地结果）
+    if (moved && payload.taskId) {
+      await reportPath(this.env.serverUrl, payload.taskId, finalRel).catch(() => undefined)
+    }
+
+    job.result = {
+      fileName: payload.fileName,
+      ...result,
+      relocatedTo: moved ? finalRel : undefined,
+      relocateError,
+    }
     this.touch(job, 1, null)
   }
 

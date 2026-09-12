@@ -127,3 +127,23 @@ export async function fetchCover(url: string): Promise<{ data: Uint8Array; mimeT
   }
   return { data: buf, mimeType: mime }
 }
+
+/**
+ * 目录重排后把新路径回写给 server（下载任务记录的 downloadFile 保持可用）。
+ * 内部端点：POST /api/internal/download-task/path {taskId, path}，best-effort 调用。
+ */
+export async function reportPath(serverUrl: string, taskId: number, relPath: string): Promise<void> {
+  const res = await fetch(serverUrl + '/api/internal/download-task/path', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ taskId, path: relPath }),
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (!res.ok) {
+    throw new Error(`路径回写 HTTP ${res.status}`)
+  }
+  const body = envelopeSchema.parse(await res.json())
+  if (body.code !== 200) {
+    throw new Error(typeof body.msg === 'string' && body.msg ? body.msg : `路径回写 code=${body.code}`)
+  }
+}

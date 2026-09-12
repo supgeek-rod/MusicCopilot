@@ -24,9 +24,87 @@ export const downloadTagSchema = z.object({
   album: z.string().nullable().optional(),
   /** 候选封面地址（嵌入用，10MB 上限同体检） */
   coverUrl: z.string().url().nullable().optional(),
+  /** 服务端下载任务 id（目录重排后回写新路径用，可缺省） */
+  taskId: z.number().int().positive().nullable().optional(),
 })
 
 export type DownloadTagPayload = z.infer<typeof downloadTagSchema>
+
+/** 专辑上下文（目录布局需要）：来自 server albumInfoById，查不到时逐项可缺省 */
+export interface AlbumContext {
+  albumArtist: string
+  album: string
+  year: string
+  trackNo: string
+}
+
+const albumInfoShape = z.object({
+  albumArtist: z.string().nullable().optional(),
+  albumName: z.string().nullable().optional(),
+  albumTime: z.string().nullable().optional(),
+  musics: z
+    .array(
+      z.object({
+        id: z.string(),
+        musicName: z.string().nullable().optional(),
+      }),
+    )
+    .nullable()
+    .optional(),
+})
+
+/**
+ * 回查 server 专辑详情补齐目录布局所需上下文（albumArtist/year/trackNo）。
+ * 失败（无专辑 id / 上游异常）返回尽力而为的部分值，调用方据此降级平铺。
+ */
+export async function fetchAlbumContext(
+  env: Env,
+  payload: DownloadTagPayload,
+): Promise<AlbumContext> {
+  const empty: AlbumContext = {
+    albumArtist: payload.artist ?? '',
+    album: payload.album ?? '',
+    year: '',
+    trackNo: '',
+  }
+
+  // 无专辑信息（散歌）：无从回查
+  if (!payload.album) return empty
+
+  try {
+    // 先按歌名搜专辑，再取专辑详情定位音轨号（server 契约两步）
+    const kw = encodeURIComponent(`${payload.album} ${payload.artist ?? ''}`.trim())
+    const searchUrl =
+      `${env.serverUrl}/api/music/searchAlbum?plugName=${payload.plugName}&keyword=${kw}&pageIndex=1&pageSize=5`
+    const res = await fetch(searchUrl, { signal: AbortSignal.timeout(20_000) })
+    if (!res.ok) return empty
+    const body = (await res.json()) as { code?: number; data?: { records?: { albumid?: string }[] } }
+    if (body.code !== 200) return empty
+    const albumId = body.data?.records?.[0]?.albumid
+    if (!albumId) return empty
+
+    const infoUrl = `${env.serverUrl}/api/music/albumInfoById?plugName=${payload.plugName}&id=${encodeURIComponent(albumId)}`
+    const infoRes = await fetch(infoUrl, { signal: AbortSignal.timeout(20_000) })
+    if (!infoRes.ok) return empty
+    const infoBody = (await infoRes.json()) as { code?: number; data?: unknown }
+    if (infoBody.code !== 200) return empty
+    const info = albumInfoShape.parse(infoBody.data ?? {})
+
+    // 音轨号：详情曲目列表中按 id 定位序号（酷我 track 字段不可靠，以列表顺序为准）
+    const idx = (info.musics ?? []).findIndex((m) => m.id === payload.musicId)
+    const trackNo = idx >= 0 ? String(idx + 1) : ''
+
+    const year = (info.albumTime ?? '').slice(0, 4)
+    return {
+      albumArtist: (info.albumArtist ?? '').trim() || empty.albumArtist,
+      album: (info.albumName ?? '').trim() || empty.album,
+      year,
+      trackNo,
+    }
+  } catch {
+    return empty
+  }
+}
 
 /** 解析并校验目标文件：仅允许音乐目录根下的直接文件名（拒绝路径穿越） */
 export async function resolveDownloadTarget(env: Env, fileName: string): Promise<string> {
