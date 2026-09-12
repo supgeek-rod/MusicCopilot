@@ -232,12 +232,30 @@ function queueAlbum(bit?: number) {
               ♪ 正在播放本专辑
             </span>
           </div>
+
+          <!-- 专辑简介：并入专辑信息块右栏（折叠展示，展开全文查看） -->
+          <div v-if="describe" class="relative mt-4 rounded-lg border p-3">
+            <h2 class="mb-1 text-sm font-medium">专辑简介</h2>
+            <div
+              class="text-sm leading-6 text-muted-foreground"
+              :class="expanded ? '' : 'max-h-24 overflow-hidden'"
+              v-html="describe"
+            />
+            <div
+              v-if="!expanded"
+              class="pointer-events-none absolute inset-x-0 bottom-9 h-10 bg-gradient-to-t from-background to-transparent"
+            />
+            <Button variant="ghost" size="sm" class="h-7 w-full text-xs" @click="expanded = !expanded">
+              {{ expanded ? '收起' : '展开全文' }}
+            </Button>
+          </div>
         </div>
       </div>
 
       <!-- 曲目列表 -->
       <section class="mt-8">
-        <div class="mb-2 flex justify-end">
+        <div class="mb-2 flex items-center justify-between">
+          <h2 class="text-lg font-semibold">全部专辑歌曲</h2>
           <Button
             size="sm"
             variant="secondary"
@@ -254,25 +272,6 @@ function queueAlbum(bit?: number) {
           <div v-if="!songs.length" class="py-12 text-center text-sm text-muted-foreground">
             暂无曲目
           </div>
-        </div>
-      </section>
-
-      <!-- 专辑简介 -->
-      <section v-if="describe" class="mt-10">
-        <h2 class="mb-2 text-lg font-semibold">专辑简介</h2>
-        <div class="relative rounded-lg border p-4">
-          <div
-            class="text-sm leading-6 text-muted-foreground"
-            :class="expanded ? '' : 'max-h-40 overflow-hidden'"
-            v-html="describe"
-          />
-          <div
-            v-if="!expanded"
-            class="pointer-events-none absolute inset-x-0 bottom-10 h-16 bg-gradient-to-t from-background to-transparent"
-          />
-          <Button variant="ghost" size="sm" class="mt-1 w-full" @click="expanded = !expanded">
-            {{ expanded ? '收起' : '展开全文' }}
-          </Button>
         </div>
       </section>
     </template>
