@@ -131,11 +131,9 @@ export class DeezerGenreProvider implements GenreProvider {
       })
       if (!searchRes.ok) return ''
       const search = (await searchRes.json()) as { data?: DeezerAlbumHit[] }
-      const hit = (search.data ?? []).find(
-        (a) =>
-          looseMatch(a.title ?? '', album) &&
-          (artist === '' || looseMatch(a.artist?.name ?? '', artist)),
-      )
+      // 仅按专辑名匹配：Deezer 部分区域会把歌手名本地化（日区 カーペンターズ）导致
+      // 双维度必挂；流派用途下误命中代价极低（同名/翻唱专辑流派通常一致），故不做歌手校验
+      const hit = (search.data ?? []).find((a) => looseMatch(a.title ?? '', album))
       if (!hit) return ''
 
       const detail = (await httpFetch(`https://api.deezer.com/album/${hit.id}`, {
