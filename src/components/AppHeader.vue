@@ -200,9 +200,9 @@ function clearHistory() {
           size="sm"
           as-child
         >
-          <RouterLink :to="nav.path">
+          <RouterLink :to="nav.path" :aria-label="nav.label">
             <component :is="nav.icon" class="size-4" />
-            {{ nav.label }}
+            <span class="hidden sm:inline">{{ nav.label }}</span>
           </RouterLink>
         </Button>
       </nav>
