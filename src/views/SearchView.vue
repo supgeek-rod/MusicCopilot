@@ -220,6 +220,16 @@ function onLyrics(song: SongRecord) {
 const resultsViewClass = computed(() =>
   player.song ? 'h-[calc(100vh-11rem)]' : 'h-[calc(100vh-6.5rem)]',
 )
+
+// 滚动条自动隐藏：滚动中或悬停时可见（样式见 style.css 的 .scroll-auto-hide）
+const listScrolling = ref(false)
+let listScrollTimer: ReturnType<typeof setTimeout> | undefined
+function onListScroll() {
+  listScrolling.value = true
+  clearTimeout(listScrollTimer)
+  listScrollTimer = setTimeout(() => (listScrolling.value = false), 800)
+}
+onBeforeUnmount(() => clearTimeout(listScrollTimer))
 </script>
 
 <template>
@@ -396,8 +406,13 @@ const resultsViewClass = computed(() =>
         </div>
       </div>
 
-      <!-- 列表容器：占据剩余高度内部滚动（min-h-0 是 flex 子项可收缩滚动的关键） -->
-      <div class="min-h-0 flex-1 overflow-y-auto rounded-lg border py-1">
+      <!-- 列表容器：占据剩余高度内部滚动（min-h-0 是 flex 子项可收缩滚动的关键），
+           滚动条自动隐藏（滚动中/悬停显现，见 style.css .scroll-auto-hide） -->
+      <div
+        class="scroll-auto-hide min-h-0 flex-1 overflow-y-auto rounded-lg border py-1"
+        :class="listScrolling ? 'scrolling' : ''"
+        @scroll="onListScroll"
+      >
         <SongList :songs="results" :loading="loading" @lyrics="onLyrics" />
         <div v-if="!loading && !results.length" class="py-16 text-center text-sm text-muted-foreground">
           没有找到相关歌曲
