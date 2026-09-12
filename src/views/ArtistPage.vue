@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DownloadIcon, LoaderCircleIcon, Music2Icon, PlayIcon } from '@lucide/vue'
+import { ChevronDownIcon, ChevronUpIcon, DownloadIcon, LoaderCircleIcon, Music2Icon, PlayIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -46,6 +46,13 @@ const albumCursor = ref(0)
 
 const expanded = ref(false)
 const describe = useSanitizedHtml(() => info.value?.musicArtistsDescribe)
+
+// 专辑书架：默认一行 10 个（窄屏 5 列时为两行、数量一致），可展开全部
+const ALBUM_COLLAPSE_COUNT = 10
+const albumsExpanded = ref(false)
+const visibleAlbums = computed(() =>
+  albumsExpanded.value ? albums.value : albums.value.slice(0, ALBUM_COLLAPSE_COUNT),
+)
 
 const confirm = reactive<{
   open: boolean
@@ -253,41 +260,12 @@ function queueAllAlbums() {
       </div>
     </div>
 
-    <!-- 全部歌曲 -->
-    <section class="mt-8">
-      <div class="mb-2 flex items-center justify-between">
-        <h2 class="text-lg font-semibold">全部歌曲</h2>
-        <Button
-          size="sm"
-          variant="secondary"
-          :disabled="!songs.length"
-          title="立即播放本页全部歌曲"
-          @click="playAll"
-        >
-          <PlayIcon class="size-4" />
-          立即播放
-        </Button>
-      </div>
-      <div class="rounded-lg border py-1">
-        <SongList :songs="songs" :loading="songsLoading && !songs.length" />
-        <div v-if="!infoLoading && !songs.length" class="py-12 text-center text-sm text-muted-foreground">
-          暂无歌曲
-        </div>
-      </div>
-      <div v-if="hasMore" class="mt-4 flex justify-center">
-        <Button variant="outline" size="sm" :disabled="songsLoading" @click="collectSongs">
-          <LoaderCircleIcon v-if="songsLoading" class="size-4 animate-spin" />
-          加载更多
-        </Button>
-      </div>
-    </section>
-
-    <!-- 全部专辑 -->
-    <section v-if="albums.length" class="mt-10">
+    <!-- 全部专辑：置于全部歌曲之上，默认一行 10 个，可展开全部 -->
+    <section v-if="albums.length" class="mt-8">
       <h2 class="mb-3 text-lg font-semibold">全部专辑</h2>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div class="grid grid-cols-5 gap-4 md:grid-cols-10">
         <div
-          v-for="a in albums"
+          v-for="a in visibleAlbums"
           :key="a.albumId"
           class="group relative cursor-pointer"
           @click="router.push(`/album/${plug}/${a.albumId}`)"
@@ -320,6 +298,42 @@ function queueAllAlbums() {
             <template v-if="a.dataInfo?.musiccnt"> · {{ a.dataInfo.musiccnt }} 首</template>
           </div>
         </div>
+      </div>
+      <div v-if="albums.length > ALBUM_COLLAPSE_COUNT" class="mt-3 flex justify-center">
+        <Button variant="ghost" size="sm" @click="albumsExpanded = !albumsExpanded">
+          <ChevronDownIcon v-if="!albumsExpanded" class="size-4" />
+          <ChevronUpIcon v-else class="size-4" />
+          {{ albumsExpanded ? '收起专辑' : `展开全部 ${albums.length} 张专辑` }}
+        </Button>
+      </div>
+    </section>
+
+    <!-- 全部歌曲 -->
+    <section class="mt-8">
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">全部歌曲</h2>
+        <Button
+          size="sm"
+          variant="secondary"
+          :disabled="!songs.length"
+          title="立即播放本页全部歌曲"
+          @click="playAll"
+        >
+          <PlayIcon class="size-4" />
+          立即播放
+        </Button>
+      </div>
+      <div class="rounded-lg border py-1">
+        <SongList :songs="songs" :loading="songsLoading && !songs.length" />
+        <div v-if="!infoLoading && !songs.length" class="py-12 text-center text-sm text-muted-foreground">
+          暂无歌曲
+        </div>
+      </div>
+      <div v-if="hasMore" class="mt-4 flex justify-center">
+        <Button variant="outline" size="sm" :disabled="songsLoading" @click="collectSongs">
+          <LoaderCircleIcon v-if="songsLoading" class="size-4 animate-spin" />
+          加载更多
+        </Button>
       </div>
     </section>
 
