@@ -95,6 +95,12 @@ async function loadAll() {
   }
 }
 
+/** 热度排序键：dataInfo.playcnt（酷我播放次数，字符串；缺失或其他音源按 0，排序退化为稳定原序） */
+function playCount(rec: SongRecord): number {
+  const v = Number((rec.dataInfo as Record<string, unknown> | undefined)?.playcnt)
+  return Number.isFinite(v) ? v : 0
+}
+
 /** 聚合下一批专辑的曲目：专辑属于该歌手，从源头保证歌曲归属正确；按 (plugName,id) 去重 */
 async function collectSongs() {
   if (songsLoading.value || albumCursor.value >= albums.value.length) return
@@ -121,7 +127,8 @@ async function collectSongs() {
         fresh.push(rec)
       }
     }
-    songs.value = [...songs.value, ...fresh]
+    // 按热度（播放次数）降序：分批增量加载下，对已加载全集重排，保证当前列表始终热度优先
+    songs.value = [...songs.value, ...fresh].sort((a, b) => playCount(b) - playCount(a))
     albumCursor.value += batch.length
   } finally {
     if (!disposed && seqAtStart === artistSeq) songsLoading.value = false
