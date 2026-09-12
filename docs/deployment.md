@@ -23,6 +23,8 @@ server 与 server-worker 的下载目录、scraper 的工作目录挂载的是**
 3. worker 携带真值元数据通知 scraper，scraper 就地写标签/封面/歌词（备份到 `.mc-backup/`）
 4. fnOS「音乐」应用扫描目录自动入库
 
+各环节的机制细节（状态机、音质决策、直链时效、真值覆盖写、路径防护等）见[下载与刮削原理](./download-scrape)。
+
 ### 容器互访（compose 网络）
 
 四个容器同处 compose 自动创建的网络，互相用**服务名**访问（Docker 内嵌 DNS `127.0.0.11`，运行时解析）：

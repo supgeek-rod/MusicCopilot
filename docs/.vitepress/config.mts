@@ -41,6 +41,7 @@ export default defineConfig({
         text: '深入',
         items: [
           { text: '架构设计', link: '/architecture' },
+          { text: '下载与刮削原理', link: '/download-scrape' },
           { text: '开发路线图', link: '/roadmap' },
         ],
       },
