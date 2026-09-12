@@ -86,7 +86,6 @@ const loading = ref(false)
 const error = ref('')
 
 const isSearch = computed(() => query.value !== '')
-const isHero = computed(() => view.value === 'home' && !isSearch.value)
 
 // 卸载后丢弃迟到响应，避免与路由切换竞态
 let disposed = false
@@ -364,45 +363,10 @@ function hideImg(e: Event) {
     </div>
 
     <template v-else>
-      <!-- 首页 hero：居中标题 + 大搜索框 + 随便听听 -->
-      <div v-if="isHero" class="flex min-h-[38vh] flex-col items-center justify-center">
-        <h1 class="text-xl font-semibold">音乐库</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
-          飞牛 NAS 曲库 · 共 {{ trackTotal }} 首
-        </p>
-        <div class="mt-6 flex w-full max-w-2xl items-center gap-2">
-          <div class="relative flex-1">
-            <SearchIcon
-              class="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              v-model="keyword"
-              data-search-input
-              class="h-12 pr-9 pl-10 text-base"
-              placeholder="搜索歌曲、歌手、专辑，回车播放"
-              @keydown.enter.prevent="onSearchEnter"
-              @keydown.esc="clearSearch"
-            />
-            <button
-              v-if="keyword"
-              type="button"
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="清空搜索"
-              @click="clearSearch"
-            >
-              <XIcon class="size-4" />
-            </button>
-          </div>
-          <Button size="lg" class="h-12 px-5" :disabled="roaming || homeLoading" @click="playRandom">
-            <ShuffleIcon class="size-4.5" />
-            {{ roaming ? '挑选中…' : '随便听听' }}
-          </Button>
-        </div>
-      </div>
-
-      <!-- 工具栏：返回 + 搜索框（非 hero 态显示） -->
-      <div v-else class="flex items-center gap-2">
+      <!-- 工具栏：搜索框 + 随便听听；浏览/搜索态附返回按钮 -->
+      <div class="mb-4 flex items-center gap-2">
         <Button
+          v-if="view !== 'home' || isSearch"
           variant="ghost"
           size="icon-sm"
           title="返回音乐库首页"
@@ -432,6 +396,10 @@ function hideImg(e: Event) {
             <XIcon class="size-4" />
           </button>
         </div>
+        <Button size="sm" class="h-9 shrink-0 px-3" :disabled="roaming || homeLoading" @click="playRandom">
+          <ShuffleIcon class="size-4" />
+          {{ roaming ? '挑选中…' : '随便听听' }}
+        </Button>
       </div>
 
       <!-- 浏览模式的 Tab（搜索态下隐藏，结果直接覆盖内容区） -->
