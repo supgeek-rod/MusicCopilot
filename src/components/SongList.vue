@@ -4,12 +4,11 @@ import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
-import QualityBadge from '@/components/QualityBadge.vue'
 import QualityMenu from '@/components/QualityMenu.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { brTypeLabel, formatDuration, resolveBrType, sortBrTypes } from '@/lib/format'
+import { brTypeLabel, formatDuration, resolveBrType } from '@/lib/format'
 import { useAppStore } from '@/stores/app'
 import { usePlayerStore } from '@/stores/player'
 
@@ -50,10 +49,6 @@ function albumHref(song: SongRecord): string | null {
   const id = song.albumid ?? null
   if (!id) return null
   return isFnos(song) ? `/library/collection/album/${id}` : `/album/${song.plugName}/${id}`
-}
-
-function topQuality(song: SongRecord): string[] {
-  return sortBrTypes(song.brTypes ?? []).slice(0, 3)
 }
 
 /** 一键下载到服务器：按设置的偏好音质，无则自动降档/升档/取最高 */
@@ -156,10 +151,6 @@ async function enqueue(song: SongRecord) {
               <span v-else>{{ song.albumName }}</span>
             </template>
           </div>
-        </div>
-
-        <div class="hidden gap-1 md:flex">
-          <QualityBadge v-for="bt in topQuality(song)" :key="bt" :br-type="bt" />
         </div>
 
         <div class="hidden w-12 shrink-0 text-right text-xs text-muted-foreground lg:block">
