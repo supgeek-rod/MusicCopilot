@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDownIcon, ChevronUpIcon, DownloadIcon, LoaderCircleIcon, Music2Icon, PlayIcon } from '@lucide/vue'
+import { ArrowLeftIcon, ChevronDownIcon, ChevronUpIcon, DownloadIcon, LoaderCircleIcon, Music2Icon, PlayIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -209,6 +209,17 @@ function queueAllAlbums() {
 
 <template>
   <div>
+    <!-- 返回：详情页原是导航死端，靠浏览器返回才能离开 -->
+    <Button
+      variant="ghost"
+      size="sm"
+      class="-ml-2 mb-2 text-muted-foreground"
+      @click="router.back()"
+    >
+      <ArrowLeftIcon class="size-4" />
+      返回
+    </Button>
+
     <!-- 歌手头部 -->
     <div v-if="infoLoading" class="flex items-center gap-5">
       <div class="size-28 shrink-0 animate-pulse rounded-full bg-muted sm:size-32" />

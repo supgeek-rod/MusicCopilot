@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { DownloadIcon, Music2Icon, PlayIcon } from '@lucide/vue'
+import { ArrowLeftIcon, DownloadIcon, Music2Icon, PlayIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
 import type { AlbumInfo, SongRecord } from '@/api/types'
@@ -31,6 +31,7 @@ import { useSanitizedHtml } from '@/lib/sanitize'
 import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
+const router = useRouter()
 const player = usePlayerStore()
 
 const plug = computed(() => String(route.params.plug))
@@ -157,6 +158,17 @@ function queueAlbum(bit?: number) {
 
 <template>
   <div>
+    <!-- 返回：详情页原是导航死端，靠浏览器返回才能离开 -->
+    <Button
+      variant="ghost"
+      size="sm"
+      class="-ml-2 mb-2 text-muted-foreground"
+      @click="router.back()"
+    >
+      <ArrowLeftIcon class="size-4" />
+      返回
+    </Button>
+
     <div v-if="loading" class="flex gap-6">
       <div class="size-44 shrink-0 animate-pulse rounded-lg bg-muted sm:size-52" />
       <div class="flex-1 space-y-3">
