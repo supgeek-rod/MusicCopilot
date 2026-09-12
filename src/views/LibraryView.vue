@@ -340,10 +340,47 @@ const lyricSong = ref<SongRecord | null>(null)
 function hideImg(e: Event) {
   ;(e.target as HTMLImageElement).style.visibility = 'hidden'
 }
+
+// ── 顶部 Tabs：最近 | 歌单 | 流派 | 歌手 | 专辑 ──
+// 「最近」= home 视图；其余映射到 browse 视图的 activeTab。
+// 「全部歌曲」入口走 openBrowse('tracks')，tracks 不在导航中（无高亮，内容正常）。
+type TopTab = 'recent' | 'playlists' | 'genres' | 'artists' | 'albums'
+const topTab = computed<TopTab>({
+  get: () => (view.value === 'home' ? 'recent' : (activeTab.value as TopTab)),
+  set: (v) => {
+    if (v === 'recent') {
+      clearSearch()
+      view.value = 'home'
+    } else {
+      view.value = 'browse'
+      activeTab.value = v
+    }
+  },
+})
+
+// ── 视口锁定布局（参考搜索/下载页）：页面高度=视口，内容容器内部滚动 ──
+// 高度 = 视口 - header(3.5rem) - main 上边距(1.5rem) - 本页上下 padding(3rem)
+//        - 底部留白（播放条可见 6rem / 否则 1.5rem）
+const viewClass = computed(() =>
+  player.song ? 'h-[calc(100vh-14rem)]' : 'h-[calc(100vh-9.5rem)]',
+)
+
+// 滚动条自动隐藏：滚动中或悬停时可见（样式见 style.css 的 .scroll-auto-hide）
+const listScrolling = ref(false)
+let listScrollTimer: ReturnType<typeof setTimeout> | undefined
+function onListScroll() {
+  listScrolling.value = true
+  clearTimeout(listScrollTimer)
+  listScrollTimer = setTimeout(() => (listScrolling.value = false), 800)
+}
+onBeforeUnmount(() => clearTimeout(listScrollTimer))
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-5xl px-4 py-6">
+  <div
+    class="mx-auto flex w-full max-w-5xl flex-col overflow-hidden px-4 py-6"
+    :class="['min-h-[420px]', viewClass]"
+  >
     <!-- 未启用 / 登录失败 -->
     <div v-if="!fnos.enabled" class="rounded-lg border border-dashed p-8 text-center">
       <LibraryIcon class="mx-auto size-8 text-muted-foreground" />
@@ -363,8 +400,8 @@ function hideImg(e: Event) {
     </div>
 
     <template v-else>
-      <!-- 工具栏：搜索框 + 随便听听；浏览/搜索态附返回按钮 -->
-      <div class="mb-4 flex items-center gap-2">
+      <!-- 顶栏：返回（搜索/浏览深入态）+ Tabs 导航 + 搜索框 + 随便听听 -->
+      <div class="flex items-center gap-2">
         <Button
           v-if="view !== 'home' || isSearch"
           variant="ghost"
@@ -374,6 +411,15 @@ function hideImg(e: Event) {
         >
           <ArrowLeftIcon class="size-4" />
         </Button>
+        <Tabs v-model="topTab" class="shrink-0">
+          <TabsList>
+            <TabsTrigger value="recent">最近</TabsTrigger>
+            <TabsTrigger value="playlists">歌单</TabsTrigger>
+            <TabsTrigger value="genres">流派</TabsTrigger>
+            <TabsTrigger value="artists">歌手</TabsTrigger>
+            <TabsTrigger value="albums">专辑</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <div class="relative flex-1">
           <SearchIcon
             class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -402,20 +448,12 @@ function hideImg(e: Event) {
         </Button>
       </div>
 
-      <!-- 浏览模式的 Tab（搜索态下隐藏，结果直接覆盖内容区） -->
-      <div v-if="view === 'browse' && !isSearch" class="mt-4">
-        <Tabs v-model="activeTab">
-          <TabsList>
-            <TabsTrigger value="tracks">歌曲</TabsTrigger>
-            <TabsTrigger value="albums">专辑</TabsTrigger>
-            <TabsTrigger value="artists">歌手</TabsTrigger>
-            <TabsTrigger value="genres">流派</TabsTrigger>
-            <TabsTrigger value="playlists">歌单</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div class="mt-5">
+      <!-- 内容容器：占据剩余高度内部滚动，滚动条自动隐藏 -->
+      <div
+        class="scroll-auto-hide mt-4 min-h-0 flex-1 overflow-y-auto"
+        :class="listScrolling ? 'scrolling' : ''"
+        @scroll="onListScroll"
+      >
         <!-- 错误（搜索与浏览共用） -->
         <div v-if="error" class="py-12 text-center">
           <p class="text-sm text-destructive">{{ error }}</p>
@@ -796,7 +834,7 @@ function hideImg(e: Event) {
       <!-- 浏览模式分页（与搜索页一致的极简上一页/下一页） -->
       <div
         v-if="view === 'browse' && !isSearch && totalPages > 1 && !error"
-        class="mt-5 flex items-center justify-center gap-3 text-sm text-muted-foreground"
+        class="mt-3 flex shrink-0 items-center justify-center gap-3 text-sm text-muted-foreground"
       >
         <Button variant="outline" size="sm" :disabled="pageIndex <= 1 || loading" @click="goPage(pageIndex - 1)">
           上一页
