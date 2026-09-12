@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { looseMatch, normalizeForMatch, ChainGenreProvider, LastFmGenreProvider } from '../dist/genres.js'
+import { looseMatch, normalizeForMatch, normalizeGenreName, ChainGenreProvider, LastFmGenreProvider } from '../dist/genres.js'
 
 test('归一化：大小写/空格/标点全折叠', () => {
   assert.equal(normalizeForMatch("November's Chopin"), 'novemberschopin')
@@ -120,4 +120,13 @@ test('链式：provider 抛错不中断链', async () => {
     { name: 'ok', fetchGenre: async () => 'Jazz' },
   ])
   assert.equal(await chain.fetchGenre('X', 'Y'), 'Jazz')
+})
+
+test('流派名规范化：日文映射/ASCII 保留/无映射非 ASCII 跳过', () => {
+  assert.equal(normalizeGenreName('ポップス'), 'Pop')
+  assert.equal(normalizeGenreName('ロック'), 'Rock')
+  assert.equal(normalizeGenreName('Pop'), 'Pop')
+  assert.equal(normalizeGenreName('  Hip-Hop  '), 'Hip-Hop')
+  assert.equal(normalizeGenreName('未知ジャンル'), '')
+  assert.equal(normalizeGenreName(''), '')
 })

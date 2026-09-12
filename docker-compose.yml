@@ -78,6 +78,7 @@ services:
       MC_SERVER_USERNAME: ${MC_AUTH_USERNAME:-admin}
       MC_SERVER_PASSWORD: ${MC_AUTH_PASSWORD:-admin}
       MC_LASTFM_API_KEY: ${MC_LASTFM_API_KEY:-}
+      MC_HTTP_PROXY: ${MC_HTTP_PROXY:-}
     env_file:
       - .env
     volumes:

@@ -1,4 +1,25 @@
+import { fetch as undiciFetch, ProxyAgent, type RequestInit as UndiciRequestInit } from 'undici'
 import type { Env } from './env.js'
+
+/**
+ * 外部 HTTP（流派源）请求层：可选 HTTP 代理（MC_HTTP_PROXY，如 http://192.168.31.11:7890）。
+ * 大陆直连 api.deezer.com / ws.audioscrobbler.com 均不可达，经代理即可用；
+ * 未配置代理时走全局 fetch（保持直连语义与单测 mock 能力）。
+ */
+let proxyAgent: ProxyAgent | null = null
+
+/** 配置外部请求代理（进程级，启动时调用一次）；空串/未调用 = 直连 */
+export function configureHttpProxy(proxy: string | undefined | null): void {
+  const v = (proxy ?? '').trim()
+  proxyAgent = v !== '' ? new ProxyAgent(v) : null
+}
+
+function httpFetch(url: string, init?: Omit<UndiciRequestInit, 'dispatcher'>): Promise<Response> {
+  if (proxyAgent === null) {
+    return fetch(url, init as RequestInit)
+  }
+  return undiciFetch(url, { ...init, dispatcher: proxyAgent } as UndiciRequestInit) as unknown as Promise<Response>
+}
 
 /**
  * 流派增强（A2）：第三方音乐元数据源抽象。实现方按「专辑 + 歌手」查询流派，
@@ -58,6 +79,38 @@ function asArray<T>(v: T[] | T | undefined): T[] {
   return Array.isArray(v) ? v : [v]
 }
 
+/**
+ * Deezer 流派名按出口区域本地化（日本出口返回 ポップス 等）。
+ * 常见日文流派映射为英文规范名；无映射的非 ASCII 名（无法确认语义）跳过不写。
+ */
+const DEEZER_JA_GENRE_MAP: Record<string, string> = {
+  ポップス: 'Pop',
+  ロック: 'Rock',
+  'J-ポップ': 'J-Pop',
+  ヒップホップ: 'Hip-Hop',
+  ダンス: 'Dance',
+  エレクトロニック: 'Electronic',
+  ジャズ: 'Jazz',
+  ブルース: 'Blues',
+  フォーク: 'Folk',
+  カントリー: 'Country',
+  クラシック: 'Classical',
+  レゲエ: 'Reggae',
+  ラテン: 'Latin',
+  サウンドトラック: 'Soundtrack',
+  アニメ: 'Anime',
+  ワールド: 'World',
+}
+
+/** 流派名规范化：本地化映射 → 含非 ASCII 且无映射则返回空（防脏数据） */
+export function normalizeGenreName(name: string): string {
+  const n = name.trim()
+  if (n === '') return ''
+  const mapped = DEEZER_JA_GENRE_MAP[n] ?? DEEZER_JA_GENRE_MAP[n.toLowerCase()]
+  if (mapped) return mapped
+  return /^[\x20-\x7E]+$/.test(n) ? n : ''
+}
+
 export class DeezerGenreProvider implements GenreProvider {
   name = 'deezer'
 
@@ -73,7 +126,7 @@ export class DeezerGenreProvider implements GenreProvider {
   private async query(album: string, artist: string): Promise<string> {
     try {
       const q = encodeURIComponent(`${album} ${artist}`.trim())
-      const searchRes = await fetch(`https://api.deezer.com/search/album?q=${q}&limit=5`, {
+      const searchRes = await httpFetch(`https://api.deezer.com/search/album?q=${q}&limit=5`, {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       })
       if (!searchRes.ok) return ''
@@ -85,11 +138,15 @@ export class DeezerGenreProvider implements GenreProvider {
       )
       if (!hit) return ''
 
-      const detail = (await fetch(`https://api.deezer.com/album/${hit.id}`, {
+      const detail = (await httpFetch(`https://api.deezer.com/album/${hit.id}`, {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       }).then((r) => r.json())) as { genres?: { data?: { name?: string }[] } }
-      const first = (detail.genres?.data ?? []).map((g) => (g.name ?? '').trim()).find((n) => n !== '')
-      return first ?? ''
+      // 按流行度顺序取第一个可规范化流派（本地化名映射/跳过）
+      for (const g of detail.genres?.data ?? []) {
+        const norm = normalizeGenreName(g.name ?? '')
+        if (norm !== '') return norm
+      }
+      return ''
     } catch {
       return ''
     }
@@ -123,7 +180,7 @@ export class LastFmGenreProvider implements GenreProvider {
         `&api_key=${encodeURIComponent(this.apiKey)}` +
         `&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}` +
         `&format=json&autocorrect=1`
-      const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) })
+      const res = await httpFetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) })
       if (!res.ok) return ''
       const body = (await res.json()) as { error?: number; album?: { tags?: { tag?: unknown } } }
       if (body.error !== undefined || !body.album) return '' // key 无效/未知专辑

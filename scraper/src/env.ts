@@ -15,6 +15,8 @@ export interface Env {
   serverPassword: string
   /** Last.fm API key（流派补全 A2；空=跳过 Last.fm 仅用 Deezer） */
   lastfmApiKey: string
+  /** 流派源外部请求代理（如 http://192.168.31.11:7890；空=直连，大陆直连两源均不可达） */
+  httpProxy: string
 }
 
 export function loadEnv(): Env {
@@ -27,6 +29,7 @@ export function loadEnv(): Env {
     serverUsername: process.env.MC_SERVER_USERNAME ?? '',
     serverPassword: process.env.MC_SERVER_PASSWORD ?? '',
     lastfmApiKey: process.env.MC_LASTFM_API_KEY ?? '',
+    httpProxy: process.env.MC_HTTP_PROXY ?? '',
   }
   mkdirSync(env.dataDir, { recursive: true })
   return env
