@@ -4,6 +4,7 @@ import type { ScraperConfig } from './config.js'
 import type { Db, JobRow, TrackRow } from './db.js'
 import { buildDownloadPlan, fetchAlbumContext, resolveDownloadTarget, type DownloadTagPayload } from './downloads.js'
 import type { Env } from './env.js'
+import { getGenreProvider } from './genres.js'
 import { matchTrack, type MatchResult } from './matcher.js'
 import { relocateDownload } from './relocate.js'
 import { scanLibrary, isMessyName } from './scanner.js'
@@ -259,7 +260,15 @@ export class JobRunner {
         }
 
         const renameTo = planRename(track, candidate, config)
-        const plan = await buildPlan(this.env, track, candidate, config, dryRun)
+        // 流派补全（A2）：fill-missing 且文件无流派时查第三方源；dryRun 也预览意图
+        let genreHint: string | undefined
+        if (config.genreEnabled && config.writePolicy !== 'overwrite' && (track.genre ?? '').trim() === '') {
+          const provider = getGenreProvider(this.env)
+          if (provider) {
+            genreHint = await provider.fetchGenre(track.album ?? candidate.albumName ?? '', track.artist ?? candidate.artistName[0] ?? '')
+          }
+        }
+        const plan = await buildPlan(this.env, track, candidate, config, dryRun, genreHint)
         if (renameTo !== undefined) {
           plan.changes.push({ field: 'rename', from: track.file_name, to: renameTo })
           plan.renameTo = renameTo
@@ -348,7 +357,15 @@ export class JobRunner {
     const abs = await resolveDownloadTarget(this.env, payload.fileName)
     // 专辑上下文先取（目录布局与年份/音轨号写入共用）；失败降级为部分值
     const ctx = await fetchAlbumContext(this.env, payload)
-    const plan = await buildDownloadPlan(this.env, abs, payload, this.getConfig(), ctx)
+    // 流派（A2）：第三方源查询，fill 语义；失败静默
+    let genreHint: string | undefined
+    if (this.getConfig().genreEnabled) {
+      const provider = getGenreProvider(this.env)
+      if (provider) {
+        genreHint = await provider.fetchGenre(payload.album ?? '', payload.artist ?? '')
+      }
+    }
+    const plan = await buildDownloadPlan(this.env, abs, payload, this.getConfig(), ctx, genreHint)
     const result = await applyPlan(this.env, plan, this.getConfig())
 
     // 标签写好后按目录模板重排（Navidrome 友好）；失败保持原位，不回滚已写入的标签

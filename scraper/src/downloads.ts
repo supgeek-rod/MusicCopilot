@@ -134,6 +134,7 @@ interface CurrentMeta {
   albumArtist: string | null
   year: string | null
   trackNo: string | null
+  genre: string | null
   hasCover: boolean
   hasLyrics: boolean
 }
@@ -148,6 +149,7 @@ async function readCurrentMeta(abs: string): Promise<CurrentMeta> {
     albumArtist: c.albumartist?.trim() || null,
     year: c.year != null && c.year > 0 ? String(c.year) : null,
     trackNo: c.track?.no != null && c.track.no > 0 ? String(c.track.no) : null,
+    genre: c.genre?.find((g) => g.trim() !== '')?.trim() || null,
     hasCover: (c.picture ?? []).length > 0,
     hasLyrics: (c.lyrics ?? []).some((l) => typeof l.text === 'string' && l.text.trim() !== ''),
   }
@@ -157,6 +159,7 @@ async function readCurrentMeta(abs: string): Promise<CurrentMeta> {
  * 下载文件真值写标签计划：标题/歌手/专辑/专辑歌手/年份/音轨号按**覆盖**写入
  * （区别于体检页 fill-missing——刚下载的文件元数据是事实而非猜测，上游错值也应纠正）；
  * 年份/音轨号来自专辑上下文回查（ctx，可缺省——缺省项跳过不写）；
+ * 流派来自第三方源（Deezer 等，fill 语义：文件已有流派不覆盖）；
  * 封面/歌词按配置嵌入（已有则不重复嵌），拉取失败降级跳过不阻断标签写入。
  * 备份沿用 config.backup（写坏可从 .mc-backup 恢复）。
  */
@@ -166,6 +169,7 @@ export async function buildDownloadPlan(
   payload: DownloadTagPayload,
   config: ScraperConfig,
   ctx?: AlbumContext,
+  genreHint?: string,
 ): Promise<WritePlan> {
   const meta = await readCurrentMeta(abs)
   const changes: TagChange[] = []
@@ -182,6 +186,11 @@ export async function buildDownloadPlan(
   if (ctx) {
     set('year', meta.year, ctx.year)
     set('trackNo', meta.trackNo, ctx.trackNo)
+  }
+  // 流派：第三方推断非真值，fill 语义——文件已有流派（不论值是什么）一律不覆盖
+  const genre = (genreHint ?? '').trim()
+  if (genre !== '' && (meta.genre ?? '') === '') {
+    changes.push({ field: 'genre', from: null, to: genre })
   }
 
   const plan: WritePlan = { trackId: 0, relPath: basename(resolve(join(env.musicDir, payload.fileName))), changes }
