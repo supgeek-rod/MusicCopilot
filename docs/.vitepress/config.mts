@@ -10,7 +10,7 @@ export default defineConfig({
   base,
   lastUpdated: true,
   // 接口实测报告与功能看板含内网部署细节，仅保留在仓库内，不发布到站点
-  srcExclude: ['**/api-test-report.md', '**/FNOS_LIBRARY_PLAN.md', '**/META_SCRAPER_PLAN.md'],
+  srcExclude: ['**/api-test-report.md', '**/FNOS_LIBRARY_PLAN.md', '**/META_SCRAPER_PLAN.md', '**/SELFHOST_DOWNLOAD_PLAN.md', '**/METADATA_ENHANCEMENT_REPORT.md'],
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }]],
 
   themeConfig: {
@@ -41,6 +41,7 @@ export default defineConfig({
         text: '深入',
         items: [
           { text: '架构设计', link: '/architecture' },
+          { text: '下载与刮削原理', link: '/download-scrape' },
           { text: '开发路线图', link: '/roadmap' },
         ],
       },

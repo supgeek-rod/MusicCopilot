@@ -5,11 +5,58 @@ description: Docker Compose 拉取预构建镜像部署（Docker Hub / GHCR）�
 
 # 部署指南
 
+## 容器与拓扑（自建后端 + 刮削）
+
+启用第 5 期全家桶（在 `.env` 配置 `COMPOSE_PROFILES=server,scraper` 后 `docker compose up -d`）共四个容器，各司其职：
+
+| 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
+| --- | --- | --- | --- | --- | --- |
+| `web`（music-copilot） | CI 构建 `supgeekrod/music-copilot`（或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；`/mc` 反代到 scraper；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
+| `server`（music-copilot-server） | NAS 本地构建 `server/Dockerfile`（php:8.4-cli-alpine 多阶段） | 自建后端 API：登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与任务管理（SQMusic 对齐契约），附 OpenAPI 文档 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
+| `server-worker`（music-copilot-server-worker） | 与 server 同镜像 | 下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 完成后推送刮削通知 | — | — | 与 server 共享（SQLite + 音乐库目录） |
+| `scraper`（music-copilot-scraper） | CI 构建 `supgeekrod/music-copilot-scraper` | 音乐库体检（扫描/匹配/写标签）+ 下载完成自动刮削；Fastify 提供 `/mc/api/*` | 8098 | —（经 web 的 `/mc` 反代访问） | `scraper-data` → `/data`（索引库）；音乐库 → `/music` |
+
+server 与 server-worker 的下载目录、scraper 的工作目录挂载的是**同一个宿主机音乐库目录**（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录），构成数据闭环：
+
+1. 前端发起下载 → server 写入 SQLite 队列
+2. server-worker 解析直链，把文件下载到音乐库目录
+3. worker 携带真值元数据通知 scraper，scraper 就地写标签/封面/歌词（备份到 `.mc-backup/`）
+4. fnOS「音乐」应用扫描目录自动入库
+
+各环节的机制细节（状态机、音质决策、直链时效、真值覆盖写、路径防护等）见[下载与刮削原理](./download-scrape)。
+
+### 容器互访（compose 网络）
+
+四个容器同处 compose 自动创建的网络，互相用**服务名**访问（Docker 内嵌 DNS `127.0.0.11`，运行时解析）：
+
+| 调用方 | 目标 | 引用变量 |
+| --- | --- | --- |
+| web nginx | `http://server:8097`（`/api` 反代） | `MC_API_BASE_URL` |
+| web nginx | `http://scraper:8098`（`/mc` 反代） | `MC_SCRAPER_BASE_URL` |
+| server-worker | `http://scraper:8098/mc/api`（刮削通知） | `MC_SCRAPER_URL`（默认值即此） |
+
+nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建换 IP 后 web 自动跟上，无需重启。这些服务名**只在容器网络内可解析**——局域网访问后端/刮削器要走宿主发布的端口（`MC_SERVER_PORT`；scraper 未发布端口，只能经 `/mc` 反代）。SQLite 库在 `server-data` 卷中跨容器重建保留；音乐库目录里的文件是最终产物，可随目录迁移。
+
+### 启用与配置
+
+```bash
+# NAS 端 .env（节选，完整模板见仓库 .env.example）
+COMPOSE_PROFILES=server,scraper
+MC_MUSIC_HOST_DIR=/vol1/1000/Musics/MusicCopilot   # 音乐库绝对路径（下载落盘 + 刮削共用）
+MC_SCRAPER_BASE_URL=http://scraper:8098            # 前端 /mc 反代目标（不配则隐藏体检入口）
+MC_SCRAPER_IMAGE_TAG=development                   # scraper 镜像 tag（CI 构建的多架构镜像）
+docker compose up -d
+```
+
+server 的登录凭证用 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD`（默认 admin/admin）；数据库迁移随容器启动自动执行，无需手工操作。
+
 ## Docker 部署（推荐）
 
 镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **Docker Hub 与 GHCR**（`linux/amd64` + `linux/arm64` 双架构），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
 
 ### 方式一：Compose 拉取预构建镜像（推荐）
+
+> 本节及后续「静态部署」描述的是**仅前端容器**对接既有后端（如 SQ Music）的轻量部署；启用自建后端全家桶见上文「容器与拓扑」。
 
 新建一个空目录，放入 `docker-compose.yml`：
 
@@ -104,6 +151,9 @@ docker run -d -p 17016:80 \
 | 文件 | 说明 |
 | --- | --- |
 | `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
-| `docker-compose.yml` | 一键编排（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；env_file 复用 `.env`） |
+| `docker-compose.yml` | 一键编排（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；server/scraper 走 profile；env_file 复用 `.env`） |
 | `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
-| `.github/workflows/docker-publish.yml` | 镜像自动构建与发布（GHCR + Docker Hub） |
+| `server/Dockerfile` | 自建后端镜像（php:8.4-cli-alpine 多阶段，vendor 分层；API 与 worker 同镜像） |
+| `scraper/Dockerfile` | 刮削工具镜像（node:24-alpine，CI 构建发布多架构镜像） |
+| `.github/workflows/docker-publish.yml` | 前端镜像自动构建与发布（GHCR + Docker Hub） |
+| `.github/workflows/scraper-docker.yml` | 刮削工具镜像自动构建与发布（GHCR + Docker Hub） |

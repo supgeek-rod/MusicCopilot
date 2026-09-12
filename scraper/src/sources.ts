@@ -25,8 +25,50 @@ export const songRecordSchema = z.object({
 
 export type SongRecord = z.infer<typeof songRecordSchema>
 
-async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(20_000) })
+/**
+ * 音源后端鉴权（server/ M1 起要求 sqmusic 请求头，缺失/失效返回 HTTP 403）。
+ * 凭证经 MC_SERVER_USERNAME / MC_SERVER_PASSWORD 注入；两者为空时不鉴权，
+ * 兼容未开启鉴权的后端。token 缓存进程内，收到 403 时重登一次并重试。
+ */
+let authConfig: { username: string; password: string } = { username: '', password: '' }
+let cachedToken: string | null = null
+
+export function configureServerAuth(username: string, password: string): void {
+  authConfig = { username, password }
+}
+
+async function login(serverUrl: string): Promise<void> {
+  const res = await fetch(serverUrl + '/api/config/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...authConfig, device: 'web' }),
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (!res.ok) {
+    throw new Error(`音源后端登录 HTTP ${res.status}`)
+  }
+  const body = envelopeSchema.parse(await res.json())
+  const data = body.data as { tokenValue?: unknown } | null
+  if (body.code !== 200 || typeof data?.tokenValue !== 'string' || data.tokenValue === '') {
+    const msg = typeof body.msg === 'string' ? body.msg : `code=${body.code}`
+    throw new Error(`音源后端登录失败：${msg}`)
+  }
+  cachedToken = data.tokenValue
+}
+
+export async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
+  const send = (token: string | null): Promise<Response> =>
+    fetch(url, {
+      ...init,
+      headers: { ...init?.headers, ...(token ? { sqmusic: token } : {}) },
+      signal: AbortSignal.timeout(20_000),
+    })
+
+  let res = await send(cachedToken)
+  if (res.status === 403 && authConfig.username !== '') {
+    await login(new URL(url).origin)
+    res = await send(cachedToken)
+  }
   if (!res.ok) {
     throw new Error(`音源后端 HTTP ${res.status}`)
   }
@@ -84,4 +126,24 @@ export async function fetchCover(url: string): Promise<{ data: Uint8Array; mimeT
     throw new Error('封面超过 10MB，跳过嵌入')
   }
   return { data: buf, mimeType: mime }
+}
+
+/**
+ * 目录重排后把新路径回写给 server（下载任务记录的 downloadFile 保持可用）。
+ * 内部端点：POST /api/internal/download-task/path {taskId, path}，best-effort 调用。
+ */
+export async function reportPath(serverUrl: string, taskId: number, relPath: string): Promise<void> {
+  const res = await fetch(serverUrl + '/api/internal/download-task/path', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ taskId, path: relPath }),
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (!res.ok) {
+    throw new Error(`路径回写 HTTP ${res.status}`)
+  }
+  const body = envelopeSchema.parse(await res.json())
+  if (body.code !== 200) {
+    throw new Error(typeof body.msg === 'string' && body.msg ? body.msg : `路径回写 code=${body.code}`)
+  }
 }

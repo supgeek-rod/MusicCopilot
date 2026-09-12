@@ -10,6 +10,13 @@ export interface Env {
   token: string
   /** 音源后端（Laravel server/）基址：搜索与歌词代理 */
   serverUrl: string
+  /** 音源后端登录凭证（server M1 起接口要求 sqmusic 请求头；留空=仅兼容未开启鉴权的后端） */
+  serverUsername: string
+  serverPassword: string
+  /** Last.fm API key（流派补全 A2；空=跳过 Last.fm 仅用 Deezer） */
+  lastfmApiKey: string
+  /** 流派源外部请求代理（如 http://192.168.31.11:7890；空=直连，大陆直连两源均不可达） */
+  httpProxy: string
 }
 
 export function loadEnv(): Env {
@@ -19,6 +26,10 @@ export function loadEnv(): Env {
     dataDir: resolve(process.env.MC_DATA_DIR ?? 'data'),
     token: process.env.MC_SCRAPER_TOKEN ?? '',
     serverUrl: (process.env.MC_SERVER_URL ?? 'http://127.0.0.1:8097').replace(/\/+$/, ''),
+    serverUsername: process.env.MC_SERVER_USERNAME ?? '',
+    serverPassword: process.env.MC_SERVER_PASSWORD ?? '',
+    lastfmApiKey: process.env.MC_LASTFM_API_KEY ?? '',
+    httpProxy: process.env.MC_HTTP_PROXY ?? '',
   }
   mkdirSync(env.dataDir, { recursive: true })
   return env

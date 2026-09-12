@@ -8,7 +8,7 @@ import { fetchCover, fetchLyric } from './sources.js'
 import type { Env } from './env.js'
 
 export interface TagChange {
-  field: 'title' | 'artist' | 'album' | 'albumArtist' | 'cover' | 'lyrics' | 'rename'
+  field: 'title' | 'artist' | 'album' | 'albumArtist' | 'cover' | 'lyrics' | 'rename' | 'year' | 'trackNo' | 'genre'
   from: string | null
   to: string
 }
@@ -50,6 +50,7 @@ export function renderRenameTemplate(
 /**
  * 生成写入计划：fill-missing 只补空缺；overwrite 覆盖标题/歌手/专辑/专辑歌手。
  * dryRun 不做网络下载（封面/歌词仅描述意图），真实执行才拉取字节。
+ * genreHint：第三方流派（Deezer 等）查询结果，仅在 fill-missing 且文件无流派时写入。
  */
 export async function buildPlan(
   env: Env,
@@ -57,6 +58,7 @@ export async function buildPlan(
   candidate: CandidateRow,
   config: ScraperConfig,
   dryRun: boolean,
+  genreHint?: string,
 ): Promise<WritePlan> {
   const overwrite = config.writePolicy === 'overwrite'
   const changes: TagChange[] = []
@@ -74,6 +76,7 @@ export async function buildPlan(
   setField('artist', track.artist, candidate.artistName.join(' / '))
   setField('album', track.album, candidate.albumName ?? '')
   setField('albumArtist', track.album_artist, candidate.artistName[0] ?? '')
+  setField('genre', track.genre, genreHint ?? '')
 
   const wantCover = config.embedCover && candidate.pic !== null && (overwrite || track.has_cover === 0)
   if (wantCover && candidate.pic !== null) {
@@ -192,6 +195,19 @@ export async function applyPlan(
           break
         case 'albumArtist':
           file.setProperty('albumArtist', change.to)
+          break
+        case 'year': {
+          const y = Number.parseInt(change.to, 10)
+          if (Number.isFinite(y) && y > 0) tag.setYear(y)
+          break
+        }
+        case 'trackNo': {
+          const n = Number.parseInt(change.to, 10)
+          if (Number.isFinite(n) && n > 0) tag.setTrack(n)
+          break
+        }
+        case 'genre':
+          tag.setGenre(change.to)
           break
         case 'cover':
           if (plan.cover !== undefined) {

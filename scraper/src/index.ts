@@ -4,9 +4,15 @@ import { loadConfig } from './config.js'
 import { dbFilePath, openDb } from './db.js'
 import { loadEnv } from './env.js'
 import { JobRunner } from './jobs.js'
+import { configureHttpProxy } from './genres.js'
 import { registerRoutes, type Ctx } from './routes.js'
+import { configureServerAuth } from './sources.js'
 
 const env = loadEnv()
+// 音源后端鉴权：凭证非空时，server/ 返回 403 会自动登录重试（M1 起接口要求 sqmusic 头）
+configureServerAuth(env.serverUsername, env.serverPassword)
+// 流派源（Deezer/Last.fm）外部请求代理：大陆直连不可达时经代理出口（A2）
+configureHttpProxy(env.httpProxy)
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
 

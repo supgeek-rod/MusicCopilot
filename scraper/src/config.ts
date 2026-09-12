@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Db } from './db.js'
+import { DEFAULT_DIR_TEMPLATE } from './layout.js'
 
 /**
  * 刮削行为配置：持久化在 SQLite meta 表（经 Web 后台修改），env 只提供部署级参数。
@@ -11,6 +12,10 @@ export const scraperConfigSchema = z.object({
   embedLyrics: z.boolean().default(true),
   renameEnabled: z.boolean().default(false),
   renameTemplate: z.string().default('{artist} - {title}'),
+  /** 下载文件目录布局（写标签后 relocate）；空串 = 关闭，平铺在音乐目录根 */
+  dirTemplate: z.string().default(DEFAULT_DIR_TEMPLATE),
+  /** 流派补全（Deezer 第三方源，失败静默）；关闭后不发起任何外部查询 */
+  genreEnabled: z.boolean().default(true),
   backup: z.boolean().default(true),
   /** 自动选候选的置信度下限；无歌手参照的查询封顶 0.75，默认 0.8 保证脏数据需人工确认 */
   minScore: z.number().min(0).max(1).default(0.8),

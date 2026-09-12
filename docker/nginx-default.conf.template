@@ -30,9 +30,13 @@ server {
         add_header Cache-Control "no-cache";
     }
 
-    # 后端反代：浏览器同源访问 /api，规避 CORS
+    # 后端反代：浏览器同源访问 /api，规避 CORS。
+    # 变量 + Docker 内嵌 DNS（127.0.0.11）运行时解析：server 容器重建换 IP 后无需重启 web
+    # （静态 proxy_pass 会在启动期解析并缓存，上游换 IP 即 502）
     location /api {
-        proxy_pass ${MC_API_BASE_URL};
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $mc_api_upstream "${MC_API_BASE_URL}";
+        proxy_pass $mc_api_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

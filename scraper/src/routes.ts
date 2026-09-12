@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { loadConfig, saveConfig, scraperConfigSchema, type ScraperConfig } from './config.js'
 import type { Db, JobRow, TrackRow } from './db.js'
+import { downloadTagSchema } from './downloads.js'
 import type { Env } from './env.js'
 import { ConflictError, type JobRunner, type JobState } from './jobs.js'
 
@@ -161,6 +162,17 @@ export function registerRoutes(app: FastifyInstance, ctx: Ctx): void {
       if (e instanceof ConflictError) return reply.code(409).send({ error: e.message })
       throw e
     }
+  })
+
+  // server/ 下载完成推送（M4 自动刮削）：真值元数据 + 音乐目录根文件名，排队后串行写标签
+  app.post('/downloads', async (req, reply) => {
+    const parsed = downloadTagSchema.safeParse(req.body)
+    if (!parsed.success) {
+      const detail = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('；')
+      return reply.code(400).send({ error: `载荷无效：${detail}` })
+    }
+    const job = runner.enqueueDownloadTag(parsed.data)
+    return reply.code(202).send({ jobId: job.id })
   })
 
   app.get('/jobs', async () => {

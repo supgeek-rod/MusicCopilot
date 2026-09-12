@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Plugins\Sources\LyricPlugin;
 use App\Plugins\Sources\SourceManager;
+use App\Plugins\Sources\SourcePlugin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
@@ -112,6 +113,125 @@ class MusicSearchController extends Controller
             'msg' => null,
             'data' => $lyric,
         ]);
+    }
+
+    /**
+     * 搜索联想词（酷我 openapi searchKey，RELWORD 提取）
+     *
+     * @response status=200 {"code":200,"msg":null,"data":["晴天","晴天周杰伦"]}
+     */
+    public function searchTips(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'keyword' => 'required|string',
+            'plugName' => 'string',
+        ]);
+
+        $keyword = trim($validated['keyword']);
+        if ($keyword === '') {
+            return $this->fail('keyword 不能为空');
+        }
+
+        $tips = $this->fromPlugin(
+            $validated['plugName'] ?? 'kw',
+            fn (SourcePlugin $plugin) => $plugin->searchTips($keyword),
+            '联想词获取失败',
+        );
+
+        return $tips instanceof JsonResponse
+            ? $tips
+            : response()->json(['code' => 200, 'msg' => null, 'data' => $tips]);
+    }
+
+    /**
+     * 歌手详情 + 全部专辑（酷我 r.s artistinfo + albumlist 聚合）
+     *
+     * @response status=200 {"code":200,"msg":null,"data":{"id":"336","musicArtistsName":"周杰伦","musicArtistsAlias":"Jay Chou","musicArtistsPhoto":"https://.../500/x.jpg","musicArtistsDescribe":"...","albums":[{"albumId":"87758985","albumName":"太阳之子","albumTime":"2026-03-25","albumImg":"https://.../500/x.jpg"}]}}
+     */
+    public function artistAlbumById(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|string',
+            'plugName' => 'string',
+        ]);
+
+        $data = $this->fromPlugin(
+            $validated['plugName'] ?? 'kw',
+            fn (SourcePlugin $plugin) => $plugin->artistAlbum($validated['id']),
+            '歌手详情获取失败',
+        );
+
+        return $data instanceof JsonResponse
+            ? $data
+            : response()->json(['code' => 200, 'msg' => null, 'data' => $data]);
+    }
+
+    /**
+     * 专辑详情 + 曲目列表（酷我 r.s albuminfo）
+     *
+     * @response status=200 {"code":200,"msg":null,"data":{"albumId":"1293","albumName":"叶惠美","albumTime":"2003-07-31","albumArtist":"周杰伦","musics":[{"id":"228908","musicName":"晴天","musicArtists":["周杰伦"],"musicDuration":269,"bits":["KW_FLAC_2000"],"plugName":"kw"}]}}
+     */
+    public function albumInfoById(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|string',
+            'plugName' => 'string',
+        ]);
+
+        $data = $this->fromPlugin(
+            $validated['plugName'] ?? 'kw',
+            fn (SourcePlugin $plugin) => $plugin->albumInfo($validated['id']),
+            '专辑详情获取失败',
+        );
+
+        return $data instanceof JsonResponse
+            ? $data
+            : response()->json(['code' => 200, 'msg' => null, 'data' => $data]);
+    }
+
+    /**
+     * 获取下载/试听直链（酷我 mobi convert_url_with_sign，⚠️ 大陆 IP 区域限制）
+     * 契约对齐 SQMusic：POST，body 带 plugName/id/brType，brTypes（完整歌曲对象）兼容接收但不参与解析
+     *
+     * @response status=200 {"code":200,"msg":null,"data":{"url":"http://kw-er.kuwo.cn/.../M800....mp3","brType":"KW_MP3_320","duration":269,"format":"mp3"}}
+     */
+    public function getDownloadUrl(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|string',
+            'brType' => 'required|string',
+            'plugName' => 'string',
+            'brTypes' => 'array',
+        ]);
+
+        $data = $this->fromPlugin(
+            $validated['plugName'] ?? 'kw',
+            fn (SourcePlugin $plugin) => $plugin->downloadUrl($validated['id'], $validated['brType'], $validated['brTypes'] ?? []),
+            '直链解析失败',
+        );
+
+        return $data instanceof JsonResponse
+            ? $data
+            : response()->json(['code' => 200, 'msg' => null, 'data' => $data]);
+    }
+
+    /**
+     * 插件调用的公共包装：插件注册校验 + 异常转 {code:500} 信封。
+     * 返回 JsonResponse 表示已失败，否则为插件数据。
+     */
+    private function fromPlugin(string $plugName, callable $call, string $errorPrefix): mixed
+    {
+        if (! $this->sources->has($plugName)) {
+            return $this->fail("插件 {$plugName} 未开启");
+        }
+
+        try {
+            return $call($this->sources->get($plugName));
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->fail($errorPrefix.'：'.$e->getMessage());
+        }
     }
 
     private function search(array $validated, string $type): JsonResponse

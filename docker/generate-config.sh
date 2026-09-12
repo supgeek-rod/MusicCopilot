@@ -45,9 +45,13 @@ SCRAPER_ENABLED=false
 if [ -n "${MC_SCRAPER_BASE_URL:-}" ]; then
   SCRAPER_ENABLED=true
   mkdir -p /etc/nginx/mc-fnos
+  # 变量 + Docker 内嵌 DNS（127.0.0.11）运行时解析：scraper 容器缺失/重启换 IP 时
+  # web 仅对 /mc 降级 502，不会因启动期解析失败而拒绝启动（静态 proxy_pass 会 emerg）
   cat > /etc/nginx/mc-fnos/scraper.conf <<EOF
 location /mc/ {
-    proxy_pass ${MC_SCRAPER_BASE_URL};
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    set \$mc_scraper_upstream "${MC_SCRAPER_BASE_URL}";
+    proxy_pass \$mc_scraper_upstream;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

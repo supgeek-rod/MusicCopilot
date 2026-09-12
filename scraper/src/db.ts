@@ -28,7 +28,7 @@ export interface TrackRow {
 
 export interface JobRow {
   id: string
-  kind: 'scan' | 'match' | 'write'
+  kind: 'scan' | 'match' | 'write' | 'download-tag'
   status: 'queued' | 'running' | 'done' | 'error'
   params_json: string | null
   total: number
