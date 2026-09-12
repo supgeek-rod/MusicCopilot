@@ -18,7 +18,8 @@ const tierClass = computed(() => {
     case 'high':
       return 'border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400'
     default:
-      return 'text-muted-foreground'
+      // 普通档也保留淡底，避免与前后带色徽章并排时像「缺了个框」
+      return 'bg-muted/40 text-muted-foreground'
   }
 })
 </script>

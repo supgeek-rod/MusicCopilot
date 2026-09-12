@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LoaderCircleIcon } from '@lucide/vue'
+import { LoaderCircleIcon, Music2Icon } from '@lucide/vue'
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import PlayerBar from '@/components/PlayerBar.vue'
@@ -64,7 +64,11 @@ watch(
 
 <template>
   <div v-if="!app.ready" class="flex min-h-screen flex-col items-center justify-center gap-3">
-    <LoaderCircleIcon class="size-6 animate-spin text-muted-foreground" />
+    <!-- 启动页带品牌标识：自动登录期间不再是一块纯黑屏 -->
+    <div class="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+      <Music2Icon class="size-6" />
+    </div>
+    <LoaderCircleIcon class="size-5 animate-spin text-muted-foreground" />
     <p class="text-sm text-muted-foreground">{{ app.statusMsg }}</p>
     <p class="text-xs text-muted-foreground/70">可通过 .env / config.json 配置后端地址与账号</p>
   </div>
@@ -93,7 +97,7 @@ watch(
     close-button
     :toast-options="{
       classes: {
-        toast: 'rounded-2xl [&_[data-title]]:text-right [&_[data-description]]:text-right',
+        toast: 'rounded-lg [&_[data-title]]:text-right [&_[data-description]]:text-right',
       },
     }"
   />

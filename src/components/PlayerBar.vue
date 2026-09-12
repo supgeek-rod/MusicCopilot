@@ -156,7 +156,8 @@ function close() {
           </AvatarFallback>
         </Avatar>
 
-        <div class="hidden w-40 min-w-0 shrink-0 sm:block">
+        <!-- 移动端 flex-1 占剩余空间（进度条与标题共享），sm 起固定 10rem 宽 -->
+        <div class="min-w-0 flex-1 sm:w-40 sm:shrink-0 sm:flex-none">
           <div class="truncate text-sm font-medium" :title="player.song?.name">{{ player.song?.name }}</div>
           <div class="truncate text-xs text-muted-foreground">
             {{ player.song?.artistName?.join(' / ') || '未知歌手' }}
