@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HistoryIcon, PlayIcon, SearchIcon, TrashIcon, XIcon } from '@lucide/vue'
+import { HistoryIcon, PlayIcon, SearchIcon, SearchXIcon, TrashIcon, XIcon } from '@lucide/vue'
 import { onClickOutside, watchDebounced } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -33,6 +33,9 @@ const results = ref<SongRecord[]>([])
 const total = ref(0)
 const pageIndex = ref(1)
 const loading = ref(false)
+
+// 酷我把总数封顶在 3600，恒定的「约 3600 首」像假数据；封顶时改显 3600+
+const totalLabel = computed(() => (total.value >= 3600 ? '3600+' : String(total.value)))
 
 const tips = ref<string[]>([])
 const tipsOpen = ref(false)
@@ -389,7 +392,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
     <template v-else>
       <div class="mb-2 mt-6 flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          找到约 <span class="font-medium text-foreground">{{ total }}</span> 首
+          找到约 <span class="font-medium text-foreground">{{ totalLabel }}</span> 首
         </span>
         <div class="flex items-center gap-3">
           <span v-if="keyword.trim() !== submitted?.kw" class="truncate text-xs">当前输入未搜索，回车更新结果</span>
@@ -415,7 +418,8 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
       >
         <SongList :songs="results" :loading="loading" @lyrics="onLyrics" />
         <div v-if="!loading && !results.length" class="py-16 text-center text-sm text-muted-foreground">
-          没有找到相关歌曲
+          <SearchXIcon class="mx-auto size-7" />
+          <p class="mt-2">没有找到相关歌曲，换个关键词试试</p>
         </div>
       </div>
 
