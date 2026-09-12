@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
 import type { SongRecord } from '@/api/types'
+import PlayingIndicator from '@/components/PlayingIndicator.vue'
 import QualityMenu from '@/components/QualityMenu.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -128,9 +129,10 @@ async function enqueue(song: SongRecord) {
             {{ song.name }}
             <span
               v-if="player.song && player.song.id === song.id && player.song.plugName === song.plugName"
-              class="ml-1 text-xs text-primary"
+              class="ml-1 inline-flex items-center gap-1 align-middle text-xs text-primary"
             >
-              ♪ 播放中
+              <PlayingIndicator />
+              播放中
             </span>
           </div>
           <div class="truncate text-xs text-muted-foreground" :title="`${artists(song)} · ${song.albumName || ''}`">
@@ -157,7 +159,10 @@ async function enqueue(song: SongRecord) {
           {{ formatDuration(song.duration) }}
         </div>
 
-        <div class="flex shrink-0 items-center gap-0.5">
+        <!-- 行操作：桌面端 hover/键盘聚焦行内时浮现（默认隐藏降噪），触屏端常驻 -->
+        <div
+          class="flex shrink-0 items-center gap-0.5 transition-opacity lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100"
+        >
           <Button
             variant="ghost"
             size="icon-sm"

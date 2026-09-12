@@ -3,6 +3,7 @@ import { ListMusicIcon, ListXIcon, Music2Icon, XIcon } from '@lucide/vue'
 import { computed } from 'vue'
 import { toast } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import PlayingIndicator from '@/components/PlayingIndicator.vue'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -80,7 +81,8 @@ async function remove(index: number) {
 
       <ScrollArea class="max-h-[min(20rem,60vh)]">
         <div v-if="!player.queue.length" class="px-3 py-10 text-center text-sm text-muted-foreground">
-          队列为空
+          <Music2Icon class="mx-auto size-6" />
+          <p class="mt-2">队列为空，去挑几首吧</p>
         </div>
         <div
           v-for="(song, i) in player.queue"
@@ -90,7 +92,7 @@ async function remove(index: number) {
           @click="playAt(i)"
         >
           <span class="w-4 shrink-0 text-center text-xs tabular-nums text-muted-foreground">
-            <template v-if="i === player.queueIndex">♪</template>
+            <PlayingIndicator v-if="i === player.queueIndex" class="text-primary" />
             <template v-else>{{ i + 1 }}</template>
           </span>
           <Avatar class="size-8 shrink-0 rounded-md">
