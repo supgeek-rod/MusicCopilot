@@ -137,6 +137,8 @@ class DownloadSongJob implements ShouldQueue
                     'artist' => $task->artist_name,
                     'album' => $task->album_name,
                     'coverUrl' => $task->pic,
+                    // 目录重排后 scraper 据此回写新路径
+                    'taskId' => $task->id,
                 ])
                 ->throw();
         } catch (Throwable $e) {

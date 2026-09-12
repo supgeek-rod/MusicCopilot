@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ConfigController;
 use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\InternalController;
 use App\Http\Controllers\MusicSearchController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -47,4 +48,9 @@ Route::middleware('sqmusic.auth')->prefix('task')->group(function () {
     Route::get('delErrorTask', [TaskController::class, 'delErrorTask']);
     Route::get('delSuccessTask', [TaskController::class, 'delSuccessTask']);
     Route::get('delWaitingTask', [TaskController::class, 'delWaitingTask']);
+});
+
+// 容器间内部端点（scraper → server），不走 sqmusic 鉴权；仅应在 compose 内网暴露
+Route::prefix('internal')->group(function () {
+    Route::post('download-task/path', [InternalController::class, 'updateDownloadTaskPath']);
 });
