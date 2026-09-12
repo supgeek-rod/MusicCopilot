@@ -3,7 +3,7 @@
 // 没有 .git（rsync 排除），容器内无法现场取 git 信息。
 // 文件已加入 .gitignore——生成物不入库，dirty 判断（工作区是否有未提交改动）才准确。
 import { execSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,7 +19,17 @@ try {
   hash = git('rev-parse --short HEAD')
   dirty = git('status --porcelain').length > 0
 } catch {
-  // 非 git 环境（如直接分发的源码包）——保持降级值
+  // 非 git 环境（如部署机的 Docker 构建，无 .git）：若已存在预生成的
+  // build-info（本机/CI 生成后随源码同步进来），保留不覆盖，否则版本指纹丢失
+  try {
+    const existing = JSON.parse(readFileSync(`${root}/src/build-info.json`, 'utf-8'))
+    if (existing?.hash && existing.hash !== 'dev') {
+      console.log(`build-info: reuse pre-generated ${existing.hash}`)
+      process.exit(0)
+    }
+  } catch {
+    // 无现有文件——首次生成降级值
+  }
 }
 
 const info = { hash, time: new Date().toISOString(), dirty }
