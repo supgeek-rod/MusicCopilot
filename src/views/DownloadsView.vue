@@ -259,8 +259,6 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
             <TableHead class="w-[110px]">音质</TableHead>
             <TableHead class="hidden w-[80px] md:table-cell">大小</TableHead>
             <TableHead class="w-[90px]">状态</TableHead>
-            <TableHead class="hidden md:table-cell">消息</TableHead>
-            <TableHead class="hidden lg:table-cell lg:w-[80px]">插件</TableHead>
             <TableHead class="hidden lg:table-cell lg:w-[160px]">更新时间</TableHead>
             <TableHead class="w-[110px] text-right">操作</TableHead>
           </TableRow>
@@ -268,11 +266,11 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
         <TableBody>
           <template v-if="loading">
             <TableRow v-for="i in 5" :key="i">
-              <TableCell :colspan="8" class="h-10 animate-pulse bg-muted/40" />
+              <TableCell :colspan="6" class="h-10 animate-pulse bg-muted/40" />
             </TableRow>
           </template>
           <TableRow v-else-if="!tasks.length">
-            <TableCell colspan="8" class="h-28 text-center text-sm text-muted-foreground">
+            <TableCell colspan="6" class="h-28 text-center text-sm text-muted-foreground">
               暂无下载任务，去搜索页添加吧
             </TableCell>
           </TableRow>
@@ -299,14 +297,6 @@ function bulkDel(kind: 'error' | 'success' | 'waiting') {
               >
                 {{ statusView(t.downloadStatus).label }}
               </span>
-            </TableCell>
-            <TableCell class="hidden md:table-cell">
-              <span class="line-clamp-2 max-w-[220px] text-xs text-muted-foreground" :title="t.downloadMsg ?? ''">
-                {{ t.downloadMsg || '—' }}
-              </span>
-            </TableCell>
-            <TableCell class="hidden text-xs text-muted-foreground lg:table-cell">
-              {{ t.downloadPlugName || '—' }}
             </TableCell>
             <TableCell class="hidden text-xs text-muted-foreground lg:table-cell">
               {{ t.downloadUpdateTime || '—' }}
