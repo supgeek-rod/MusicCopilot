@@ -1,4 +1,5 @@
 import type { SongRecord } from '@/api/types'
+import { ListEndIcon, RepeatIcon, ShuffleIcon } from '@lucide/vue'
 
 const STORAGE_KEY = 'music-copilot:play-queue'
 const MAX_ITEMS = 200
@@ -9,6 +10,13 @@ export interface PersistedQueue {
 }
 
 export type PlayMode = 'loop' | 'shuffle' | 'stop'
+
+/** 播放模式枚举（循环切换顺序即数组顺序），PlayerBar / QueuePanel 共用 */
+export const PLAY_MODES: { value: PlayMode; label: string; icon: typeof RepeatIcon }[] = [
+  { value: 'loop', label: '列表循环', icon: RepeatIcon },
+  { value: 'shuffle', label: '随机播放', icon: ShuffleIcon },
+  { value: 'stop', label: '播完停止', icon: ListEndIcon },
+]
 
 const PLAY_MODE_KEY = 'music-copilot:play-mode'
 

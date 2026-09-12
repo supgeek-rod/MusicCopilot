@@ -1,23 +1,19 @@
 <script setup lang="ts">
-import { ListEndIcon, ListMusicIcon, ListXIcon, Music2Icon, RepeatIcon, ShuffleIcon, XIcon } from '@lucide/vue'
+import { ListMusicIcon, ListXIcon, Music2Icon, XIcon } from '@lucide/vue'
 import { computed } from 'vue'
 import { toast } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { PlayMode } from '@/lib/playQueue'
+import { PLAY_MODES } from '@/lib/playQueue'
 import { formatDuration } from '@/lib/format'
 import { usePlayerStore } from '@/stores/player'
 
 const player = usePlayerStore()
 
-// 播放模式循环切换：列表循环 → 随机播放 → 播完停止
-const MODES: { value: PlayMode; label: string; icon: typeof RepeatIcon }[] = [
-  { value: 'loop', label: '列表循环', icon: RepeatIcon },
-  { value: 'shuffle', label: '随机播放', icon: ShuffleIcon },
-  { value: 'stop', label: '播完停止', icon: ListEndIcon },
-]
+// 播放模式循环切换：列表循环 → 随机播放 → 播完停止（枚举共用 playQueue.PLAY_MODES）
+const MODES = PLAY_MODES
 
 const currentMode = computed(() => MODES.find((m) => m.value === player.playMode) ?? MODES[0]!)
 

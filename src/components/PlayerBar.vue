@@ -17,10 +17,21 @@ import QueuePanel from '@/components/QueuePanel.vue'
 import { Slider } from '@/components/ui/slider'
 import { formatSeconds } from '@/lib/format'
 import { bindAudioEl, togglePlayback } from '@/lib/playback'
+import { PLAY_MODES } from '@/lib/playQueue'
 import { usePlayerStore } from '@/stores/player'
 
 const player = usePlayerStore()
 const audioRef = ref<HTMLAudioElement | null>(null)
+
+// 播放模式切换（与队列面板共用枚举与状态）：列表循环 → 随机播放 → 播完停止
+const playMode = computed(() => PLAY_MODES.find((m) => m.value === player.playMode) ?? PLAY_MODES[0]!)
+
+function cycleMode() {
+  const idx = PLAY_MODES.findIndex((m) => m.value === player.playMode)
+  const next = PLAY_MODES[(idx + 1) % PLAY_MODES.length]!
+  player.setPlayMode(next.value)
+  toast.info(`播放模式：${next.label}`)
+}
 
 // 音频元素挂载/卸载时同步注册，供全局快捷键（空格播放/暂停）复用
 watch(
@@ -210,6 +221,17 @@ function close() {
             @update:model-value="onVolume"
           />
         </div>
+
+        <!-- 播放模式：与队列面板顶部的切换按钮等同状态，点按循环 列表循环→随机→播完停止 -->
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          :title="`播放模式：${playMode.label}（点击切换）`"
+          :disabled="!player.queue.length"
+          @click="cycleMode"
+        >
+          <component :is="playMode.icon" class="size-4" />
+        </Button>
 
         <QueuePanel />
 
