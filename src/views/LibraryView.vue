@@ -550,18 +550,18 @@ function hideImg(e: Event) {
                 全部歌曲 →
               </button>
             </div>
-            <div v-if="homeLoading" class="-mx-1 mt-2 flex gap-3 overflow-hidden px-1">
-              <div v-for="i in SHELF_SIZE" :key="i" class="w-28 shrink-0">
+            <div v-if="homeLoading" class="mt-2 grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-12">
+              <div v-for="i in SHELF_SIZE" :key="i">
                 <Skeleton class="aspect-square w-full rounded-md" />
                 <Skeleton class="mt-1.5 h-3.5 w-3/4" />
               </div>
             </div>
-            <div v-else class="-mx-1 mt-2 flex gap-3 overflow-x-auto px-1 pb-2">
+            <div v-else class="mt-2 grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-12">
               <button
                 v-for="s in recentAdded"
                 :key="s.id"
                 type="button"
-                class="group w-28 shrink-0 text-left"
+                class="group text-left"
                 title="播放"
                 @click="playSong(s)"
               >
@@ -609,12 +609,12 @@ function hideImg(e: Event) {
                 全部播放 →
               </button>
             </div>
-            <div class="-mx-1 mt-2 flex gap-3 overflow-x-auto px-1 pb-2">
+            <div class="mt-2 grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-12">
               <button
                 v-for="s in recentPlayed"
                 :key="s.id"
                 type="button"
-                class="group w-28 shrink-0 text-left"
+                class="group text-left"
                 title="播放"
                 @click="playSong(s)"
               >
