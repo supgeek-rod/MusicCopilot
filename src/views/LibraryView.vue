@@ -690,8 +690,8 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
 
           <!-- 专辑 / 歌手 / 流派 / 歌单：卡片网格（分支显式限定，勿用 v-else 兜底） -->
           <template v-else>
-            <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              <div v-for="i in 8" :key="i" class="rounded-lg border p-3">
+            <div v-if="loading" class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+              <div v-for="i in 12" :key="i" class="rounded-lg border p-3">
                 <Skeleton class="aspect-square w-full rounded-md" />
                 <Skeleton class="mt-2 h-4 w-2/3" />
                 <Skeleton class="mt-1.5 h-3 w-1/2" />
@@ -701,7 +701,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
             <template v-else>
               <div
                 v-if="activeTab === 'albums'"
-                class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"
               >
                 <button
                   v-for="a in albums"
@@ -732,7 +732,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
 
               <div
                 v-else-if="activeTab === 'artists'"
-                class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"
               >
                 <button
                   v-for="a in artists"
@@ -763,7 +763,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
 
               <div
                 v-else-if="activeTab === 'genres'"
-                class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"
               >
                 <button
                   v-for="g in genres"
@@ -794,7 +794,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
 
               <div
                 v-else-if="activeTab === 'playlists'"
-                class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                class="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"
               >
                 <button
                   v-for="p in playlists"
