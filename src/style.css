@@ -159,7 +159,8 @@
 }
 .scroll-auto-hide.scrolling,
 .scroll-auto-hide:hover {
-  scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  /* --muted-foreground 是完整颜色值（oklch），不能用 hsl() 再包一层，否则整条声明失效 */
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
 }
 .scroll-auto-hide::-webkit-scrollbar {
   width: 8px;
@@ -171,5 +172,39 @@
 }
 .scroll-auto-hide.scrolling::-webkit-scrollbar-thumb,
 .scroll-auto-hide:hover::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.35);
+  background: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+}
+
+/* 尊重系统「减弱动态效果」：收敛全部动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 播放中均衡器指示（配合 src/components/PlayingIndicator.vue；仅 transform 动画，
+   尺寸用 em 随字号缩放，颜色随 currentColor） */
+.eq-bar {
+  display: inline-block;
+  width: 0.2em;
+  min-width: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
