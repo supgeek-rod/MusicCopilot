@@ -17,6 +17,7 @@
 | `MC_DATA_DIR` | `/data`（容器）/ `data`（本地 dev） | SQLite 目录（曲目索引/任务历史/配置/忽略清单） |
 | `MC_SERVER_URL` | `http://127.0.0.1:8097` | 音源后端基址（searchSong/getLyric） |
 | `MC_SERVER_USERNAME` / `MC_SERVER_PASSWORD` | 空 | 音源后端登录凭证（server M1 起接口要求 `sqmusic` 头；非空时 403 自动登录重试，留空兼容未鉴权后端） |
+| `MC_LASTFM_API_KEY` | 空 | Last.fm API key（流派补全优先源，免费申请）；留空仅用 Deezer。两源大陆直连均不可达，不可达时静默跳过 |
 | `MC_SCRAPER_TOKEN` | 空 | 非空时启用 `x-mc-token` 鉴权 |
 | `MC_PORT` | `8098` | 监听端口 |
 

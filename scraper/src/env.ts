@@ -13,6 +13,8 @@ export interface Env {
   /** 音源后端登录凭证（server M1 起接口要求 sqmusic 请求头；留空=仅兼容未开启鉴权的后端） */
   serverUsername: string
   serverPassword: string
+  /** Last.fm API key（流派补全 A2；空=跳过 Last.fm 仅用 Deezer） */
+  lastfmApiKey: string
 }
 
 export function loadEnv(): Env {
@@ -24,6 +26,7 @@ export function loadEnv(): Env {
     serverUrl: (process.env.MC_SERVER_URL ?? 'http://127.0.0.1:8097').replace(/\/+$/, ''),
     serverUsername: process.env.MC_SERVER_USERNAME ?? '',
     serverPassword: process.env.MC_SERVER_PASSWORD ?? '',
+    lastfmApiKey: process.env.MC_LASTFM_API_KEY ?? '',
   }
   mkdirSync(env.dataDir, { recursive: true })
   return env
