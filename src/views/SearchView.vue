@@ -214,10 +214,16 @@ function onLyrics(song: SongRecord) {
   lyricSong.value = song
   lyricOpen.value = true
 }
+// 结果页视图高度 = 视口 - header(3.5rem) - main 上 padding(1.5rem) - 底部留白
+// （播放条可见时 pb-24=6rem，否则 pb-6=1.5rem）。列表容器内部滚动，窗口不出滚动条；
+// min-h 兜底矮窗口（此时允许窗口滚动，保证可用性）
+const resultsViewClass = computed(() =>
+  player.song ? 'h-[calc(100vh-11rem)]' : 'h-[calc(100vh-6.5rem)]',
+)
 </script>
 
 <template>
-  <div :class="isHero ? 'flex min-h-[70vh] flex-col items-center justify-center' : ''">
+  <div :class="isHero ? 'flex min-h-[70vh] flex-col items-center justify-center' : ['flex min-h-[420px] flex-col overflow-hidden', resultsViewClass]">
     <!-- 首页状态：标题引导在搜索框上方（不放图标） -->
     <template v-if="isHero">
       <h1 class="text-center text-xl font-semibold">搜索你想听的音乐</h1>
@@ -390,7 +396,8 @@ function onLyrics(song: SongRecord) {
         </div>
       </div>
 
-      <div class="rounded-lg border py-1">
+      <!-- 列表容器：占据剩余高度内部滚动（min-h-0 是 flex 子项可收缩滚动的关键） -->
+      <div class="min-h-0 flex-1 overflow-y-auto rounded-lg border py-1">
         <SongList :songs="results" :loading="loading" @lyrics="onLyrics" />
         <div v-if="!loading && !results.length" class="py-16 text-center text-sm text-muted-foreground">
           没有找到相关歌曲
