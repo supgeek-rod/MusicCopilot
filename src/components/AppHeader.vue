@@ -2,6 +2,7 @@
 import {
   HeartPulseIcon,
   HistoryIcon,
+  HomeIcon,
   KeyboardIcon,
   LibraryIcon,
   ListMusicIcon,
@@ -41,10 +42,13 @@ const toggleDark = useToggle(isDark)
 
 const statusTitle = computed(() => `${app.statusMsg}｜后端：${app.apiBase || '同源'}`)
 
-// 左侧导航：下载任务 + 音乐库（音乐库仅在配置了 fnOS 接入时显示）+ 体检（scraper 工具接入时显示）；搜索走右侧快捷搜索框
+// 左侧导航：首页 + 音乐库（音乐库仅在配置了 fnOS 接入时显示）+ 下载任务 + 体检（scraper 工具接入时显示）；搜索走右侧快捷搜索框
 const navs = computed(() => {
-  const list = [{ path: '/downloads', label: '下载任务', icon: ListMusicIcon }]
-  // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示
+  const list = [
+    { path: '/search', label: '首页', icon: HomeIcon },
+    { path: '/downloads', label: '下载任务', icon: ListMusicIcon },
+  ]
+  // 音乐库入口仅在配置了 fnOS 接入（MC_FNOS_BASE_URL）时显示，排在首页之后
   if (fnos.enabled) list.splice(1, 0, { path: '/library', label: '音乐库', icon: LibraryIcon })
   // 音乐库体检入口仅在配置了刮削工具（MC_SCRAPER_BASE_URL）时显示
   if (app.config?.scraper?.enabled) {
