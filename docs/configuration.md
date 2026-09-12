@@ -25,7 +25,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_SCRAPER_BASE_URL` | 刮削工具（scraper 容器）地址：Vite 代理与 Docker nginx 把 `/mc` 反代到该地址；**不配置则「体检」入口不显示**（见[音乐库体检](./library-health)） |
 | `MC_SCRAPER_TOKEN` | 刮削工具的共享 token（工具侧 `MC_SCRAPER_TOKEN` 非空时必填；前端以 `x-mc-token` 头携带） |
 | `MC_MUSIC_DIR` | 仅 compose 的 scraper 服务读取：fnOS 音乐库目录（**读写**挂载，写入标签/封面/备份） |
-| `MC_PORT` | Docker 对外端口（仅 docker-compose.yml 读取，默认 `17016`） |
+| `MC_PORT` | 端口：docker-compose.yml 的对外端口，同时是本地 `npm run dev` / `npm run preview` 的服务器端口（默认 `17016`；本地未配置或非法值回退 `5173`） |
 | `MC_IMAGE_TAG` | 仓库自带 compose 拉取的镜像 tag（仅 docker-compose.yml 读取，默认 `latest`）。跟 `development` 分支预构建镜像时设为 `development`；本地构建用 `docker compose up -d --build` |
 
 > 注意：`.env` 以明文保存密码，请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。「登录框 + 记住 token」模式规划在[路线图](./roadmap.md)第 2 期。
