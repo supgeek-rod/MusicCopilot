@@ -224,10 +224,11 @@ function onLyrics(song: SongRecord) {
       <p class="mt-1 text-center text-sm text-muted-foreground">支持在线试听、查看歌词，可下载到服务器或本机</p>
     </template>
 
-    <!-- 搜索区 -->
+    <!-- 搜索区：首页不放独立搜索按钮（放大镜即搜索键，布局更居中对称）；
+         结果页保留外置按钮（行内空间紧凑，按钮语义更明确） -->
     <form
       class="flex w-full gap-2"
-      :class="isHero ? 'mt-6 max-w-2xl flex-col gap-3 sm:flex-row' : ''"
+      :class="isHero ? 'mt-6 max-w-2xl flex-col gap-3 sm:flex-row sm:justify-center' : ''"
       @submit.prevent="doSearch(1)"
     >
       <!-- 首页大搜索区与搜索结果页均不提供音源切换，音源由后端启用插件自动决定 -->
@@ -237,7 +238,7 @@ function onLyrics(song: SongRecord) {
           data-search-input
           placeholder="搜索歌曲 / 歌手 / 专辑，回车搜索"
           title="按 / 聚焦搜索"
-          :class="isHero ? 'h-12 pr-9 text-base' : 'h-9 pr-9'"
+          :class="isHero ? 'h-12 pr-12 text-base' : 'h-9 pr-9'"
           @focus="onInputFocus"
           @blur="onInputBlur"
           @keydown.down.prevent="onTipsArrow(1)"
@@ -245,7 +246,16 @@ function onLyrics(song: SongRecord) {
           @keydown.enter.prevent="onSearchEnter"
           @keydown.esc="tipsOpen = false"
         />
-        <SearchIcon class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <!-- 首页：输入框内右侧放大镜即搜索按钮；结果页仅作装饰图标 -->
+        <Button
+          type="submit"
+          size="icon"
+          variant="ghost"
+          :class="isHero ? 'absolute right-1.5 top-1/2 size-9 -translate-y-1/2 rounded-full' : 'pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 p-0 border-0 bg-transparent'"
+          title="搜索"
+        >
+          <SearchIcon :class="isHero ? 'size-5' : 'size-4'" class="text-muted-foreground" />
+        </Button>
         <div
           v-if="tipsOpen && tips.length"
           class="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md"
@@ -307,8 +317,8 @@ function onLyrics(song: SongRecord) {
       </div>
 
       <Button
+        v-if="!isHero"
         type="submit"
-        :class="isHero ? 'h-12 px-7 text-base' : ''"
         :disabled="loading || !keyword.trim()"
       >
         <SearchIcon class="size-4" />
