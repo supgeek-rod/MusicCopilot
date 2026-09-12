@@ -134,6 +134,7 @@
 - web 的 `/mc` 反代改 Docker DNS 运行时解析：scraper 容器缺失/重启时 web 降级 502 而非 nginx emerg 拒绝启动
 - 开发联调（非容器）注意：WSL→Windows 环回/NAT 网关被防火墙拦截，走宿主 LAN IP
 - **版本检测生效流程**：Docker 构建上下文无 .git，需本机 `node scripts/gen-build-info.mjs` 预生成 `src/build-info.json` 并单独 rsync 到 NAS（deploy 的 rsync filter 会排除但不会删除它）；gen-build-info 已改为非 git 环境保留已有生成物（b2191ee 起生效）
+- **音乐库目录迁移（2026-09-12）**：NAS 端 MC_MUSIC_HOST_DIR 改为 `/vol1/1000/Musics/MusicCopilot`（fnOS 音乐库新位置，用户建目录），server/worker/scraper 三容器挂载已切换并全链路验收通过（下载一生有你 → 落盘新目录 → 刮削 written）。顺带修复 `/api` 反代静态解析问题（与 /mc 同款，server 重建换 IP 不再需要重启 web）。注意：酷我部分歌曲 128k 实际返回 AAC 流，worker 按直链实际 format 落盘为 .aac（scraper taglib-wasm 可写标签）
 - 并行分支合并：`fix/remove-source-dropdown` 的 11 项前端修复（含版本检测）已并入本分支一并部署（8e35c6b）
 
 **`/v2` 清理版契约规划**（SQMusic 退役后作为独立小迭代，不阻塞本期）：
