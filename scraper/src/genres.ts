@@ -100,6 +100,13 @@ const DEEZER_JA_GENRE_MAP: Record<string, string> = {
   サウンドトラック: 'Soundtrack',
   アニメ: 'Anime',
   ワールド: 'World',
+  ヘヴィメタル: 'Heavy Metal',
+  ハードロック: 'Hard Rock',
+  メタル: 'Metal',
+  オルタナティブ: 'Alternative',
+  インディー: 'Indie',
+  ポップ: 'Pop',
+  'エレクトロ': 'Electronic',
 }
 
 /** 流派名规范化：本地化映射 → 含非 ASCII 且无映射则返回空（防脏数据） */

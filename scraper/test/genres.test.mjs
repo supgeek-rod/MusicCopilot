@@ -125,6 +125,7 @@ test('链式：provider 抛错不中断链', async () => {
 test('流派名规范化：日文映射/ASCII 保留/无映射非 ASCII 跳过', () => {
   assert.equal(normalizeGenreName('ポップス'), 'Pop')
   assert.equal(normalizeGenreName('ロック'), 'Rock')
+  assert.equal(normalizeGenreName('ヘヴィメタル'), 'Heavy Metal')
   assert.equal(normalizeGenreName('Pop'), 'Pop')
   assert.equal(normalizeGenreName('  Hip-Hop  '), 'Hip-Hop')
   assert.equal(normalizeGenreName('未知ジャンル'), '')
