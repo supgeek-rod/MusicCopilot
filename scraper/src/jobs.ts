@@ -346,7 +346,9 @@ export class JobRunner {
     this.touch(job, 0, payload.fileName)
 
     const abs = await resolveDownloadTarget(this.env, payload.fileName)
-    const plan = await buildDownloadPlan(this.env, abs, payload, this.getConfig())
+    // 专辑上下文先取（目录布局与年份/音轨号写入共用）；失败降级为部分值
+    const ctx = await fetchAlbumContext(this.env, payload)
+    const plan = await buildDownloadPlan(this.env, abs, payload, this.getConfig(), ctx)
     const result = await applyPlan(this.env, plan, this.getConfig())
 
     // 标签写好后按目录模板重排（Navidrome 友好）；失败保持原位，不回滚已写入的标签
@@ -354,7 +356,6 @@ export class JobRunner {
     let relocateError: string | undefined
     let moved = false
     if (result.status === 'written' || result.status === 'skipped') {
-      const ctx = await fetchAlbumContext(this.env, payload)
       const artistOf = plan.changes.find((c) => c.field === 'artist')?.to ?? payload.artist ?? ''
       const values = {
         albumArtist: ctx.albumArtist || artistOf,

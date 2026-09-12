@@ -30,6 +30,7 @@ class AlbumInfoTest extends TestCase
                     'album' => '叶惠美',
                     'albumId' => 1293,
                     'duration' => '342',
+                    'track' => '1',
                     'N_MINFO' => 'level:ff,bitrate:2000,format:flac,size:9.19Mb;level:h,bitrate:128,format:mp3,size:5.22Mb',
                     'web_albumpic_short' => '120/s3s94/93/211513640.jpg',
                     'allartistid' => '336',
@@ -66,7 +67,7 @@ class AlbumInfoTest extends TestCase
         $img = (string) $response->json('data.albumImg');
         $this->assertStringContainsString('/albumcover/500/', $img);
 
-        // 曲目 1：小写键映射 + MINFO → bits + duration 秒
+        // 曲目 1：小写键映射 + MINFO → bits + duration 秒 + track 结构化
         $response->assertJsonPath('data.musics.0.id', '238210')
             ->assertJsonPath('data.musics.0.musicName', '以父之名')
             ->assertJsonPath('data.musics.0.musicArtists', ['周杰伦'])
@@ -74,7 +75,8 @@ class AlbumInfoTest extends TestCase
             ->assertJsonPath('data.musics.0.musicDuration', 342)
             ->assertJsonPath('data.musics.0.albumId', '1293')
             ->assertJsonPath('data.musics.0.bits', ['KW_FLAC_2000', 'KW_MP3_128'])
-            ->assertJsonPath('data.musics.0.artistsIds', ['336']);
+            ->assertJsonPath('data.musics.0.artistsIds', ['336'])
+            ->assertJsonPath('data.musics.0.trackNo', 1);
 
         $cover = (string) $response->json('data.musics.0.musicImage');
         $this->assertStringContainsString('/albumcover/500/', $cover);

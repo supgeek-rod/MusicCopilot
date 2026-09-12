@@ -4,7 +4,7 @@ import { parseFile } from 'music-metadata'
 import { z } from 'zod'
 import type { ScraperConfig } from './config.js'
 import type { Env } from './env.js'
-import { fetchCover, fetchLyric } from './sources.js'
+import { fetchCover, fetchLyric, requestJson } from './sources.js'
 import type { TagChange, WritePlan } from './writer.js'
 
 /**
@@ -47,6 +47,7 @@ const albumInfoShape = z.object({
       z.object({
         id: z.string(),
         musicName: z.string().nullable().optional(),
+        trackNo: z.number().nullable().optional(),
       }),
     )
     .nullable()
@@ -72,27 +73,27 @@ export async function fetchAlbumContext(
   if (!payload.album) return empty
 
   try {
-    // 先按歌名搜专辑，再取专辑详情定位音轨号（server 契约两步）
+    // 先按歌名搜专辑，再取专辑详情定位音轨号（server 契约两步）；
+    // 走 requestJson（带 sqmusic 鉴权 + 403 自动登录），裸 fetch 会被 403 静默降级
     const kw = encodeURIComponent(`${payload.album} ${payload.artist ?? ''}`.trim())
-    const searchUrl =
-      `${env.serverUrl}/api/music/searchAlbum?plugName=${payload.plugName}&keyword=${kw}&pageIndex=1&pageSize=5`
-    const res = await fetch(searchUrl, { signal: AbortSignal.timeout(20_000) })
-    if (!res.ok) return empty
-    const body = (await res.json()) as { code?: number; data?: { records?: { albumid?: string }[] } }
-    if (body.code !== 200) return empty
-    const albumId = body.data?.records?.[0]?.albumid
+    const search = (await requestJson(
+      `${env.serverUrl}/api/music/searchAlbum?plugName=${payload.plugName}&keyword=${kw}&pageIndex=1&pageSize=5`,
+    )) as { records?: { albumid?: string }[] } | null
+    const albumId = search?.records?.[0]?.albumid
     if (!albumId) return empty
 
-    const infoUrl = `${env.serverUrl}/api/music/albumInfoById?plugName=${payload.plugName}&id=${encodeURIComponent(albumId)}`
-    const infoRes = await fetch(infoUrl, { signal: AbortSignal.timeout(20_000) })
-    if (!infoRes.ok) return empty
-    const infoBody = (await infoRes.json()) as { code?: number; data?: unknown }
-    if (infoBody.code !== 200) return empty
-    const info = albumInfoShape.parse(infoBody.data ?? {})
+    const info = albumInfoShape.parse(
+      (await requestJson(
+        `${env.serverUrl}/api/music/albumInfoById?plugName=${payload.plugName}&id=${encodeURIComponent(albumId)}`,
+      )) ?? {},
+    )
 
-    // 音轨号：详情曲目列表中按 id 定位序号（酷我 track 字段不可靠，以列表顺序为准）
-    const idx = (info.musics ?? []).findIndex((m) => m.id === payload.musicId)
-    const trackNo = idx >= 0 ? String(idx + 1) : ''
+    // 音轨号：优先用 server 结构化输出的 trackNo（酷我 track 字段），缺失退列表序号
+    const musics = info.musics ?? []
+    const idx = musics.findIndex((m) => m.id === payload.musicId)
+    const hitTrack = idx >= 0 ? (musics[idx]?.trackNo ?? null) : null
+    const trackNo =
+      hitTrack !== null && hitTrack > 0 ? String(hitTrack) : idx >= 0 ? String(idx + 1) : ''
 
     const year = (info.albumTime ?? '').slice(0, 4)
     return {
@@ -131,6 +132,8 @@ interface CurrentMeta {
   artist: string | null
   album: string | null
   albumArtist: string | null
+  year: string | null
+  trackNo: string | null
   hasCover: boolean
   hasLyrics: boolean
 }
@@ -143,14 +146,17 @@ async function readCurrentMeta(abs: string): Promise<CurrentMeta> {
     artist: c.artist?.trim() || null,
     album: c.album?.trim() || null,
     albumArtist: c.albumartist?.trim() || null,
+    year: c.year != null && c.year > 0 ? String(c.year) : null,
+    trackNo: c.track?.no != null && c.track.no > 0 ? String(c.track.no) : null,
     hasCover: (c.picture ?? []).length > 0,
     hasLyrics: (c.lyrics ?? []).some((l) => typeof l.text === 'string' && l.text.trim() !== ''),
   }
 }
 
 /**
- * 下载文件真值写标签计划：标题/歌手/专辑/专辑歌手按服务端下发元数据**覆盖**写入
+ * 下载文件真值写标签计划：标题/歌手/专辑/专辑歌手/年份/音轨号按**覆盖**写入
  * （区别于体检页 fill-missing——刚下载的文件元数据是事实而非猜测，上游错值也应纠正）；
+ * 年份/音轨号来自专辑上下文回查（ctx，可缺省——缺省项跳过不写）；
  * 封面/歌词按配置嵌入（已有则不重复嵌），拉取失败降级跳过不阻断标签写入。
  * 备份沿用 config.backup（写坏可从 .mc-backup 恢复）。
  */
@@ -159,6 +165,7 @@ export async function buildDownloadPlan(
   abs: string,
   payload: DownloadTagPayload,
   config: ScraperConfig,
+  ctx?: AlbumContext,
 ): Promise<WritePlan> {
   const meta = await readCurrentMeta(abs)
   const changes: TagChange[] = []
@@ -172,6 +179,10 @@ export async function buildDownloadPlan(
   set('artist', meta.artist, payload.artist)
   set('album', meta.album, payload.album)
   set('albumArtist', meta.albumArtist, payload.artist)
+  if (ctx) {
+    set('year', meta.year, ctx.year)
+    set('trackNo', meta.trackNo, ctx.trackNo)
+  }
 
   const plan: WritePlan = { trackId: 0, relPath: basename(resolve(join(env.musicDir, payload.fileName))), changes }
 

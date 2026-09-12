@@ -510,6 +510,7 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
         }
 
         $album = (string) ($e['album'] ?? $e['ALBUM'] ?? '');
+        $track = (int) ($e['track'] ?? $e['TRACK'] ?? 0);
 
         return [
             'id' => $id,
@@ -526,6 +527,8 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
             'plugName' => $this->plugName(),
             'albumId' => isset($e['albumId']) ? (string) $e['albumId'] : (isset($e['albumid']) ? (string) $e['albumid'] : null),
             'artistsIds' => $this->splitAmp((string) ($e['allartistid'] ?? '')),
+            // 曲目序号（酷我 track 字段，A1 结构化输出；0/缺失为 null）
+            'trackNo' => $track > 0 ? $track : null,
             'dataInfo' => $e,
         ];
     }

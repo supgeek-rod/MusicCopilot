@@ -8,7 +8,7 @@ import { fetchCover, fetchLyric } from './sources.js'
 import type { Env } from './env.js'
 
 export interface TagChange {
-  field: 'title' | 'artist' | 'album' | 'albumArtist' | 'cover' | 'lyrics' | 'rename'
+  field: 'title' | 'artist' | 'album' | 'albumArtist' | 'cover' | 'lyrics' | 'rename' | 'year' | 'trackNo'
   from: string | null
   to: string
 }
@@ -193,6 +193,16 @@ export async function applyPlan(
         case 'albumArtist':
           file.setProperty('albumArtist', change.to)
           break
+        case 'year': {
+          const y = Number.parseInt(change.to, 10)
+          if (Number.isFinite(y) && y > 0) tag.setYear(y)
+          break
+        }
+        case 'trackNo': {
+          const n = Number.parseInt(change.to, 10)
+          if (Number.isFinite(n) && n > 0) tag.setTrack(n)
+          break
+        }
         case 'cover':
           if (plan.cover !== undefined) {
             file.setPictures([

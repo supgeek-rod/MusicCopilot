@@ -56,7 +56,7 @@ async function login(serverUrl: string): Promise<void> {
   cachedToken = data.tokenValue
 }
 
-async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
+export async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
   const send = (token: string | null): Promise<Response> =>
     fetch(url, {
       ...init,
