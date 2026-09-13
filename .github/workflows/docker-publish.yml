@@ -31,6 +31,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Generate build info
+        # 容器内构建无 .git（.dockerignore 排除），gen-build-info 会降级 hash=dev；
+        # checkout 后先在本机生成 src/build-info.json，COPY . . 带入构建上下文，
+        # 容器内 gen-build-info 走「复用预生成」分支保留真实 hash
+        run: node scripts/gen-build-info.mjs
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
