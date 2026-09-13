@@ -1,0 +1,6 @@
+node_modules
+dist
+data
+dev-music
+*.log
+README.md
