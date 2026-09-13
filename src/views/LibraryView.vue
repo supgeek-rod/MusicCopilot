@@ -362,7 +362,7 @@ const topTab = computed<TopTab>({
 // 高度 = 视口 - header(3.5rem) - main 上边距(1.5rem) - 本页上下 padding(3rem)
 //        - 底部留白（播放条可见 6rem / 否则 1.5rem）
 const viewClass = computed(() =>
-  player.song ? 'h-[calc(100vh-14rem)]' : 'h-[calc(100vh-9.5rem)]',
+  player.song ? 'h-[calc(100vh-14rem-1px)]' : 'h-[calc(100vh-9.5rem-1px)]',
 )
 
 // 滚动条自动隐藏：滚动中或悬停时可见（样式见 style.css 的 .scroll-auto-hide）

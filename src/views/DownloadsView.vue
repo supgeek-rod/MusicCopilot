@@ -211,7 +211,7 @@ const player = usePlayerStore()
 
 // 高度 = 视口 - header(3.5rem) - main 上边距(1.5rem) - 底部留白（播放条 6rem / 1.5rem）
 const viewClass = computed(() =>
-  player.song ? 'h-[calc(100vh-11rem)]' : 'h-[calc(100vh-6.5rem)]',
+  player.song ? 'h-[calc(100vh-11rem-1px)]' : 'h-[calc(100vh-6.5rem-1px)]',
 )
 
 // 滚动条自动隐藏：滚动中或悬停时可见（样式见 style.css 的 .scroll-auto-hide）

@@ -219,9 +219,10 @@ function onLyrics(song: SongRecord) {
 }
 // 结果页视图高度 = 视口 - header(3.5rem) - main 上 padding(1.5rem) - 底部留白
 // （播放条可见时 pb-24=6rem，否则 pb-6=1.5rem）。列表容器内部滚动，窗口不出滚动条；
+// -1px 为 AppHeader 的 border-b（h-14 之外另占 1px，漏算会让整页溢出 1px 出窗口滚动条）；
 // min-h 兜底矮窗口（此时允许窗口滚动，保证可用性）
 const resultsViewClass = computed(() =>
-  player.song ? 'h-[calc(100vh-11rem)]' : 'h-[calc(100vh-6.5rem)]',
+  player.song ? 'h-[calc(100vh-11rem-1px)]' : 'h-[calc(100vh-6.5rem-1px)]',
 )
 
 // 滚动条自动隐藏：滚动中或悬停时可见（样式见 style.css 的 .scroll-auto-hide）
