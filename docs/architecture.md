@@ -67,10 +67,10 @@ MusicCopilot/
 | `server/fnos` | 3 | fnOS 登录代理、曲库/歌单接口转发（社区逆向接口收敛在此），接管 `/fnos` 前缀 | infra |
 | `server/library` | 3 | 扫描音乐目录，产出歌曲清单（路径/标签/码率） | infra |
 | `server/playlist` | 3 | 歌单与本地库对比，缺失曲目调下载模块补全 | fnos/library/download |
-| `scraper/scan` | 4 | 扫描音乐目录（music-metadata 读取标签入库），产出体检分类（缺封面/歌词/专辑/歌手、文件名混乱、疑似重复） | infra |
-| `scraper/match` | 4 | 文件名 + 现有标签调 server/ 搜索接口匹配，候选与置信度评分（**不自带音源解析**） | scan / server.music |
-| `scraper/writer` | 4 | 标签/封面/歌词写入（taglib-wasm，ffmpeg 兜底）：dry-run、写前备份、「歌手 - 标题」重命名（默认关） | scan |
-| `scraper/jobs` | 4 | Fastify `/mc/api` 路由 + 任务队列（扫描/匹配/写入）+ SQLite 持久化（node:sqlite） | infra |
+| `scraper/scan` | 4（已移除） | 扫描音乐目录（music-metadata 读取标签入库），产出体检分类（缺封面/歌词/专辑/歌手、文件名混乱、疑似重复） | infra |
+| `scraper/match` | 4（已移除） | 文件名 + 现有标签调 server/ 搜索接口匹配，候选与置信度评分（**不自带音源解析**） | scan / server.music |
+| `scraper/writer` | 4（已移除） | 标签/封面/歌词写入（taglib-wasm，ffmpeg 兜底）：dry-run、写前备份、「歌手 - 标题」重命名（默认关） | scan |
+| `scraper/jobs` | 4（已移除） | Fastify `/mc/api` 路由 + 任务队列（扫描/匹配/写入）+ SQLite 持久化（node:sqlite） | infra |
 | `server/music` | 5 | 聚合搜索/详情/直链解析，对接音源插件注册表 | plugins/sources |
 | `server/plugins/sources` | 5 | 每平台一个插件，实现统一 SourcePlugin 接口，可独立启停与热更新 | — |
 | `server/download` | 5 | 下载队列/并发/进度/重试；完成后自动写标签内嵌封面 | tasks/healthcheck |

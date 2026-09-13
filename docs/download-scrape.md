@@ -1,11 +1,11 @@
 ---
-title: 下载与刮削原理
-description: 音乐下载引擎与下载完成自动刮削的工作机制详解
+title: 下载与目录布局
+description: 音乐下载引擎与下载完成目录重排的工作机制详解
 ---
 
-# 下载与刮削原理
+# 下载与目录布局
 
-音乐下载与刮削是两段接力：**server 负责下载文件**，**scraper 负责把标签写好**，中间靠一次 HTTP 推送衔接。整体数据流：
+下载链路由 server 单体完成：任务队列 → 直链解析 → 文件落盘 → 按目录模板重排为「歌手/专辑/」结构（Navidrome 友好）。整体数据流：
 
 ```
 前端发起下载
@@ -16,14 +16,11 @@ server 建任务 → SQLite 队列（waiting）
     ▼
 解析直链（loading）→ 传输落盘（downloading）→ success
     │
-    ▼ 推送真值元数据（文件名 + 歌名/歌手/专辑/封面/kw 歌曲id）
-scraper download-tag job
-    │  读现状 → 覆盖写标签 → 嵌封面/歌词
-    ▼
+    ▼ 按 MC_DIR_TEMPLATE 重排
 音乐库目录（fnOS「音乐」应用扫描自动入库）
 ```
 
-对应[部署指南 · 容器与拓扑](./deployment#容器与拓扑自建后端刮削)中的四容器分工；本文展开其中的机制细节。
+对应[部署指南 · 容器与拓扑](./deployment#容器与拓扑自建后端)中的容器分工；本文展开其中的机制细节。
 
 ## 音乐下载（server）
 
@@ -39,7 +36,6 @@ scraper download-tag job
 
 - `br_types`——该曲可用音质清单（来自搜索结果 MINFO 的解析）
 - `music_info`——**上游原始条目 JSON**。前端按入队音质查 MINFO 里的 size 来估算文件大小，所以任务页能看到「52.8 MB」这类预估
-- `pic`——封面地址，供刮削通知使用
 - `status` / `progress` / `file_path` / `error_msg`——状态机与结果
 
 音质决策：`brType` / `bit` 指定了就直接用（`bit` 经插件音质枚举反查为 `KW_*` 别名）；**省略则 worker 自动选最高可用**——任务 `brTypes` 与插件枚举求交集、按码率排序取最大；无任何参照时兜底 320k。
@@ -71,35 +67,18 @@ worker 在 `loading` 阶段调用音源插件的直链解析：酷我走 `mobi.k
 
 文件名规则：`歌手 - 标题.格式`，格式取直链实际返回的 `format`（酷我部分 128k 实际是 AAC 流，会落成 `.aac`——按真实格式命名）；路径分隔符与 Windows 非法字符替换为下划线，重名自动追加 ` (2)` 序号。
 
-## 下载完成自动刮削（scraper）
+## 目录布局（下载完成后）
 
-### 触发——真值推送而非模糊匹配
+落盘成功后 worker 按 `MC_DIR_TEMPLATE`（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`，空串平铺）把文件移入「歌手/专辑/」两级目录：
 
-worker 落盘成功后，fire-and-forget 地 `POST /mc/api/downloads`，载荷只带**文件名（basename）+ 真值元数据**（歌名 / 歌手 / 专辑 / 封面地址 / kw 歌曲 id）。三个设计要点：
-
-- **推送而非轮询**：server 明确知道自己刚下载了什么，无需 scraper 按文件名猜；scraper 的 `download-tag` job 可多个排队串行，足以消化突发
-- **覆盖写而非补空**：体检页对「来历不明」的存量文件用 fill-missing + 置信度评分（≥0.8 才自动写入），因为那是在猜；刚下载的文件元数据是**事实**，标题/歌手/专辑按覆盖写入，上游错值也一并纠正
-- **失败降级**：通知失败（scraper 未启动/超时）只记日志、不回滚任务——文件已完整落盘，标签可随时在「音乐库体检」页手动补
-
-路径安全：载荷只接受**纯文件名**（拒绝 `/`、`\`、`..`），scraper 解析后校验必须落在音乐目录内。server 只传 basename 而非绝对路径，server 容器与 scraper 容器对同一宿主机目录的挂载路径不同也不影响。
-
-### 写入流水线（download-tag job）
-
-1. **读现状**：`music-metadata` 读取文件现有标签与封面/歌词有无
-2. **构建变更集**：标题/歌手/专辑/专辑歌手逐字段比对，值相同则跳过（酷我文件自带正确基础标签时不产生无意义写入）；嵌封面则拉取图片（限 10MB、必须 `image/*`），嵌歌词则调用 server 歌词接口（酷我加密歌词解密 + 服务端永久缓存——该接口有按 IP 分钟级限流）
-3. **执行写入**：`taglib-wasm` 打开文件字节 → 逐字段写入 → 封面以 FrontCover 嵌入、歌词以 USLT 帧嵌入 → 保存
-4. **安全三件套**（沿用体检页策略）：写前备份原文件到 `.mc-backup/`（点开头目录，fnOS 扫描忽略）；写出的字节先落同目录 `.mc-tmp` 再原子 rename，写一半不会损坏原文件；封面/歌词**拉取失败自动降级跳过**，不阻断标签写入
-
-行为开关复用体检配置：`embedCover` / `embedLyrics` / `backup`。重命名不参与——文件名在 server 侧已按「歌手 - 标题」生成。
-
-### 闭环终点
-
-写完的文件就在 fnOS「音乐」应用扫描的目录里，应用自动扫描入库，封面与歌词直接展示。
+- 专辑上下文（专辑歌手/年份/音轨号）经本机插件原生查询（albumInfoById），无专辑 id 或查询失败时用任务自带字段尽力渲染
+- 模板逐段渲染：中间空段（如无专辑时的 `{album}/`）整体丢弃；非法字符替换为下划线
+- 冲突处理：同名追加序号；同内容视为重复下载，删源保留既有文件；移动后自清理变空的目录
+- 任一失败保持平铺原位，不影响任务成功状态
 
 ## 实测边界行为
 
-- **AAC 情形**：酷我部分歌曲的「128k mp3」实际返回 AAC 编码流，worker 按直链实际 `format` 落盘为 `.aac`（scraper 对其写标签已验证成功；fnOS 对 `.aac` 的支持以实际版本为准）
-- **体积参考**：晴天 128k 原始约 4.3 MB，刮削后 +119 KB（封面 106 KB + 歌词约 8.7K 字符）
+- **AAC 情形**：酷我部分歌曲的「128k mp3」实际返回 AAC 编码流，worker 按直链实际 `format` 落盘为 `.aac`（fnOS 对 `.aac` 的支持以实际版本为准）
 - **上游一致性**：基础标签（标题/歌手/专辑）与真值一致时，job 变更集只剩 albumArtist/cover/lyrics 三项——无变化跳过的守卫在起作用
 - **直链时效**：签名直链过期后下载会失败，此时重试任务会重新解析新直链（`refreshTask` / `errorTaskRetry` 均可）
 
@@ -107,9 +86,7 @@ worker 落盘成功后，fire-and-forget 地 `POST /mc/api/downloads`，载荷�
 
 | 文件 | 内容 |
 | --- | --- |
-| `server/app/Jobs/DownloadSongJob.php` | 下载 worker：状态机、音质决策、流式落盘、刮削通知 |
+| `server/app/Jobs/DownloadSongJob.php` | 下载 worker：状态机、音质决策、流式落盘、目录重排 |
 | `server/app/Services/DownloadTaskService.php` | 任务创建与专辑/歌手展开 |
 | `server/app/Plugins/Sources/Kuwo/KuwoPlugin.php` | 酷我直链解析（KW_* ↔ br 映射） |
-| `scraper/src/downloads.ts` | 下载刮削载荷校验、路径防护、真值写标签计划 |
-| `scraper/src/writer.ts` | taglib-wasm 写入、备份与原子替换 |
 | `server/docs/kuwo-api-notes.md` | 酷我接口实测口径（加密、限流、区域限制） |

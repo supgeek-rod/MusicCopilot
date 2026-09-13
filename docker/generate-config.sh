@@ -39,29 +39,6 @@ EOF
   echo "[mc] 已启用 /fnos 反代（目标：${MC_FNOS_BASE_URL}）"
 fi
 
-# ── 刮削工具反代（可选）──
-# 与 fnOS 同一 include 目录；工具路由自带 /mc 前缀，proxy_pass 不带 URI（保留 /mc）
-SCRAPER_ENABLED=false
-if [ -n "${MC_SCRAPER_BASE_URL:-}" ]; then
-  SCRAPER_ENABLED=true
-  mkdir -p /etc/nginx/mc-fnos
-  # 变量 + Docker 内嵌 DNS（127.0.0.11）运行时解析：scraper 容器缺失/重启换 IP 时
-  # web 仅对 /mc 降级 502，不会因启动期解析失败而拒绝启动（静态 proxy_pass 会 emerg）
-  cat > /etc/nginx/mc-fnos/scraper.conf <<EOF
-location /mc/ {
-    resolver 127.0.0.11 valid=30s ipv6=off;
-    set \$mc_scraper_upstream "${MC_SCRAPER_BASE_URL}";
-    proxy_pass \$mc_scraper_upstream;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_read_timeout 300s;
-    proxy_buffering off;
-}
-EOF
-  echo "[mc] 已启用 /mc 反代（目标：${MC_SCRAPER_BASE_URL}）"
-fi
-
 # 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端；
 # proxyTarget 为信息性字段，把反代目标带给浏览器供设置面板展示
 # JSON 转义：密码等环境变量含 " 或 \ 时避免生成损坏的 config.json
@@ -74,8 +51,6 @@ PASSWORD=$(json_escape "${MC_API_PASSWORD:-}")
 FNOS_TARGET=$(json_escape "${MC_FNOS_BASE_URL:-}")
 FNOS_USERNAME=$(json_escape "${MC_FNOS_USERNAME:-}")
 FNOS_PASSWORD=$(json_escape "${MC_FNOS_PASSWORD:-}")
-SCRAPER_TARGET=$(json_escape "${MC_SCRAPER_BASE_URL:-}")
-SCRAPER_TOKEN=$(json_escape "${MC_SCRAPER_TOKEN:-}")
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
@@ -90,11 +65,6 @@ cat > /usr/share/nginx/html/config.json <<EOF
     "password": "${FNOS_PASSWORD}",
     "autoLogin": ${FNOS_AUTO_LOGIN}
   },
-  "scraper": {
-    "enabled": ${SCRAPER_ENABLED},
-    "proxyTarget": "${SCRAPER_TARGET}",
-    "token": "${SCRAPER_TOKEN}"
-  }
 }
 EOF
 echo "[mc] 已生成 config.json（/api 反代目标：${MC_API_BASE_URL}）"
