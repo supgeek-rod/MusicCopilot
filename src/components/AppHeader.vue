@@ -177,7 +177,7 @@ function clearHistory() {
           <Music2Icon class="size-4.5" />
         </div>
         <div class="leading-tight">
-          <div class="text-sm font-semibold">MusicCopilot</div>
+          <div class="hidden text-sm font-semibold sm:block">MusicCopilot</div>
           <div
             class="hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex"
             :title="statusTitle"
@@ -202,7 +202,7 @@ function clearHistory() {
         >
           <RouterLink :to="nav.path">
             <component :is="nav.icon" class="size-4" />
-            {{ nav.label }}
+            <span class="hidden sm:inline">{{ nav.label }}</span>
           </RouterLink>
         </Button>
       </nav>
