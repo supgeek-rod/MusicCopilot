@@ -64,7 +64,7 @@ cat > /usr/share/nginx/html/config.json <<EOF
     "username": "${FNOS_USERNAME}",
     "password": "${FNOS_PASSWORD}",
     "autoLogin": ${FNOS_AUTO_LOGIN}
-  },
+  }
 }
 EOF
 echo "[mc] 已生成 config.json（/api 反代目标：${MC_API_BASE_URL}）"
