@@ -138,9 +138,12 @@ export class DeezerGenreProvider implements GenreProvider {
       })
       if (!searchRes.ok) return ''
       const search = (await searchRes.json()) as { data?: DeezerAlbumHit[] }
-      // 仅按专辑名匹配：Deezer 部分区域会把歌手名本地化（日区 カーペンターズ）导致
-      // 双维度必挂；流派用途下误命中代价极低（同名/翻唱专辑流派通常一致），故不做歌手校验
-      const hit = (search.data ?? []).find((a) => looseMatch(a.title ?? '', album))
+      const hits = search.data ?? []
+      // 优先「专辑+歌手」双命中，避免同名专辑误命中；日区出口会把歌手名本地化
+      // （カーペンターズ）导致双维度必挂，回退仅专辑名匹配（流派用途下误命中代价低）
+      const hit =
+        hits.find((a) => looseMatch(a.title ?? '', album) && looseMatch(a.artist?.name ?? '', artist)) ??
+        hits.find((a) => looseMatch(a.title ?? '', album))
       if (!hit) return ''
 
       const detail = (await httpFetch(`https://api.deezer.com/album/${hit.id}`, {
