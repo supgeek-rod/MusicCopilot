@@ -59,6 +59,14 @@ watch(
   { flush: 'post' },
 )
 
+// 音量快捷键（Ctrl+↑/↓）与静音直接改 store，不走音量滑块的 onVolume，这里统一同步到音频元素
+watch(
+  () => player.volume,
+  (v) => {
+    if (audioRef.value) audioRef.value.volume = v
+  },
+)
+
 function onPlay() {
   player.isPlaying = true
 }
