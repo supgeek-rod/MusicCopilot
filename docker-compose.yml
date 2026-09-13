@@ -21,11 +21,11 @@ services:
       - .env
     restart: unless-stopped
 
-  # ── 自建后端（第 5 期，profile: server；启用：在 .env 设 COMPOSE_PROFILES=server,scraper）──
+  # ── 自建后端（第 5 期，profile: server；启用：在 .env 设 COMPOSE_PROFILES=server）──
   # API 进程（php artisan serve，LAN 自用足够）与下载 worker 同镜像分进程；
   # SQLite 库在 server-data 卷；下载目录挂音乐库目录（fnOS「音乐」应用扫描入库），
   # NAS 端 .env 配 MC_MUSIC_HOST_DIR=音乐库绝对路径（未配则落到项目目录 data/downloads）。
-  # scraper 通知（M4）：MC_SCRAPER_URL 默认指向 compose 内 scraper 服务。
+  # 下载完成后 worker 按目录模板（.env 的 MC_DIR_TEMPLATE，默认 歌手/专辑/）重排。
   server:
     build: ./server
     image: supgeekrod/music-copilot-server:${MC_IMAGE_TAG:-latest}
@@ -36,7 +36,6 @@ services:
     environment:
       DB_DATABASE: /data/database.sqlite
       MC_DOWNLOAD_DIR: /downloads
-      MC_SCRAPER_URL: ${MC_SCRAPER_URL:-http://scraper:8098/mc/api}
     env_file:
       - .env
     volumes:
@@ -53,7 +52,6 @@ services:
     environment:
       DB_DATABASE: /data/database.sqlite
       MC_DOWNLOAD_DIR: /downloads
-      MC_SCRAPER_URL: ${MC_SCRAPER_URL:-http://scraper:8098/mc/api}
     env_file:
       - .env
     volumes:
@@ -63,31 +61,5 @@ services:
       - server
     restart: unless-stopped
 
-  # ── 音乐库体检 / 下载完成自动刮削（profile: scraper）──
-  # 与 server 共享音乐库目录（server 下载落盘 → scraper 推送通知写标签 → fnOS 扫描入库）。
-  scraper:
-    image: supgeekrod/music-copilot-scraper:${MC_SCRAPER_IMAGE_TAG:-latest}
-    container_name: music-copilot-scraper
-    profiles: [scraper]
-    environment:
-      # 显式固定：.env 的 MC_PORT 是 web 对外端口，会经 env_file 污染 scraper 监听端口
-      MC_PORT: 8098
-      MC_MUSIC_DIR: /music
-      MC_DATA_DIR: /data
-      MC_SERVER_URL: http://server:8097
-      MC_SERVER_USERNAME: ${MC_AUTH_USERNAME:-admin}
-      MC_SERVER_PASSWORD: ${MC_AUTH_PASSWORD:-admin}
-      MC_LASTFM_API_KEY: ${MC_LASTFM_API_KEY:-}
-      MC_HTTP_PROXY: ${MC_HTTP_PROXY:-}
-    env_file:
-      - .env
-    volumes:
-      - scraper-data:/data
-      - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/music"
-    depends_on:
-      - server
-    restart: unless-stopped
-
 volumes:
   server-data:
-  scraper-data:

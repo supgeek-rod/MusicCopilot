@@ -11,13 +11,12 @@ return [
         'token_name' => 'sqmusic',
     ],
 
-    // 下载引擎：文件落盘目录（目标部署时指向 fnOS 音乐库目录，由刮削工具接管写标签）
+    // 下载引擎：文件落盘目录（目标部署时指向 fnOS 音乐库目录，fnOS「音乐」扫描入库）
     'download' => [
         'dir' => env('MC_DOWNLOAD_DIR', storage_path('app/downloads')),
-        // M4 自动刮削：下载完成后推送通知的 scraper 地址（/mc/api 前缀），
-        // 空串=关闭（标签可经体检页手动补）；token 与 scraper 的 MC_SCRAPER_TOKEN 一致
-        'scraper_url' => env('MC_SCRAPER_URL', ''),
-        'scraper_token' => env('MC_SCRAPER_TOKEN', ''),
+        // 目录布局模板（下载完成 worker 按此重排为「歌手/专辑/」结构）；空串 = 关闭平铺
+        // 变量：{albumArtist} {album} {artist} {title} {year} {trackNo} {ext}
+        'dir_template' => env('MC_DIR_TEMPLATE', '{albumArtist}/{album}/{title} - {albumArtist}.{ext}'),
     ],
 
 ];

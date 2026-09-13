@@ -23,7 +23,7 @@ class DownloadFlowTest extends TestCase
         parent::setUp();
         $this->downloadDir = sys_get_temp_dir().'/mc-dl-test-'.uniqid();
         mkdir($this->downloadDir, 0775, true);
-        config(['mc.download.dir' => $this->downloadDir]);
+        config(['mc.download.dir' => $this->downloadDir, 'mc.download.dir_template' => '']);
     }
 
     protected function tearDown(): void
@@ -260,70 +260,31 @@ class DownloadFlowTest extends TestCase
         $this->assertSame('周杰伦 - A_B_C__ (2).mp3', basename((string) $second->file_path));
     }
 
-    public function test_job_notifies_scraper_with_ground_truth(): void
+    public function test_job_relocates_to_dir_template(): void
     {
-        config([
-            'mc.download.scraper_url' => 'http://scraper.local/mc/api',
-            'mc.download.scraper_token' => 'tok-123',
-        ]);
+        config(['mc.download.dir_template' => '{albumArtist}/{album}/{title} - {albumArtist}.{ext}']);
         Http::fake([
+            '*stype=albuminfo*' => Http::response($this->fakeAlbumInfo()),
             'mobi.kuwo.cn/*' => Http::response([
                 'code' => 200,
-                'data' => ['format' => 'mp3', 'url' => 'http://kw-er.kuwo.cn/x/M500.mp3'],
+                'data' => ['bitrate' => 128, 'duration' => 269, 'format' => 'mp3', 'url' => 'http://kw-er.kuwo.cn/x/M500.mp3'],
             ]),
             'kw-er.kuwo.cn/*' => Http::response('ID3-BYTES'),
-            'scraper.local/*' => Http::response(['jobId' => 'j1'], 202),
-        ]);
-
-        $task = DownloadTask::query()->create($this->taskAttributes([
-            'pic' => 'https://img3.kuwo.cn/star/albumcover/500/x.jpg',
-        ]));
-        (new DownloadSongJob($task->id))->handle(app(SourceManager::class));
-
-        $task->refresh();
-        $this->assertSame('success', $task->status);
-
-        Http::assertSent(function ($request): bool {
-            if (! str_starts_with($request->url(), 'http://scraper.local/mc/api/downloads')) {
-                return false;
-            }
-            if (($request->header('x-mc-token')[0] ?? null) !== 'tok-123') {
-                return false;
-            }
-            $body = $request->data();
-
-            return $body['fileName'] === '周杰伦 - 晴天.mp3'
-                && $body['musicId'] === '228908'
-                && $body['name'] === '晴天'
-                && $body['artist'] === '周杰伦'
-                && $body['album'] === '叶惠美'
-                && $body['coverUrl'] === 'https://img3.kuwo.cn/star/albumcover/500/x.jpg';
-        });
-    }
-
-    public function test_job_survives_scraper_failure(): void
-    {
-        config(['mc.download.scraper_url' => 'http://scraper.local/mc/api']);
-        Http::fake([
-            'mobi.kuwo.cn/*' => Http::response([
-                'code' => 200,
-                'data' => ['format' => 'mp3', 'url' => 'http://kw-er.kuwo.cn/x/M500.mp3'],
-            ]),
-            'kw-er.kuwo.cn/*' => Http::response('ID3-BYTES'),
-            'scraper.local/*' => Http::response(['error' => 'boom'], 500),
         ]);
 
         $task = DownloadTask::query()->create($this->taskAttributes());
         (new DownloadSongJob($task->id))->handle(app(SourceManager::class));
 
-        // 通知失败不回滚任务状态
         $task->refresh();
         $this->assertSame('success', $task->status);
+        $this->assertStringContainsString('/周杰伦/叶惠美/', (string) $task->file_path);
+        $this->assertSame('晴天 - 周杰伦.mp3', basename((string) $task->file_path));
         $this->assertFileExists($task->file_path);
     }
 
-    public function test_job_skips_notification_when_scraper_not_configured(): void
+    public function test_job_keeps_flat_when_template_disabled(): void
     {
+        config(['mc.download.dir_template' => '']);
         Http::fake([
             'mobi.kuwo.cn/*' => Http::response([
                 'code' => 200,
@@ -337,8 +298,7 @@ class DownloadFlowTest extends TestCase
 
         $task->refresh();
         $this->assertSame('success', $task->status);
-        // 仅直链解析 + 文件下载两次上游请求，无 scraper 通知
-        Http::assertSentCount(2);
+        $this->assertSame('周杰伦 - 晴天.mp3', basename((string) $task->file_path));
     }
 
     /** @param array<string, mixed> $overrides */

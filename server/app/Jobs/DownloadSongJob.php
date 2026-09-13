@@ -16,6 +16,7 @@ use Throwable;
 /**
  * 单曲下载 worker：解析直链（loading）→ 传输（downloading）→ 落盘（success）。
  * 直链有时效只能即用即取；失败进 error 由用户手动重试（对齐 SQMusic 语义，不做自动重试）。
+ * 落盘成功后按目录模板（MC_DIR_TEMPLATE）重排为「歌手/专辑/」结构（Navidrome 友好）。
  */
 class DownloadSongJob implements ShouldQueue
 {
@@ -106,43 +107,134 @@ class DownloadSongJob implements ShouldQueue
             'update_time' => now(),
         ])->save();
 
-        $this->notifyScraper($task, basename($final));
+        // 目录重排（Navidrome 友好）：失败保持平铺原位，不影响任务成功状态
+        try {
+            $layout = $this->relocateByTemplate($sources, $plugin, $task, $final);
+            if ($layout !== null) {
+                $task->forceFill(['file_path' => $layout, 'update_time' => now()])->save();
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /**
-     * M4 自动刮削：fire-and-forget 通知 scraper 写标签（真值元数据，见 scraper /mc/api/downloads）。
-     * 通知失败仅记录日志不回滚任务——scraper 不可达时标签可经体检页手动补。
+     * 按 MC_DIR_TEMPLATE 把成品文件移入「歌手/专辑/」两级目录。
+     * 专辑上下文（专辑歌手/年份/音轨号）经本机插件原生查询（albumInfoById），
+     * 无专辑 id 或查询失败时用任务自带字段尽力渲染；无法得出有效路径返回 null（保持平铺）。
+     * 返回重排后的绝对路径。
      */
-    private function notifyScraper(DownloadTask $task, string $fileName): void
+    private function relocateByTemplate(
+        SourceManager $sources,
+        SourcePlugin $plugin,
+        DownloadTask $task,
+        string $currentAbs,
+    ): ?string {
+        $template = trim((string) config('mc.download.dir_template'));
+        if ($template === '') {
+            return null; // 模板为空 = 关闭
+        }
+
+        $baseDir = (string) config('mc.download.dir');
+        $realBase = realpath($baseDir) ?: $baseDir;
+
+        $albumArtist = $task->artist_name ?? '';
+        $albumName = $task->album_name ?? '';
+        $year = '';
+        $trackNo = '';
+        if ($task->album_id !== null && $task->album_id !== '') {
+            try {
+                $info = $plugin->albumInfo($task->album_id);
+                $albumArtist = ($info['albumArtist'] ?? '') !== '' ? (string) $info['albumArtist'] : $albumArtist;
+                $albumName = ($info['albumName'] ?? '') !== '' ? (string) $info['albumName'] : $albumName;
+                $year = substr((string) ($info['albumTime'] ?? ''), 0, 4);
+                foreach (($info['musics'] ?? []) as $m) {
+                    if ((string) ($m['id'] ?? '') === (string) $task->music_id) {
+                        $n = (int) ($m['trackNo'] ?? 0);
+                        $trackNo = $n > 0 ? (string) $n : '';
+
+                        break;
+                    }
+                }
+            } catch (Throwable $e) {
+                report($e); // 专辑上下文失败：用任务自带字段尽力渲染
+            }
+        }
+
+        $ext = strtolower(pathinfo($currentAbs, PATHINFO_EXTENSION));
+        $values = [
+            '{albumArtist}' => $albumArtist,
+            '{album}' => $albumName,
+            '{artist}' => $task->artist_name ?? '',
+            '{title}' => $task->music_name,
+            '{year}' => $year,
+            '{trackNo}' => $trackNo,
+            '{ext}' => $ext,
+        ];
+
+        // 渲染模板：逐段替换 → 清理非法字符与结尾点；中间空段（如无专辑时的 {album}/）整体丢弃
+        $rawSegs = explode('/', $template);
+        $count = count($rawSegs);
+        $segs = [];
+        foreach ($rawSegs as $i => $seg) {
+            $s = str_replace(array_keys($values), array_values($values), $seg);
+            $s = trim((string) preg_replace('/[\\\\\/:*?"<>|]/', '_', $s));
+            $s = (string) preg_replace('/[.\s]+$/u', '', $s);
+            if ($i < $count - 1 && $s === '') {
+                continue;
+            }
+            $segs[] = $s;
+        }
+
+        // 文件名段（最后一段）：词干只剩分隔符残渣（- _ 空格 点）视为变量全空，保持平铺
+        $file = (string) end($segs);
+        $file = (string) preg_replace('/\s+\./', '.', $file);
+        $stem = pathinfo($file, PATHINFO_FILENAME);
+        if ($file === '' || trim(str_replace(['-', '_', ' '], '', $stem), '.') === '') {
+            return null;
+        }
+        $segs[count($segs) - 1] = $file;
+
+        $target = $baseDir.'/'.implode('/', $segs);
+        if (realpath($target) === realpath($currentAbs)) {
+            return null; // 已在目标位置
+        }
+
+        // 冲突处理：同名追加序号；同内容视为重复下载，删源保留既有文件
+        $candidate = $target;
+        $n = 2;
+        while (is_file($candidate)) {
+            if (filesize($candidate) === filesize($currentAbs) && md5_file($candidate) === md5_file($currentAbs)) {
+                @unlink($currentAbs);
+                $this->cleanEmptyDirs(dirname($currentAbs), $baseDir);
+
+                return $candidate;
+            }
+            $candidate = (string) preg_replace('/(\.[^.]+)$/', ' ('.$n.')$1', $target);
+            $n++;
+        }
+
+        if (! is_dir(dirname($candidate))) {
+            mkdir(dirname($candidate), 0775, true);
+        }
+        rename($currentAbs, $candidate);
+        $this->cleanEmptyDirs(dirname($currentAbs), $baseDir);
+
+        return $candidate;
+    }
+
+    /** 自底向上清理因移动而变空的目录（不超过下载根目录） */
+    private function cleanEmptyDirs(string $dir, string $baseDir): void
     {
-        $url = rtrim((string) config('mc.download.scraper_url'), '/');
-        if ($url === '') {
-            return;
-        }
-
-        $headers = [];
-        $token = (string) config('mc.download.scraper_token');
-        if ($token !== '') {
-            $headers['x-mc-token'] = $token;
-        }
-
-        try {
-            Http::timeout(10)
-                ->withHeaders($headers)
-                ->post($url.'/downloads', [
-                    'fileName' => $fileName,
-                    'plugName' => $task->plug_name,
-                    'musicId' => $task->music_id,
-                    'name' => $task->music_name,
-                    'artist' => $task->artist_name,
-                    'album' => $task->album_name,
-                    'coverUrl' => $task->pic,
-                    // 目录重排后 scraper 据此回写新路径
-                    'taskId' => $task->id,
-                ])
-                ->throw();
-        } catch (Throwable $e) {
-            report($e);
+        $base = rtrim($baseDir, '/\\');
+        $cur = $dir;
+        while (is_dir($cur) && str_starts_with(realpath($cur) ?: $cur, $base) && realpath($cur) !== $base) {
+            $entries = glob($cur.'/*') ?: [];
+            if ($entries !== []) {
+                break;
+            }
+            @rmdir($cur);
+            $cur = dirname($cur);
         }
     }
 
