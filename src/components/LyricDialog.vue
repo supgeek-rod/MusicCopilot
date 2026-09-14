@@ -30,17 +30,28 @@ let disposed = false
 
 /** 元数据标签（[ti:]/[ar:]/[offset:] 等）剔除时间标签后残留 "ti:xxx" 形式，识别后整行丢弃 */
 const META_LINE_RE = /^(?:ti|ar|al|by|offset|ver|kuwo|ml|hash|encoding|total|length|sign|re):/i
+/** 整行仅由 [key:value] 元数据标签构成（酷我头部 [kuwo:127][ver:v1.0][ti:晴天]…） */
+const META_TAGS_ONLY_RE = /^(?:\[[^\]:]*:[^\]]*\]\s*)+$/
 
-/** 解析一行 LRC：提取首个 [mm:ss.xx] 时间标签；保留行内方括号内容（酷我的行内翻译） */
+/** 解析一行歌词：行级时间取 [mm:ss.xx] 标签（酷我逐字行同样以它为准，字标签 <毫秒,毫秒> 数值非绝对时间不可用作行时间，仅在无行标签时回退）；[key:value] 元数据标签剥除，普通方括号内容（酷我的行内翻译）保留 */
 function parseLine(raw: string): { time: number | null; text: string } {
   const m = raw.match(/\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]/)
-  const text = raw.replace(/\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]/g, '').trim()
   let time: number | null = null
   if (m) {
     const frac = m[3] ? Number(`0.${m[3]}`) : 0
     time = Number(m[1]) * 60 + Number(m[2]) + frac
   }
-  if (text === '' || META_LINE_RE.test(text)) return { time: null, text: '' }
+  let text: string
+  const wordTags = [...raw.matchAll(/<(\d+),\s*-?\d+>/g)]
+  if (wordTags.length) {
+    if (time === null) time = Number(wordTags[0]![1]!) / 1000
+    text = raw.replace(/<\d+,\s*-?\d+>/g, '').trim()
+  } else {
+    text = raw.replace(/\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]/g, '').trim()
+  }
+  // 头部元数据可能与首个歌词行同行（酷我常见），一律剥除 [key:value] 形态标签；无冒号的行内翻译不受影响
+  text = text.replace(/\[[^\]:]*:[^\]]*\]/g, '').replace(/\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]/g, '').trim()
+  if (text === '' || META_LINE_RE.test(text) || META_TAGS_ONLY_RE.test(text)) return { time: null, text: '' }
   return { time, text }
 }
 
