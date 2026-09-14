@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Music2Icon, PlayIcon, UserRoundIcon } from '@lucide/vue'
+import { ArrowLeftIcon, Music2Icon, PlayIcon, UserRoundIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import {
   fnosCoverUrl,
@@ -31,6 +32,7 @@ const props = defineProps<{
 }>()
 
 const player = usePlayerStore()
+const router = useRouter()
 
 const KIND_LABEL: Record<typeof props.kind, string> = {
   album: '专辑',
@@ -153,6 +155,17 @@ function hideImg(e: Event) {
 
 <template>
   <div class="mx-auto w-full max-w-5xl px-4 py-6">
+    <!-- 返回：详情页原是导航死端，靠浏览器返回才能离开（与搜索侧歌手/专辑页一致） -->
+    <Button
+      variant="ghost"
+      size="sm"
+      class="-ml-2 mb-2 text-muted-foreground"
+      @click="router.back()"
+    >
+      <ArrowLeftIcon class="size-4" />
+      返回
+    </Button>
+
     <div v-if="detailLoading" class="flex gap-6">
       <Skeleton class="size-36 shrink-0 rounded-lg sm:size-44" />
       <div class="flex-1 space-y-3">
