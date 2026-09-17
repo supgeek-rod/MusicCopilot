@@ -5,13 +5,13 @@ description: MusicCopilot 的安装、开发、构建与文档站开发步骤
 
 # 快速开始
 
-MusicCopilot 当前是纯前端 SPA（[路线图](./roadmap.md) 第 1-2 期），需要一个已部署的 [Simple SQ Music Plus](https://github.com/59799517/simple_sq_music_plus) 后端作为数据源。后端地址与账号通过环境变量注入，见[配置说明](./configuration.md)。
+MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/main/server) 为自建后端（PHP / Laravel 13，酷我音源）。v0.2.0 起由自建后端提供数据与下载服务，**无需再部署 Simple SQ Music Plus**。后端地址与账号通过环境变量注入，见[配置说明](./configuration.md)；完整部署见[部署指南](./deployment.md)。
 
 ## 环境要求
 
 - Node.js ≥ 20.19（推荐 22 LTS）
 - npm（仓库带 `package-lock.json`，建议直接使用 npm）
-- 一个可访问的 SQ Music 后端实例
+- 后端任选其一：自建后端（`server/`，开发运行方式见 `server/README.md`）或可访问的既有后端实例
 
 ## 开发
 

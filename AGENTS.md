@@ -2,22 +2,21 @@
 
 ## 项目说明
 
-**MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA，对接 **SQ Music**（simple_sq_music_plus，自部署音乐下载与管理服务）。项目按 [docs/roadmap.md](docs/roadmap.md)「开发路线图」演进：第 3 期起新增 Node 伴生服务，第 5 期自建后端替换 SQMusic（架构见 [docs/architecture.md](docs/architecture.md)）。自建后端已提前落地：`server/` 子目录（PHP / Laravel 13，原独立仓库 MusicCopilotServer 于 2026-09-11 subtree 并入，保留历史）。
+**MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA + 自建后端一体的 monorepo。**自建后端已上线（第 5 期，2026-09-12 完成）：`server/` 子目录（PHP / Laravel 13，原独立仓库 MusicCopilotServer 于 2026-09-11 subtree 并入，保留历史），fnOS 线上已切换自建后端，SQMusic（simple_sq_music_plus）容器退役**——v0.2.0 起无需 SQMusic，接口契约保持与其对齐（`sqmusic` 请求头等，见架构 [docs/architecture.md](docs/architecture.md)）。
 
-- 后端服务地址: http://192.168.31.31:8096 （账号 admin / admin，同 `.env`，模板见 `.env.example`）
-- 官方接口文档: https://59799517.github.io/simple_sq_music_plus/#/README
+- 自建后端开发服务: `http://127.0.0.1:8097`（WSL 内 `php artisan serve`，见下方常用命令；账号取 `.env` 的 `MC_AUTH_USERNAME/MC_AUTH_PASSWORD`，默认 admin/admin）
+- fnOS 线上（fnOS-Just4fun）: 前端 `http://192.168.31.31:12312`，三容器拓扑（web + server + server-worker）
 - 前端开发服务器: `npm run dev`（端口取 `.env` 的 `MC_PORT`，默认 5173；`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
 - 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
+- ~~SQMusic 官方接口文档~~（已退役，历史参考）: https://59799517.github.io/simple_sq_music_plus/#/README
 
-## 必读记忆
+## 历史接口参考（已退役 SQMusic 后端）
 
-**调用该服务接口前，必须先阅读 [`docs/api-test-report.md`](docs/api-test-report.md)**。
+[`docs/api-test-report.md`](docs/api-test-report.md) 记录了 2026-09-05 对 SQMusic 的全量接口实测，自建后端契约即从该报告对齐而来；调自建后端接口遇契约疑义时仍值得参考，关键结论：
 
-其中记录了 2026-09-05 的全量接口实测结果，关键结论：
-
-1. **官方文档的参数名普遍过时**（如 `platform`→实际 `plugName`、`keywords`→`keyword`、
+1. **SQMusic 官方文档的参数名普遍过时**（如 `platform`→实际 `plugName`、`keywords`→`keyword`、
    `currentPage`→`pageIndex`、`/api/version`→`/api/config/version`），按文档调用会得到 500。
-2. 登录必须带 `device:"web"` 字段；鉴权请求头名为 `sqmusic`。
+2. 登录必须带 `device:"web"` 字段；鉴权请求头名为 `sqmusic`（自建后端沿用）。
 3. `GET /api/task/delSuccessTask` 会清空服务器全部历史下载记录，**禁止随意调用**；
    `downloadSong`、`downloadAlbum` 等会产生真实下载任务/文件，测试后需用 `POST /api/task/del` 清理。
 4. 酷狗插件(kg)未开启、qqvip 未开启且 cookie 失效——相关接口当前不可用属预期状态。
@@ -28,7 +27,7 @@
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
 - `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
-- `wsl -e bash -lc "cd '/mnt/c/Users/superod/OneDrive/文档/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=8097"` —— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
+- `wsl -e bash -lc "cd '/mnt/c/Users/superod/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=8097"` —— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
 
 ## server/ 子目录（自建后端，Laravel 13）
 

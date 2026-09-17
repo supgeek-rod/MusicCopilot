@@ -5,7 +5,7 @@ description: Docker Compose 拉取预构建镜像部署（Docker Hub / GHCR）�
 
 # 部署指南
 
-## 容器与拓扑（自建后端 + 刮削）
+## 容器与拓扑（自建后端）
 
 启用第 5 期全家桶（在 `.env` 配置 `COMPOSE_PROFILES=server` 后 `docker compose up -d`）共三个容器，各司其职：
 
@@ -13,7 +13,7 @@ description: Docker Compose 拉取预构建镜像部署（Docker Hub / GHCR）�
 | --- | --- | --- | --- | --- | --- |
 | `web`（music-copilot） | CI 构建 `supgeekrod/music-copilot`（或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
 | `server`（music-copilot-server） | NAS 本地构建 `server/Dockerfile`（php:8.4-cli-alpine 多阶段） | 自建后端 API：登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与任务管理（SQMusic 对齐契约），附 OpenAPI 文档 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
-| `server-worker`（music-copilot-server-worker） | 与 server 同镜像 | 下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 完成后推送刮削通知 | — | — | 与 server 共享（SQLite + 音乐库目录） |
+| `server-worker`（music-copilot-server-worker） | 与 server 同镜像 | 下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 完成后按目录模板重排 | — | — | 与 server 共享（SQLite + 音乐库目录） |
 
 server 与 server-worker 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
 
@@ -26,7 +26,7 @@ server 与 server-worker 的下载目录挂载的是宿主机音乐库目录（`
 
 ### 容器互访（compose 网络）
 
-四个容器同处 compose 自动创建的网络，互相用**服务名**访问（Docker 内嵌 DNS `127.0.0.11`，运行时解析）：
+三个容器同处 compose 自动创建的网络，互相用**服务名**访问（Docker 内嵌 DNS `127.0.0.11`，运行时解析）：
 
 | 调用方 | 目标 | 引用变量 |
 | --- | --- | --- |
@@ -39,13 +39,13 @@ nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建�
 ```bash
 # NAS 端 .env（节选，完整模板见仓库 .env.example）
 COMPOSE_PROFILES=server
-MC_MUSIC_HOST_DIR=/vol1/1000/Musics/MusicCopilot   # 音乐库绝对路径（下载落盘 + 刮削共用）
+MC_MUSIC_HOST_DIR=/vol1/1000/Musics/MusicCopilot   # 音乐库绝对路径（下载落盘目录）
 docker compose up -d
 ```
 
 server 的登录凭证用 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD`（默认 admin/admin）；数据库迁移随容器启动自动执行，无需手工操作。
 
-## Docker 部署（推荐）
+## Docker 部署（仅前端，对接外部后端）
 
 镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **Docker Hub 与 GHCR**（`linux/amd64` + `linux/arm64` 双架构），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
 

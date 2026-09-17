@@ -5,7 +5,7 @@ set -e
 
 if [ -z "${MC_API_BASE_URL:-}" ]; then
   echo "[mc] 错误：缺少环境变量 MC_API_BASE_URL（后端地址，nginx 将把 /api 反代到该地址）" >&2
-  echo "[mc] Docker / compose 部署请在 .env 中设置，例如 MC_API_BASE_URL=http://192.168.31.31:8096" >&2
+  echo "[mc] Docker / compose 部署请在 .env 中设置，例如 MC_API_BASE_URL=http://server:8097（自建后端 compose 服务名）" >&2
   exit 1
 fi
 

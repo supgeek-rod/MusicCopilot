@@ -25,9 +25,9 @@ description: MusicCopilot 整体架构：演进总览、模块边界、关键决
 ```
 
 - **第 1-2 期**：SPA 直连 SQMusic 后端，专注把前端能力做完。
-- **当前（第 2 期进行中）**：fnOS 音乐库以**同源反代直连**方式提前接入（`/fnos` 前缀，无 Node 服务）；第 3 期 Companion 的 `server/fnos` 模块接管同一前缀，前端零改动。
-- **第 3-4 期**：引入 **Companion 伴生服务**（Node.js），补齐 SQMusic 不具备的 NAS 侧能力（fnOS 对接、文件扫描、标签写入）；其中第 4 期文件级写操作落地为**独立 `scraper/` 工具容器**（见决策 #2 修订与 `docs/META_SCRAPER_PLAN.md`）。
-- **第 5-6 期**：自建 **MusicCopilot Server** 按相同接口契约替换 SQMusic 后端，Docker 一键交付。Companion 与自建后端**合并为同一个 Node 服务**（按模块启停），避免维护两套进程。
+- **当前（第 5 期已完成，SQMusic 退役）**：自建后端 `server/`（PHP / Laravel 13）按对齐契约接管全部 `/api` 流量，fnOS 音乐库仍以 `/fnos` 同源反代直连网关；scraper 与 `/mc` 通道已随第 4 期架构调整移除（源码存档在 `scraper/`，不构建不运行）。
+- **第 3 期（进行中）**：fnOS 侧能力（曲库扫描、歌单补全）规划收敛到 server/ 内模块，`/fnos` 前缀语义不变。
+- **第 5-6 期（已完成）**：自建 **MusicCopilot Server** 按相同接口契约替换 SQMusic 后端，Docker 一键交付。
 
 ## 2. 仓库形态（monorepo 已落地）
 
@@ -50,10 +50,8 @@ MusicCopilot/
 │  ├─ docs/kuwo-api-notes.md   # 酷我端点/加密/区域限制调研
 │  ├─ research/ scripts/       # 酷我调研资料与 curl 验证脚本
 │  └─ openapi.json             # OpenAPI 3.1 规范固化（scramble:export）
-├─ scraper/                     # 音乐元数据刮削工具（第4期，独立镜像：Node 24 + Fastify，直读写 NAS 音乐文件卷）
-├─ docker/
-│  ├─ web.Dockerfile            # 基础版已提前落地（根级 Dockerfile，nginx 托管 + /api 反代）；第6期扩展 /mc 反代与多服务编排
-│  └─ server.Dockerfile         # 第6期：PHP 服务镜像
+├─ scraper/                     # （已移除）音乐元数据刮削工具源码存档，不构建不运行
+├─ docker/                      # nginx 反代模板 + 容器入口配置生成脚本（前端镜像构建用根级 Dockerfile，server 镜像用 server/Dockerfile）
 └─ docs/                       # 文档（VitePress 文档站 + 接口实测报告）
 ```
 
@@ -73,7 +71,7 @@ MusicCopilot/
 | `scraper/jobs` | 4（已移除） | Fastify `/mc/api` 路由 + 任务队列（扫描/匹配/写入）+ SQLite 持久化（node:sqlite） | infra |
 | `server/music` | 5 | 聚合搜索/详情/直链解析，对接音源插件注册表 | plugins/sources |
 | `server/plugins/sources` | 5 | 每平台一个插件，实现统一 SourcePlugin 接口，可独立启停与热更新 | — |
-| `server/download` | 5 | 下载队列/并发/进度/重试；完成后自动写标签内嵌封面 | tasks/healthcheck |
+| `server/download` | 5 | 下载队列/并发/进度/重试；完成后按目录模板重排（`MC_DIR_TEMPLATE`） | tasks/healthcheck |
 | `server/tasks` | 5 | 任务持久化（SQLite）与查询接口 | infra |
 
 ## 4. 关键架构决策
@@ -81,17 +79,17 @@ MusicCopilot/
 | # | 决策 | 理由 |
 | --- | --- | --- |
 | 1 | **接口契约先行**：前后端共享类型放 `packages/api-contract` | 第 5 期替换后端时前端零改动；统一 `{code,msg,data}` 包裹与错误语义 |
-| 2 | **单服务渐进生长**：Companion 与自建后端是同一个 `apps/server`，按模块启用。**2026-09-11 修订**：文件级写操作（元数据刮削）独立为 `scraper/` 工具容器——直接写 NAS 文件的风险隔离、可独立授权/重启，音源解析仍收敛在 server/ | 避免维护两套进程/镜像；第 3 期骨架直接长成第 5 期形态 |
+| 2 | **单服务渐进生长**：Companion 与自建后端是同一个 `apps/server`，按模块启用。**2026-09-11 修订**：文件级写操作（元数据刮削）独立为 `scraper/` 工具容器——直接写 NAS 文件的风险隔离、可独立授权/重启，音源解析仍收敛在 server/。**2026-09 再修订**：第 4 期移除后 `scraper/` 下线（源码存档，不构建不运行），回到单服务形态 | 避免维护两套进程/镜像；第 3 期骨架直接长成第 5 期形态 |
 | 3 | **音源插件化**：解析逻辑按平台隔离在 `plugins/sources` | 平台接口变动频繁，解析层独立可热更新，坏一个源不影响整体 |
 | 4 | **统一鉴权**：第 2 期登录框 + JWT；前端 axios 适配层同时兼容 SQMusic 的 `sqmusic` 头与自建服务的 `Authorization: Bearer` | 配置文件不再存明文密码；过渡期双后端并存无感切换 |
 | 5 | **数据闭环**：下载目录 = fnOS 音乐目录（Docker 卷映射同一路径） | 新下载自动被 fnOS 扫描入库，歌单补全/音质升级无需搬运文件 |
 | 6 | **同源部署**：生产由 nginx 反代 `/api`、`/mc`，开发用 Vite proxy | 彻底规避 CORS；`config.json` 只需留空 baseUrl |
 | 7 | **技术栈**（2026-09 修订）：server 用 PHP / Laravel 13 + SQLite（队列 database driver + `queue:work`） | Laravel 生态完备（HTTP 客户端/队列/测试开箱即用）、插件化天然契合；原 Fastify+Node 方案作废 |
 | 8 | **fnOS 同源反代直连**：`/fnos` 前缀固定为「fnOS 音乐 API 同源代理」（dev 走 Vite proxy，生产走 nginx），前端登录后以 `document.cookie` 写入 `music-token`，封面/音频流用相对路径自动携带 Cookie；第 3 期由 Companion `server/fnos` 模块接管同一前缀 | fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行；前缀语义固定后伴生服务接管零改动 |
-| 9 | **`/mc` 前缀 = 伴生工具通道**：现阶段指向 `scraper/` 刮削工具（第 4 期），沿用 `/fnos` 先例——前缀语义稳定、nginx 反代目标可切换，未来 server/ 伴生模块上线时前端与反代前缀零改动 | 前端适配层（`src/api/companion.ts`）与同源部署不因后端形态调整而返工 |
-| 10 | **刮削工具技术栈**：Node.js 24 + Fastify + node:sqlite + taglib-wasm（WASM 版 TagLib，免交叉编译、多架构镜像友好），ffmpeg 兜底；与前端同语言、共享类型 | 路线图第 4 期原定 music-metadata/taglib 即 Node 生态；PHP 侧标签写入库弱，不适合文件级写操作 |
+| ~~9~~ | **`/mc` 前缀 = 伴生工具通道**（**已移除**）：曾指向 `scraper/` 刮削工具，随第 4 期移除；`/fnos` 前缀的同源反代先例仍有效 | 前缀语义稳定、nginx 反代目标可切换的实践已被 `/fnos` 验证 |
+| ~~10~~ | **刮削工具技术栈**（**随第 4 期移除失效**，源码存档见 `scraper/`）：Node.js 24 + Fastify + node:sqlite + taglib-wasm | 保留作恢复参考 |
 
-## 5. 部署拓扑（第 6 期目标）
+## 5. 部署拓扑（现状，第 5-6 期已落地）
 
 ```
 [浏览器]
@@ -99,32 +97,32 @@ MusicCopilot/
    ▼
 ┌────────────────────── nginx (web 容器) ─────────────────────┐
 │  /            → SPA 静态文件                                 │
-│  /api/*       → SQMusic 后端（过渡期） / MusicCopilot Server  │
-│  /fnos/*      → fnOS 网关 5666（第 3 期起改指 Companion）     │
-│  /mc/*        → scraper 刮削工具（第 4 期；未来 server 接管   │
-│                 时仅切换反代目标，前缀不变）                   │
+│  /api/*       → MusicCopilot Server（server 容器 :8097）     │
+│  /fnos/*      → fnOS 网关 5666（直连，Cookie 鉴权）          │
 └───────┬─────────────────────────────────────┬───────────────┘
         ▼                                     ▼
-┌── scraper 容器（第4期）──────┐    ┌──────── server 容器 ────────┐
-│ scan / match / writer / jobs │    │ auth / fnos / library /     │
-│ （/mc/api，可选 x-mc-token） │    │ playlist / music / download │
-└───┬──────────────┬───────────┘    │ / tasks                     │
-    ▼              ▼                └──────┬──────────────────────┘
-[音乐目录卷 rw]   [scraper SQLite 卷]       ▼
-    ⇅（fnOS 自动扫描入库）              [SQLite data 卷]
+┌──────── server 容器 ────────┐        [fnOS 网关]
+│ auth / music / download /   │
+│ tasks（SQLite data 卷）     │
+└──────┬──────────────────────┘
+       ▼ queue:work（server-worker 容器）
+[音乐目录卷 rw] ⇅（fnOS / Navidrome 自动扫描入库）
 ```
 
-## 6. 前端适配层（过渡期双后端并存）
+> 历史形态（SQMusic 过渡期、第 4 期 scraper 容器与 `/mc` 通道）已随架构调整移除，`scraper/` 目录为源码存档。
 
-`src/api/http.ts` 已集中处理 baseURL 与 token 头，后续扩展为**按后端分组**：
+## 6. 前端适配层（现状：自建后端单后端）
+
+`src/api/http.ts` 集中处理 baseURL 与 token 头（自建后端沿用 SQMusic 对齐契约的 `sqmusic` 头），实际文件：
 
 ```
 src/api/
-├─ http.ts        # 请求实例工厂：createClient({ baseURL, authMode })
-├─ sqmusic.ts     # SQMusic 后端（现有 music/auth/task/download 封装）
-├─ fnos.ts        # 2.5 期：fnOS 音乐 API（/fnos 反代直连，code==0 信封 + Cookie 鉴权）
-├─ companion.ts   # 第4期：/mc 刮削工具（音乐库体检）接口；第3期曲库/歌单沿用同一前缀规划
-└─ selfhosted.ts  # 第5期：自建后端（与 sqmusic.ts 同契约，直接替换指向）
+├─ http.ts        # 请求实例：{code,msg,data} 解包 + token 头 + 403 自动重登
+├─ auth.ts        # 登录（device: "web"）与 token 刷新
+├─ music.ts       # 搜索/详情/歌词/直链（自建后端，SQMusic 对齐契约）
+├─ task.ts        # 下载任务管理
+├─ fnos.ts        # fnOS 音乐库（/fnos 反代直连，code==0 信封 + Cookie 鉴权）
+└─ types.ts       # 接口类型（契约类型源在 packages/api-contract）
 ```
 
 `config.json` 相应扩展（向后兼容）：

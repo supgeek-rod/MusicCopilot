@@ -1,6 +1,6 @@
 # MusicCopilot
 
-基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载 Web 客户端，对接 [Simple SQ Music Plus](https://github.com/59799517/simple_sq_music_plus) 的 HTTP 接口。
+基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载应用：前端 SPA + 自建后端（`server/`，对接酷我音源）同仓一体，Docker Compose 一键部署，**无需再部署 Simple SQ Music Plus**（v0.2.0 起由自建后端完全替代；过渡期接口契约与其保持对齐）。
 
 [![Build & Publish Docker Image](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml)
 
@@ -31,7 +31,8 @@ monorepo（2026-09-11 起）：根目录为 Web 前端（本 README 所述）；
 
 ```bash
 npm install
-npm run dev        # 开发，默认 http://localhost:5173（先 cp .env.example .env 配置后端地址）
+npm run dev        # 开发，默认 http://localhost:5173（先 cp .env.example .env 配置后端地址；
+                   #  自建后端开发服务见 server/README.md，如 http://127.0.0.1:8097）
 npm run build      # vue-tsc 类型检查 + Vite 构建，产物输出 dist/
 npm run preview    # 本地预览构建产物
 ```
@@ -40,30 +41,25 @@ npm run preview    # 本地预览构建产物
 
 ## Docker 部署
 
-镜像由 CI 自动构建发布到 **Docker Hub / GHCR**（`amd64` + `arm64` 双架构），**推荐用 Compose 直接拉取预构建镜像**，无需克隆仓库、无需本地构建。容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS），改配置重启容器即可、无需重建镜像：
-
-```yaml
-# docker-compose.yml
-services:
-  web:
-    image: supgeekrod/music-copilot:latest   # 或 GHCR：ghcr.io/supgeek-rod/music-copilot:latest
-    container_name: music-copilot
-    ports:
-      - "17016:80"                # 对外端口，按需修改
-    environment:
-      MC_API_BASE_URL: http://<后端地址>:8096   # 必填：SQ Music 后端地址
-      MC_API_USERNAME: admin      # 自动登录账号
-      MC_API_PASSWORD: admin
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-```
+推荐**克隆仓库用自带 compose 一键拉起三容器**（web 前端 + server API + server-worker 下载队列，自建后端自包含，无需 SQ Music）：
 
 ```bash
+git clone https://github.com/supgeek-rod/MusicCopilot.git && cd MusicCopilot
+cp .env.example .env
+
+# .env 中设置：
+#   COMPOSE_PROFILES=server
+#   MC_API_BASE_URL=http://server:8097                  # web 容器反代到自建后端（compose 服务名）
+#   MC_MUSIC_HOST_DIR=/path/to/music                   # 音乐库目录（下载落盘处）
+#   MC_AUTH_USERNAME / MC_AUTH_PASSWORD                # 自建后端登录凭证（默认 admin/admin）
+
 docker compose up -d
 ```
 
-更多部署方式（克隆仓库用自带 compose / docker run / 本地构建）、升级与镜像 tag 规则见文档站[部署指南](docs/deployment.md)。
+- 前端镜像由 CI 自动构建发布到 **Docker Hub / GHCR**（`amd64` + `arm64` 双架构），容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS）；自建后端镜像（`server/Dockerfile`，php:8.4-cli-alpine）首次由 compose 本地构建
+- 下载完成后 worker 按目录模板（`MC_DIR_TEMPLATE`，默认 `歌手/专辑/`）重排，飞牛音乐 / Navidrome 等媒体库可直接扫描入库
+
+仅需前端、对接外部既有后端（如尚在运行的 SQ Music）的单容器部署方式见文档站[部署指南](docs/deployment.md)。
 
 ## 文档
 
@@ -76,7 +72,7 @@ docker compose up -d
 | [docs/features.md](docs/features.md) | 功能说明（页面/交互/实现要点） |
 | [docs/architecture.md](docs/architecture.md) | 整体架构设计（按路线图演进） |
 | [docs/roadmap.md](docs/roadmap.md) | 开发路线图（第 1-6 期） |
-| `docs/api-test-report.md` | SQ Music 接口实测报告（内部资料，调用接口前必读；不发布到文档站） |
+| `docs/api-test-report.md` | 已退役 SQMusic 后端的接口实测报告（历史参考，防坑记录；不发布到文档站） |
 
 ## 目录结构
 
@@ -97,7 +93,7 @@ src/lib/               # 工具：格式化、数据适配（adapter）、富文
 
 ## 开发路线图
 
-见 [docs/roadmap.md](docs/roadmap.md)：第 1 期（已完成）→ 第 2 期纯前端增强 → 第 3-4 期 Companion 伴生服务（fnOS 对接 / 音乐库体检）→ 第 5 期自建下载服务替换 SQ Music → 第 6 期 Docker 整体交付。
+见 [docs/roadmap.md](docs/roadmap.md)：第 1 期前端基础 ✅ → 第 3 期 fnOS 音乐库对接 🚧 → 第 4 期音乐库体检（已随架构调整移除）→ 第 5 期自建后端替换 SQ Music ✅ → 第 6 期 Docker 整体交付 ✅。
 
 ## 文档站开发
 

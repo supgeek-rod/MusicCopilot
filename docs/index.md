@@ -4,7 +4,7 @@ layout: home
 hero:
   name: MusicCopilot
   text: 音乐搜索、试听与下载客户端
-  tagline: 基于 Vue 3 + TypeScript + shadcn-vue 的 Web 客户端，对接 SQ Music 自部署后端——在线试听、服务器下载队列与浏览器直链下载，可安装为 PWA。
+  tagline: 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载应用，自带 PHP/Laravel 自建后端（酷我音源，Docker Compose 一键部署）——在线试听、服务器下载队列与浏览器直链下载，可安装为 PWA。
   actions:
     - theme: brand
       text: 快速开始

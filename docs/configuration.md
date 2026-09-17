@@ -15,7 +15,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 | 变量 | 说明 |
 | --- | --- |
-| `MC_API_BASE_URL` | SQ Music 后端地址：dev/preview 的 Vite 代理与 Docker nginx 的反代目标（`npm run dev` / `preview` 与容器部署必填，勿把局域网 IP 写进源码） |
+| `MC_API_BASE_URL` | 后端服务地址：dev/preview 的 Vite 代理与 Docker nginx 的反代目标（`npm run dev` / `preview` 与容器部署必填，勿把局域网 IP 写进源码）。自建后端三容器部署填 compose 服务名 `http://server:8097`（见[部署指南](./deployment.md)），自建后端的凭证变量（`MC_AUTH_*`）与下载相关变量也见该指南 |
 | `MC_API_USERNAME` / `MC_API_PASSWORD` | 自动登录账号（token 失效也会用它静默重登；留空则不自动登录，可在应用设置面板按设备配置连接） |
 | `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
