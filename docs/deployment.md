@@ -1,6 +1,6 @@
 ---
 title: 部署指南
-description: Docker Compose 拉取预构建镜像部署（Docker Hub / GHCR）与静态部署
+description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）与静态部署
 ---
 
 # 部署指南
@@ -11,7 +11,7 @@ description: Docker Compose 拉取预构建镜像部署（Docker Hub / GHCR）�
 
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
-| `web`（music-copilot） | CI 构建 `supgeekrod/music-copilot`（或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
+| `web`（music-copilot） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
 | `server`（music-copilot-server） | NAS 本地构建 `server/Dockerfile`（php:8.4-cli-alpine 多阶段） | 自建后端 API：登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与任务管理（SQMusic 对齐契约），附 OpenAPI 文档 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
 | `server-worker`（music-copilot-server-worker） | 与 server 同镜像 | 下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 完成后按目录模板重排 | — | — | 与 server 共享（SQLite + 音乐库目录） |
 
@@ -47,7 +47,7 @@ server 的登录凭证用 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD`（默认 admin
 
 ## Docker 部署（仅前端，对接外部后端）
 
-镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **Docker Hub 与 GHCR**（`linux/amd64` + `linux/arm64` 双架构），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
+镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **GHCR 与 Docker Hub**（`linux/amd64` + `linux/arm64` 双架构，**默认使用 GHCR**：`ghcr.io/supgeek-rod/music-copilot`），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
 
 ### 方式一：Compose 拉取预构建镜像（推荐）
 
@@ -58,7 +58,7 @@ server 的登录凭证用 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD`（默认 admin
 ```yaml
 services:
   web:
-    image: supgeekrod/music-copilot:latest   # GHCR 用户改为 ghcr.io/supgeek-rod/music-copilot:latest
+    image: ghcr.io/supgeek-rod/music-copilot:latest   # Docker Hub 用户可用 supgeekrod/music-copilot:latest
     container_name: music-copilot
     ports:
       - "17016:80"                # 对外端口，按需修改
@@ -100,7 +100,7 @@ docker compose up -d
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的 SQ Music 后端地址>:8096 \
   -e MC_API_USERNAME=admin -e MC_API_PASSWORD=admin \
-  supgeekrod/music-copilot:latest
+  ghcr.io/supgeek-rod/music-copilot:latest
 ```
 
 ### 本地构建镜像
