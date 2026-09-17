@@ -4,7 +4,7 @@
 
 [![Build & Publish Docker Image](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml)
 
-📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `v0.1.x` 分支自动发布）
+📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `main` 分支自动发布）
 
 ## 仓库结构
 
@@ -107,4 +107,4 @@ npm run docs:build    # 构建文档站（含死链检查）
 npm run docs:preview  # 本地预览文档站构建产物
 ```
 
-推送 `v0.1.x` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。
+推送 `main` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。

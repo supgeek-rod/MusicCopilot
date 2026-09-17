@@ -19,10 +19,10 @@ server 与 server-worker 的下载目录挂载的是宿主机音乐库目录（`
 
 1. 前端发起下载 → server 写入 SQLite 队列
 2. server-worker 解析直链，把文件下载到音乐库目录
-3. worker 按目录模板（`MC_DIR_TEMPLATE`）把文件重排为「歌手/专辑/」结构（Navidrome 友好，详见[下载与目录布局](./download-scrape)）
+3. worker 按目录模板（`MC_DIR_TEMPLATE`）把文件重排为「歌手/专辑/」结构（Navidrome 友好，详见[下载与目录布局](./download)）
 4. fnOS「音乐」应用扫描目录自动入库
 
-各环节的机制细节（状态机、音质决策、直链时效、真值覆盖写、路径防护等）见[下载与刮削原理](./download-scrape)。
+各环节的机制细节（状态机、音质决策、直链时效、真值覆盖写、路径防护等）见[下载与目录布局](./download)。
 
 ### 容器互访（compose 网络）
 
@@ -123,14 +123,14 @@ docker run -d -p 17016:80 \
 
 ### 镜像 tag 说明
 
-构建触发规则：push `development` / `v0.1.x` 分支发布对应分支名 tag（`v0.1.x` 分支额外发布 `latest`）；push `v*` 版本 tag 发布语义化版本：
+构建触发规则：push `development` / `main` 分支发布对应分支名 tag（`main` 分支额外发布 `latest`）；push `v*` 版本 tag 发布语义化版本：
 
 | tag | 对应构建 |
 | --- | --- |
-| `latest` | `v0.1.x` 分支的最新构建 |
-| `v0.1.x` | `v0.1.x` 分支的最新构建（与 `latest` 同时发布） |
+| `latest` | `main` 分支的最新构建 |
+| `main` | `main` 分支的最新构建（与 `latest` 同时发布） |
 | `development` | `development` 分支的最新构建 |
-| `0.1.2` / `0.1` | `v*` 版本 tag 的发布构建 |
+| `0.2.0` / `0.2` | `v*` 版本 tag 的发布构建 |
 
 ## 静态部署
 

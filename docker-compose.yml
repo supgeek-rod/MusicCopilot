@@ -3,7 +3,7 @@ name: music-copilot
 services:
   web:
     build: .
-    # 默认拉稳定线 latest（CI：v0.1.x）。.env 里 MC_IMAGE_TAG=development 可跟开发分支镜像；
+    # 默认拉稳定线 latest（CI：main）。.env 里 MC_IMAGE_TAG=development 可跟开发分支镜像；
     # 加 --build 时用当前目录 Dockerfile 本地构建（打到同一 image 名）。也可换用 GHCR 仓库名。
     image: supgeekrod/music-copilot:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot
