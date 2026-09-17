@@ -4,6 +4,8 @@ name: Build & Publish Docker Image
 # - push 到 development / main：发布对应分支名 tag（main 分支额外发布 latest）
 # - push v* tag：发布语义化版本 tag（如 v0.2.0 -> 0.2.0 / 0.2）
 # - workflow_dispatch：在 Actions 页面手动触发，可选任意包含本文件的分支运行
+# 双镜像矩阵：web（前端 nginx，根 Dockerfile）与 server（自建后端，server/Dockerfile），
+# 两个矩阵项并行构建，tag 策略一致。
 on:
   push:
     branches:
@@ -19,11 +21,25 @@ env:
 
 jobs:
   build-and-push:
-    name: Build and publish image
+    name: Build and push (${{ matrix.name }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write # GHCR 推送依赖内置 GITHUB_TOKEN 的 packages 写权限
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 前端镜像：nginx 托管 SPA + /api 反代（根 Dockerfile）
+          - name: web
+            context: .
+            suffix: ''
+            gen-build-info: true
+          # 自建后端镜像：Laravel API + queue worker 同镜像分进程（server/Dockerfile）
+          - name: server
+            context: ./server
+            suffix: '-server'
+            gen-build-info: false
     env:
       # 映射到 job 级 env 仅为探测 secrets 是否已配置，未配置时跳过 Docker Hub 相关步骤
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -32,9 +48,10 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Generate build info
-        # 容器内构建无 .git（.dockerignore 排除），gen-build-info 会降级 hash=dev；
+        # 仅 web 需要：容器内构建无 .git（.dockerignore 排除），gen-build-info 会降级 hash=dev；
         # checkout 后先在本机生成 src/build-info.json，COPY . . 带入构建上下文，
         # 容器内 gen-build-info 走「复用预生成」分支保留真实 hash
+        if: matrix.gen-build-info
         run: node scripts/gen-build-info.mjs
 
       - name: Set up QEMU
@@ -65,7 +82,7 @@ jobs:
         id: meta-ghcr
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.GHCR_IMAGE }}
+          images: ${{ env.GHCR_IMAGE }}${{ matrix.suffix }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -77,7 +94,7 @@ jobs:
         id: meta-hub
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.DOCKERHUB_IMAGE }}
+          images: ${{ env.DOCKERHUB_IMAGE }}${{ matrix.suffix }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -87,7 +104,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: ${{ matrix.context }}
           platforms: linux/amd64,linux/arm64
           push: true
           # meta-hub 被跳过时其 outputs 为空，空行会被 build-push-action 过滤
@@ -96,5 +113,6 @@ jobs:
             ${{ steps.meta-hub.outputs.tags }}
           labels: ${{ steps.meta-ghcr.outputs.labels }}
           annotations: ${{ steps.meta-ghcr.outputs.annotations }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # scope 按矩阵项隔离，避免 web/server 的层缓存互相驱逐（gha 缓存上限 10GB）
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max

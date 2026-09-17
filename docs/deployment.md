@@ -12,7 +12,7 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
 | `web`（music-copilot） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
-| `server`（music-copilot-server） | NAS 本地构建 `server/Dockerfile`（php:8.4-cli-alpine 多阶段） | 自建后端 API：登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与任务管理（SQMusic 对齐契约），附 OpenAPI 文档 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
+| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端 API：登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与任务管理（SQMusic 对齐契约），附 OpenAPI 文档 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
 | `server-worker`（music-copilot-server-worker） | 与 server 同镜像 | 下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 完成后按目录模板重排 | — | — | 与 server 共享（SQLite + 音乐库目录） |
 
 server 与 server-worker 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
@@ -106,7 +106,8 @@ docker run -d -p 17016:80 \
 ### 本地构建镜像
 
 ```bash
-docker build -t music-copilot .
+docker build -t music-copilot .                       # 前端
+docker build -t music-copilot-server ./server         # 自建后端（server-worker 共用）
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的 SQ Music 后端地址>:8096 \
   -e MC_API_USERNAME=admin -e MC_API_PASSWORD=admin \
@@ -123,7 +124,7 @@ docker run -d -p 17016:80 \
 
 ### 镜像 tag 说明
 
-构建触发规则：push `development` / `main` 分支发布对应分支名 tag（`main` 分支额外发布 `latest`）；push `v*` 版本 tag 发布语义化版本：
+构建触发规则：push `development` / `main` 分支发布对应分支名 tag（`main` 分支额外发布 `latest`）；push `v*` 版本 tag 发布语义化版本。**前端（`music-copilot`）与自建后端（`music-copilot-server`）双镜像使用同一套 tag 策略，由同一 workflow 矩阵并行构建**：
 
 | tag | 对应构建 |
 | --- | --- |

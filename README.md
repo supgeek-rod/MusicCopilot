@@ -56,7 +56,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-- 前端镜像由 CI 自动构建发布到 **GHCR / Docker Hub**（默认 GHCR：`ghcr.io/supgeek-rod/music-copilot`，`amd64` + `arm64` 双架构），容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS）；自建后端镜像（`server/Dockerfile`，php:8.4-cli-alpine）首次由 compose 本地构建
+- 前端镜像（`ghcr.io/supgeek-rod/music-copilot`）与自建后端镜像（`ghcr.io/supgeek-rod/music-copilot-server`，`amd64` + `arm64` 双架构）均由 CI 自动构建发布，Docker Hub 同步分发；容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS）
 - 下载完成后 worker 按目录模板（`MC_DIR_TEMPLATE`，默认 `歌手/专辑/`）重排，飞牛音乐 / Navidrome 等媒体库可直接扫描入库
 
 仅需前端、对接外部既有后端（如尚在运行的 SQ Music）的单容器部署方式见文档站[部署指南](docs/deployment.md)。
