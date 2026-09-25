@@ -23,7 +23,7 @@ class SearchTipsTest extends TestCase
             ]),
         ]);
 
-        $response = $this->withSqmusicToken()
+        $response = $this
             ->getJson('/api/music/searchTips?plugName=kw&keyword='.urlencode('晴天'));
 
         $response->assertOk()
@@ -37,7 +37,7 @@ class SearchTipsTest extends TestCase
             'kuwo.cn/openapi/*' => Http::response(['code' => 500, 'msg' => 'error'], 200),
         ]);
 
-        $this->withSqmusicToken()
+        $this
             ->getJson('/api/music/searchTips?plugName=kw&keyword=abc')
             ->assertOk()
             ->assertJsonPath('code', 500);
@@ -45,7 +45,7 @@ class SearchTipsTest extends TestCase
 
     public function test_missing_keyword_fails_with_contract_envelope(): void
     {
-        $this->withSqmusicToken()
+        $this
             ->getJson('/api/music/searchTips?plugName=kw')
             ->assertOk()
             ->assertJsonPath('code', 500);

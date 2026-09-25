@@ -11,7 +11,7 @@ use Throwable;
 
 /**
  * 音乐搜索接口：/api/music/searchSong|searchArtist|searchAlbum
- * 响应契约对齐 SQMusic：{code, msg, data}，code=200 才算成功。
+ * 统一响应契约：{code, msg, data}，code=200 才算成功。
  */
 class MusicSearchController extends Controller
 {
@@ -71,9 +71,7 @@ class MusicSearchController extends Controller
     }
 
     /**
-     * 歌词（酷我加密歌词接口 newlyric）
-     * 契约对齐 SQMusic 的 POST /api/music/getLyric，但按「新端点不复制历史瑕疵」
-     * 把 LRC 文本放 data（SQMusic 放 msg，前端 music.ts getLyric 两种均兼容）。
+     * 歌词（酷我加密歌词接口 newlyric）；LRC 文本放 data 字段
      *
      * @response status=200 {"code":200,"msg":null,"data":"[00:00.00]作词：周杰伦\n[00:01.00]故事的小黄花"}
      */
@@ -191,7 +189,7 @@ class MusicSearchController extends Controller
 
     /**
      * 获取下载/试听直链（酷我 mobi convert_url_with_sign，⚠️ 大陆 IP 区域限制）
-     * 契约对齐 SQMusic：POST，body 带 plugName/id/brType，brTypes（完整歌曲对象）兼容接收但不参与解析
+     * POST，body 带 plugName/id/brType；brTypes（完整歌曲对象）兼容接收但不参与解析
      *
      * @response status=200 {"code":200,"msg":null,"data":{"url":"http://kw-er.kuwo.cn/.../M800....mp3","brType":"KW_MP3_320","duration":269,"format":"mp3"}}
      */

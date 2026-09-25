@@ -15,8 +15,8 @@ use Throwable;
 
 /**
  * 单曲下载 worker：解析直链（loading）→ 传输（downloading）→ 落盘（success）。
- * 直链有时效只能即用即取；失败进 error 由用户手动重试（对齐 SQMusic 语义，不做自动重试）。
- * 落盘成功后按目录模板（MC_DIR_TEMPLATE）重排为「歌手/专辑/」结构（Navidrome 友好）。
+ * 直链有时效只能即用即取；失败进 error 由用户手动重试（不做自动重试）。
+ * 落盘成功后按路径模板（MC_MUSIC_DOWNLOAD_PATH_TEMPLATE）重排为「歌手/专辑/」结构（Navidrome 友好）。
  */
 class DownloadSongJob implements ShouldQueue
 {
@@ -119,7 +119,7 @@ class DownloadSongJob implements ShouldQueue
     }
 
     /**
-     * 按 MC_DIR_TEMPLATE 把成品文件移入「歌手/专辑/」两级目录。
+     * 按 MC_MUSIC_DOWNLOAD_PATH_TEMPLATE 把成品文件移入「歌手/专辑/」两级目录。
      * 专辑上下文（专辑歌手/年份/音轨号）经本机插件原生查询（albumInfoById），
      * 无专辑 id 或查询失败时用任务自带字段尽力渲染；无法得出有效路径返回 null（保持平铺）。
      * 返回重排后的绝对路径。
@@ -130,7 +130,7 @@ class DownloadSongJob implements ShouldQueue
         DownloadTask $task,
         string $currentAbs,
     ): ?string {
-        $template = trim((string) config('mc.download.dir_template'));
+        $template = trim((string) config('mc.download.path_template'));
         if ($template === '') {
             return null; // 模板为空 = 关闭
         }

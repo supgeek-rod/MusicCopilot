@@ -74,8 +74,6 @@ function onQualityChange(value: unknown) {
 
 // ---- 后端连接 ----
 const baseUrl = ref('')
-const username = ref('')
-const password = ref('')
 const saving = ref(false)
 const hasOverride = computed(() => !!app.localOverride)
 
@@ -83,8 +81,6 @@ const hasOverride = computed(() => !!app.localOverride)
 const defaultBaseUrl = computed(
   () => app.fileConfig?.proxyTarget?.trim() || app.fileConfig?.baseUrl?.trim() || '',
 )
-const defaultUsername = computed(() => app.fileConfig?.username ?? '')
-const defaultPassword = computed(() => !!app.fileConfig?.password)
 
 /** 保存连接配置：仅写入本设备浏览器存储并立即重连生效；留空的字段跟随默认值 */
 async function saveConnection() {
@@ -95,16 +91,12 @@ async function saveConnection() {
   }
   saving.value = true
   try {
-    const loggedIn = await app.applyConnection({
-      baseUrl: url,
-      username: username.value.trim(),
-      password: password.value,
-    })
-    if (loggedIn) {
+    const connected = await app.applyConnection({ baseUrl: url })
+    if (connected) {
       toast.success('连接设置已保存', { description: '已在本设备生效' })
     } else {
       toast.warning('配置已保存，但重连失败', {
-        description: `请检查后端地址与账号密码（${app.statusMsg}）`,
+        description: `请检查后端地址（${app.statusMsg}）`,
       })
     }
   } catch (e) {
@@ -171,7 +163,7 @@ async function resetConnection() {
           <p class="mt-0.5 text-xs text-muted-foreground">
             Docker / Vite 启动时，后端地址由 .env 的 MC_API_BASE_URL 提供，经 nginx / Vite
             反向代理转发，规避 CORS 问题。若在此手动指定，该设备浏览器将直连后端，可能存在 CORS
-            限制；全部留空则跟随默认值，账号用于 token 失效后静默重登。
+            限制；留空则跟随默认值。
           </p>
         </div>
 
@@ -184,27 +176,6 @@ async function resetConnection() {
             spellcheck="false"
           />
         </label>
-
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label class="block space-y-1 text-sm">
-            <span class="text-muted-foreground">MC_API_USERNAME</span>
-            <Input
-              v-model="username"
-              :placeholder="defaultUsername ? `默认值：${defaultUsername}` : '默认值：（未配置）'"
-              autocomplete="username"
-              spellcheck="false"
-            />
-          </label>
-          <label class="block space-y-1 text-sm">
-            <span class="text-muted-foreground">MC_API_PASSWORD</span>
-            <Input
-              v-model="password"
-              type="password"
-              :placeholder="defaultPassword ? '默认值：已配置（留空表示跟随默认）' : '默认值：（未配置）'"
-              autocomplete="new-password"
-            />
-          </label>
-        </div>
 
         <div class="flex items-center gap-2">
           <Button size="sm" :disabled="saving" @click="saveConnection">

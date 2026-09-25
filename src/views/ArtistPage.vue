@@ -23,7 +23,7 @@ import { decodeHtmlEntities } from '@/lib/format'
 import { useSanitizedHtml } from '@/lib/sanitize'
 import { usePlayerStore } from '@/stores/player'
 
-// SQMusic 没有「按歌手拉歌曲」的接口（按歌手名搜歌会混入大量无关歌曲），
+// 后端没有「按歌手拉歌曲」的接口（按歌手名搜歌会混入大量无关歌曲），
 // 曲目改为从歌手专辑逐批聚合：每批并行拉 ALBUM_BATCH 张专辑详情
 const ALBUM_BATCH = 5
 

@@ -23,7 +23,7 @@ class DownloadFlowTest extends TestCase
         parent::setUp();
         $this->downloadDir = sys_get_temp_dir().'/mc-dl-test-'.uniqid();
         mkdir($this->downloadDir, 0775, true);
-        config(['mc.download.dir' => $this->downloadDir, 'mc.download.dir_template' => '']);
+        config(['mc.download.dir' => $this->downloadDir, 'mc.download.path_template' => '']);
     }
 
     protected function tearDown(): void
@@ -55,7 +55,7 @@ class DownloadFlowTest extends TestCase
     {
         Queue::fake();
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/download/downloadSong', $this->songPayload())
             ->assertOk()
             ->assertJsonPath('code', 200);
@@ -74,7 +74,7 @@ class DownloadFlowTest extends TestCase
 
     public function test_download_song_rejects_missing_name(): void
     {
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/download/downloadSong', ['id' => '228908', 'plugName' => 'kw'])
             ->assertOk()
             ->assertJsonPath('code', 500);
@@ -87,7 +87,7 @@ class DownloadFlowTest extends TestCase
             '*stype=albuminfo*' => Http::response($this->fakeAlbumInfo()),
         ]);
 
-        $response = $this->withSqmusicToken()
+        $response = $this
             ->postJson('/api/download/downloadAlbum', [
                 'albumName' => '叶惠美',
                 'albumid' => '1293',
@@ -111,7 +111,7 @@ class DownloadFlowTest extends TestCase
 
     public function test_download_album_rejects_unknown_bit(): void
     {
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/download/downloadAlbum', ['albumid' => '1293', 'plugName' => 'kw', 'bit' => 999])
             ->assertOk()
             ->assertJsonPath('code', 500);
@@ -121,7 +121,7 @@ class DownloadFlowTest extends TestCase
     {
         Queue::fake();
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/download/downloadArtistAlbum', [
                 'artistName' => '周杰伦',
                 'artistid' => '336',
@@ -260,9 +260,9 @@ class DownloadFlowTest extends TestCase
         $this->assertSame('周杰伦 - A_B_C__ (2).mp3', basename((string) $second->file_path));
     }
 
-    public function test_job_relocates_to_dir_template(): void
+    public function test_job_relocates_to_path_template(): void
     {
-        config(['mc.download.dir_template' => '{albumArtist}/{album}/{title} - {albumArtist}.{ext}']);
+        config(['mc.download.path_template' => '{albumArtist}/{album}/{title} - {albumArtist}.{ext}']);
         Http::fake([
             '*stype=albuminfo*' => Http::response($this->fakeAlbumInfo()),
             'mobi.kuwo.cn/*' => Http::response([
@@ -284,7 +284,7 @@ class DownloadFlowTest extends TestCase
 
     public function test_job_keeps_flat_when_template_disabled(): void
     {
-        config(['mc.download.dir_template' => '']);
+        config(['mc.download.path_template' => '']);
         Http::fake([
             'mobi.kuwo.cn/*' => Http::response([
                 'code' => 200,

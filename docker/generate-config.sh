@@ -9,11 +9,6 @@ if [ -z "${MC_API_BASE_URL:-}" ]; then
   exit 1
 fi
 
-case "${MC_API_AUTO_LOGIN:-true}" in
-  false | False | FALSE | 0 | no) AUTO_LOGIN=false ;;
-  *) AUTO_LOGIN=true ;;
-esac
-
 # ── 飞牛（fnOS）音乐库反代（可选）──
 # nginx 模板 include /etc/nginx/mc-fnos/*.conf（通配，无文件不报错）；
 # 配置了 MC_FNOS_BASE_URL 时按需生成 location 块，剥掉 /fnos 前缀转发到 fnOS 网关
@@ -46,8 +41,6 @@ json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 PROXY_TARGET=$(json_escape "${MC_API_BASE_URL}")
-USERNAME=$(json_escape "${MC_API_USERNAME:-}")
-PASSWORD=$(json_escape "${MC_API_PASSWORD:-}")
 FNOS_TARGET=$(json_escape "${MC_FNOS_BASE_URL:-}")
 FNOS_USERNAME=$(json_escape "${MC_FNOS_USERNAME:-}")
 FNOS_PASSWORD=$(json_escape "${MC_FNOS_PASSWORD:-}")
@@ -55,9 +48,6 @@ cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
   "proxyTarget": "${PROXY_TARGET}",
-  "username": "${USERNAME}",
-  "password": "${PASSWORD}",
-  "autoLogin": ${AUTO_LOGIN},
   "fnos": {
     "enabled": ${FNOS_ENABLED},
     "proxyTarget": "${FNOS_TARGET}",

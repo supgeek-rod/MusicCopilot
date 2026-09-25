@@ -63,7 +63,7 @@ watch(
     error.value = ''
     lines.value = []
     try {
-      // fnOS 本地曲目走音乐库歌词接口（/lyric/list 取 preferred），在线源走 SQ Music
+      // fnOS 本地曲目走音乐库歌词接口（/lyric/list 取 preferred），在线源走后端 getLyric
       const text =
         props.song.plugName === 'fnos'
           ? await getFnosLyric(props.song.id)

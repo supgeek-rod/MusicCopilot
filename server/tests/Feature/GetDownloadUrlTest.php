@@ -25,7 +25,7 @@ class GetDownloadUrlTest extends TestCase
             ]),
         ]);
 
-        $response = $this->withSqmusicToken()->postJson('/api/music/getDownloadUrl', [
+        $response = $this->postJson('/api/music/getDownloadUrl', [
             'plugName' => 'kw',
             'id' => '228908',
             'brType' => 'KW_MP3_320',
@@ -57,7 +57,7 @@ class GetDownloadUrlTest extends TestCase
             ]),
         ]);
 
-        $response = $this->withSqmusicToken()->postJson('/api/music/getDownloadUrl', [
+        $response = $this->postJson('/api/music/getDownloadUrl', [
             'plugName' => 'kw',
             'id' => '228908',
             'brType' => 'KW_MP3_320',
@@ -74,7 +74,7 @@ class GetDownloadUrlTest extends TestCase
             'mobi.kuwo.cn/*' => Http::response(['code' => 200, 'data' => ['url' => 'http://x']]),
         ]);
 
-        $response = $this->withSqmusicToken()->postJson('/api/music/getDownloadUrl', [
+        $response = $this->postJson('/api/music/getDownloadUrl', [
             'plugName' => 'kw',
             'id' => '228908',
             'brType' => 'KW_OGG_192',
@@ -87,7 +87,7 @@ class GetDownloadUrlTest extends TestCase
 
     public function test_missing_id_fails_with_contract_envelope(): void
     {
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/music/getDownloadUrl', ['plugName' => 'kw', 'brType' => 'KW_MP3_128'])
             ->assertOk()
             ->assertJsonPath('code', 500);

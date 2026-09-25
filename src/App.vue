@@ -52,9 +52,9 @@ watch(
   (v) => persistVolume(v),
 )
 
-// 登录成功后启动全局下载完成 toast 通知（幂等）
+// 连接成功后启动全局下载完成 toast 通知（幂等）
 watch(
-  () => app.ready && app.loggedIn,
+  () => app.ready && app.connected,
   (ok) => {
     if (ok) startTaskToasts()
   },
@@ -64,13 +64,13 @@ watch(
 
 <template>
   <div v-if="!app.ready" class="flex min-h-screen flex-col items-center justify-center gap-3">
-    <!-- 启动页带品牌标识：自动登录期间不再是一块纯黑屏 -->
+    <!-- 启动页带品牌标识：连接探测期间不再是一块纯黑屏 -->
     <div class="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
       <Music2Icon class="size-6" />
     </div>
     <LoaderCircleIcon class="size-5 animate-spin text-muted-foreground" />
     <p class="text-sm text-muted-foreground">{{ app.statusMsg }}</p>
-    <p class="text-xs text-muted-foreground/70">可通过 .env / config.json 配置后端地址与账号</p>
+    <p class="text-xs text-muted-foreground/70">可通过 .env / config.json 配置后端地址</p>
   </div>
 
   <div v-else class="flex min-h-screen flex-col">

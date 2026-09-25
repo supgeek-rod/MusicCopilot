@@ -31,14 +31,10 @@ function requireMcApiBaseUrl(env: Record<string, string>): string {
  *  proxyTarget 为信息性字段：把转发目标带给浏览器，供设置面板展示。
  *  fnos 块为飞牛音乐库接入配置（未配置 MC_FNOS_BASE_URL 时 enabled=false）。 */
 function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
-  const autoLoginRaw = mcEnv(env, 'MC_API_AUTO_LOGIN')
   const fnosAutoLoginRaw = mcEnv(env, 'MC_FNOS_AUTO_LOGIN')
   const fnosBaseUrl = mcEnv(env, 'MC_FNOS_BASE_URL') ?? ''
   return {
     baseUrl: '',
-    username: mcEnv(env, 'MC_API_USERNAME') ?? '',
-    password: mcEnv(env, 'MC_API_PASSWORD') ?? '',
-    autoLogin: autoLoginRaw === undefined ? true : autoLoginRaw.toLowerCase() !== 'false',
     proxyTarget,
     fnos: {
       enabled: Boolean(fnosBaseUrl),
@@ -92,7 +88,9 @@ function runtimeConfigPlugin(
     },
     closeBundle() {
       const cfg = buildAppConfig(env, proxyTarget)
-      if (cfg.username) {
+      // 配置了任一 MC_ 变量（反代目标或 fnOS 接入）才落盘；
+      // 未配置时不落盘（Docker 场景由容器入口脚本在运行时生成）
+      if (proxyTarget || cfg.fnos.enabled) {
         fs.writeFileSync(path.join(outDir, 'config.json'), JSON.stringify(cfg, null, 2))
       }
       // 版本指纹无条件写入（与后端配置无关）：供前端 versionCheck 比对发现新构建。
@@ -141,9 +139,9 @@ export default defineConfig(({ command, mode }) => {
   } catch {
     // 保持降级值
   }
-  // 本地 dev/preview 端口取 .env 的 MC_PORT（与 Docker 对外端口共用一个变量；
+  // 本地 dev/preview 端口取 .env 的 MC_WEB_PORT（与 Docker 对外端口共用一个变量；
   // 未配置或非法值回退 5173）。端口被占用时 Vite 默认自动 +1，不设 strictPort。
-  const mcPortRaw = Number(mcEnv(env, 'MC_PORT'))
+  const mcPortRaw = Number(mcEnv(env, 'MC_WEB_PORT'))
   const localPort = Number.isInteger(mcPortRaw) && mcPortRaw > 0 ? mcPortRaw : 5173
   return {
     define: {

@@ -16,7 +16,7 @@ import { ApiError } from './http'
 
 /**
  * fnOS 音乐 API 客户端：经同源 /fnos 反代直连 fnOS 网关（dev 走 Vite proxy，
- * 生产走 nginx / Companion），与 SQ Music 的 http.ts 互相独立 —— 鉴权方式
+ * 生产走 nginx），与主后端 http.ts 互相独立 —— 鉴权方式
  * （Cookie music-token）与成功码（code==0）均不同，见 docs/architecture.md 决策 #8。
  */
 const FNAS_BASE = '/fnos/music/api/v1'

@@ -15,7 +15,7 @@
 | 搜索提示（kuwo.cn/openapi） | ✅ 可用 | ✅ 可用 |
 | 歌曲信息（musicpay.kuwo.cn） | ✅ 可用 | ✅ 可用 |
 | 歌词（newlyric.kuwo.cn） | ✅ 可用 | ✅ 可用 |
-| **直链解析（mobi.kuwo.cn convert_url_with_sign）** | ❌ `code:407` "not available in your region or country due to copyright protection" | ✅ 返回真实直链（经 SQMusic 3.1.20 同端点验证） |
+| **直链解析（mobi.kuwo.cn convert_url_with_sign）** | ❌ `code:407` "not available in your region or country due to copyright protection" | ✅ 返回真实直链（经参考实现 3.1.20 同端点验证） |
 | **直链 CDN 下载（kw-er.kuwo.cn）** | ✅ 可下载（128k mp3 全量 + flac range 206 均成功） | ✅ |
 
 → 结论：**只有"解析"一步需要大陆出口 IP，文件下载不限区域**。自建服务必须部署在大陆出口环境
@@ -23,9 +23,9 @@
 
 ## 1. 音质映射（BrType）
 
-参考实现 `KwBrType` 枚举；SQMusic 对外用 `KW_` 前缀别名，酷我接口用 `br` 值：
+参考实现 `KwBrType` 枚举；对外接口用 `KW_` 前缀别名，酷我接口用 `br` 值：
 
-| SQMusic brType | 酷我 br 值 | 格式 | 码率 kbps |
+| brType | 酷我 br 值 | 格式 | 码率 kbps |
 | --- | --- | --- | --- |
 | KW_MP3_128 | `128kmp3` | mp3 | 128 |
 | KW_MP3_192 | `192kmp3` | mp3 | 192 |
@@ -69,7 +69,7 @@ ft=<music | artist | album>
 | `ARTIST` / `FARTIST` | 歌手（多个用 `&` 连接） | artistName 按 `&` 拆分 |
 | `ARTISTID` / `allartistid` | 歌手 id（多个 `&` 连接，可能为 0） | artistIds |
 | `ALBUM` / `ALBUMID` | 专辑名 / id（可能为 0/空=无专辑） | albumName / albumId |
-| `DURATION` | 秒（SQMusic 契约为毫秒，×1000） | duration |
+| `DURATION` | 秒（前端契约为毫秒，×1000） | duration |
 | `N_MINFO` | 音质清单（无损在前） | brTypes |
 | `web_albumpic_short` | 封面相对路径 | 拼 `https://img3.kuwo.cn/star/albumcover/` 前缀，并把 `/120` 替换成 `/500` |
 | `web_artistpic_short` | 歌手图相对路径 | 拼 `https://star.kuwo.cn/star/starheads/`，`/120`→`/500` |
@@ -193,8 +193,9 @@ br=<128kmp3|192kmp3|320kmp3|1000kape|2000kflac>
 2. **HTTP 客户端**：Guzzle/Laravel HTTP Client 封装 r.s / musicpay / mobi / newlyric 四个 client，超时与重试统一；
    歌词加密用 PHP `openssl`/纯 PHP XOR + `gzinflate` 实现（无额外扩展依赖）。
 3. **brType 枚举**：`KwBrType`（128kmp3…2000kflac）与对外 `KW_*` 别名双向映射；`MINFO` 解析成可用音质清单。
-4. **契约对齐 SQMusic**：`{code,msg,data}` 信封（code=200 成功）、登录 `device` 字段、`sqmusic` token 头、
-   `pageIndex/pageSize` 分页、`getDownloadUrl` 需要完整歌曲对象 + brType —— 保证 MusicCopilot 前端零改动切换。
+4. **契约口径**：`{code,msg,data}` 信封（code=200 成功）、`pageIndex/pageSize` 分页、
+   `getDownloadUrl` 需要完整歌曲对象 + brType —— 保证 MusicCopilot 前端零改动切换
+   （原鉴权契约已随 2026-09-25 认证移除删除）。
 5. **下载队列**：database queue（SQLite）+ `queue:work`，Docker 里单独一个 worker 进程；
    直链即时解析即时下载（URL 有时效不能落库长期保存），任务表只存状态/路径/音质。
 6. **部署**：Docker 镜像 `php:8.3-fpm` + nginx（或 FrankenPHP），容器需部署在大陆出口环境，否则直链 407。

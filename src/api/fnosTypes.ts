@@ -4,7 +4,7 @@
  * fn-music-bridge（github.com/qianlipp/fn-music-bridge）、FeiNiuMusic（github.com/kuilei0926/FeiNiuMusic）。
  */
 
-/** fnOS 统一响应包裹：code==0 成功（区别于 SQ Music 的 200） */
+/** fnOS 统一响应包裹：code==0 成功（区别于主后端的 200） */
 export interface FnosEnvelope<T> {
   code: number
   msg: string | null

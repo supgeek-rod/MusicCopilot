@@ -42,7 +42,7 @@ class DownloadTask extends Model
     }
 
     /**
-     * 契约对齐 SQMusic TaskInfo（前端 src/api/types.ts）。
+     * 对齐前端 TaskInfo 类型（src/api/types.ts）。
      * downloadMusicInfo 为上游原始条目 JSON（顶层含 MINFO/N_MINFO 可估算大小）。
      */
     public function toContract(): array

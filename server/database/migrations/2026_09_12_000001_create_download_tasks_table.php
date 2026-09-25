@@ -27,7 +27,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('progress')->default(0);
             $table->string('file_path')->nullable();
             $table->text('error_msg')->nullable();
-            // 契约兼容字段（SQMusic 为 aria2 gid），这里存队列任务 uuid 便于排查
+            // 历史契约兼容字段（沿用 aria2 gid 命名），存队列任务 uuid 便于排查
             $table->string('download_gid', 64)->nullable();
             $table->timestamp('download_time')->nullable();
             $table->timestamp('update_time')->nullable();

@@ -21,3 +21,9 @@ src/build-info.json
 
 # 本地工作产物（报告/清单/测试截图），不入库
 .tmp/
+
+# 容器数据目录（docker-compose.yml bind 挂载，默认在项目根）
+# data/：server 的 SQLite 库；downloads/：下载落盘目录
+# data 必须锚定根路径——未锚定的 data/ 会误伤任意层级同名目录
+/data/
+downloads/

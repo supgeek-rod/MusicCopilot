@@ -58,7 +58,7 @@ class ArtistAlbumTest extends TestCase
             '*stype=albumlist*' => Http::response($this->fakeAlbumList()),
         ]);
 
-        $response = $this->withSqmusicToken()
+        $response = $this
             ->getJson('/api/music/artistAlbumById?plugName=kw&id=336');
 
         $response->assertOk()
@@ -86,7 +86,7 @@ class ArtistAlbumTest extends TestCase
 
     public function test_missing_id_fails_with_contract_envelope(): void
     {
-        $this->withSqmusicToken()
+        $this
             ->getJson('/api/music/artistAlbumById?plugName=kw')
             ->assertOk()
             ->assertJsonPath('code', 500);
@@ -94,7 +94,7 @@ class ArtistAlbumTest extends TestCase
 
     public function test_unknown_plugin_fails(): void
     {
-        $this->withSqmusicToken()
+        $this
             ->getJson('/api/music/artistAlbumById?plugName=xx&id=336')
             ->assertOk()
             ->assertJsonPath('code', 500);

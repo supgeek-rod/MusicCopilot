@@ -1,4 +1,4 @@
-import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
+import axios, { AxiosError } from 'axios'
 import type { ApiResponse } from './types'
 
 /**
@@ -8,15 +8,10 @@ import type { ApiResponse } from './types'
 export interface HttpRuntime {
   /** 后端基地址，空串表示同源（走 vite 代理或同域部署） */
   apiBase: string
-  getToken: () => { tokenName: string; tokenValue: string } | null
-  /** 403 时用运行时配置（.env / config.json）里的账号密码自动重登 */
-  relogin: () => Promise<boolean>
 }
 
 export const httpRuntime: HttpRuntime = {
   apiBase: '',
-  getToken: () => null,
-  relogin: async () => false,
 }
 
 export class ApiError extends Error {
@@ -34,34 +29,15 @@ export const http = axios.create({ timeout: 30000 })
 
 http.interceptors.request.use((cfg) => {
   cfg.baseURL = httpRuntime.apiBase
-  const token = httpRuntime.getToken()
-  if (token?.tokenValue && cfg.headers) {
-    cfg.headers[token.tokenName] = token.tokenValue
-  }
   return cfg
 })
 
-type RetriableConfig = AxiosRequestConfig & { __retried403?: boolean }
-
 http.interceptors.response.use(
   (res) => res,
-  async (error: AxiosError) => {
+  (error: AxiosError) => {
     // 主动取消（AbortController 等）不是连接故障，不误报「无法连接后端服务」
     if (axios.isCancel(error)) {
       return Promise.reject(new ApiError('请求已取消'))
-    }
-    const cfg = error.config as RetriableConfig | undefined
-    // 登录态失效：自动重登一次并重试原请求（认证接口本身不重试，避免死循环）
-    if (
-      error.response?.status === 403 &&
-      cfg &&
-      !cfg.__retried403 &&
-      !cfg.url?.includes('/api/config/')
-    ) {
-      cfg.__retried403 = true
-      const ok = await httpRuntime.relogin()
-      if (ok) return http.request(cfg)
-      return Promise.reject(new ApiError('登录已失效，自动重新登录失败，请检查 .env / config.json 中的账号密码', 403))
     }
     if (!error.response) {
       return Promise.reject(new ApiError('无法连接后端服务，请检查 .env / config.json 的 baseUrl 与网络'))

@@ -394,7 +394,7 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
             'lyric' => null,
             'lyricId' => null,
             'plugName' => $this->plugName(),
-            // SQMusic 契约为毫秒（字符串）
+            // 契约口径：毫秒（字符串）
             'duration' => (string) ((int) ($e['DURATION'] ?? 0) * 1000),
             'brTypes' => $this->brTypesFromMinfo((string) ($e['N_MINFO'] ?? $e['MINFO'] ?? '')),
             'dataInfo' => $e,
@@ -521,7 +521,7 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
                 (string) ($e['web_albumpic_short'] ?? ''),
                 (string) ($e['web_artistpic_short'] ?? ''),
             ),
-            // musiclist 的 duration 为秒（SQMusic 专辑契约口径，与搜索接口的毫秒不同）
+            // musiclist 的 duration 为秒（专辑接口口径，与搜索接口的毫秒不同）
             'musicDuration' => (int) ($e['duration'] ?? $e['DURATION'] ?? 0),
             'bits' => $this->brTypesFromMinfo((string) ($e['N_MINFO'] ?? $e['MINFO'] ?? '')),
             'plugName' => $this->plugName(),

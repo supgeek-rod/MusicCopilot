@@ -1,56 +1,4 @@
 export interface paths {
-    "/config/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 登录：body 必须带 device 字段（对齐 SQMusic，缺失报「请填写登录设备类型」） */
-        post: operations["config.login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/config/isLogin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 登录态查询：GET/POST 均可（对齐 SQMusic）；恒返回 200，登录态在 data 布尔值上 */
-        get: operations["config.isLogin_1"];
-        put?: never;
-        /** 登录态查询：GET/POST 均可（对齐 SQMusic）；恒返回 200，登录态在 data 布尔值上 */
-        post: operations["config.isLogin_2"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/config/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 注销：撤销当前 token（受鉴权保护） */
-        post: operations["config.logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/config/getOption": {
         parameters: {
             query?: never;
@@ -133,6 +81,22 @@ export interface paths {
         put?: never;
         /** 歌手全部专辑下载：专辑多（每张一次上游请求），入队异步展开，任务在 task/list 中渐进出现 */
         post: operations["download.downloadArtistAlbum"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthcheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["healthcheck"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -250,11 +214,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * 歌词（酷我加密歌词接口 newlyric）
-         *     契约对齐 SQMusic 的 POST /api/music/getLyric，但按「新端点不复制历史瑕疵」
-         *     把 LRC 文本放 data（SQMusic 放 msg，前端 music.ts getLyric 两种均兼容）。
-         */
+        /** 歌词（酷我加密歌词接口 newlyric）；LRC 文本放 data 字段 */
         post: operations["musicSearch.getLyric"];
         delete?: never;
         options?: never;
@@ -273,7 +233,7 @@ export interface paths {
         put?: never;
         /**
          * 获取下载/试听直链（酷我 mobi convert_url_with_sign，⚠️ 大陆 IP 区域限制）
-         *     契约对齐 SQMusic：POST，body 带 plugName/id/brType，brTypes（完整歌曲对象）兼容接收但不参与解析
+         *     POST，body 带 plugName/id/brType；brTypes（完整歌曲对象）兼容接收但不参与解析
          */
         post: operations["musicSearch.getDownloadUrl"];
         delete?: never;
@@ -291,7 +251,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 任务列表（分页 + 状态筛选；另接受 SQMusic 契约中的其余筛选字段但仅实现状态筛选） */
+        /** 任务列表（分页 + 状态筛选；其余历史筛选字段仅实现状态筛选） */
         post: operations["task.list"];
         delete?: never;
         options?: never;
@@ -390,7 +350,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ⚠️ 清空全部成功任务记录（不删落盘文件；SQMusic 契约语义，前端有确认弹窗） */
+        /** ⚠️ 清空全部成功任务记录（不删落盘文件；前端有确认弹窗） */
         get: operations["task.delSuccessTask"];
         put?: never;
         post?: never;
@@ -445,123 +405,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    "config.login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    username: string;
-                    password: string;
-                    device: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            tokenName: string;
-                            tokenValue: string;
-                            isLogin: boolean;
-                            loginId: string;
-                            loginDevice: string;
-                        };
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "用户名或密码错误";
-                        data: null;
-                    };
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "config.isLogin_1": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: boolean;
-                    };
-                };
-            };
-        };
-    };
-    "config.isLogin_2": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: boolean;
-                    };
-                };
-            };
-        };
-    };
-    "config.logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    };
-                };
-            };
-        };
-    };
     "config.getOption": {
         parameters: {
             query?: never;
@@ -752,6 +595,30 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationException"];
+        };
+    };
+    healthcheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: null;
+                    };
+                };
+            };
         };
     };
     "musicSearch.searchSong": {

@@ -22,7 +22,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.nju.edu.cn/g' /etc/apk/repositories
 RUN chmod +x docker/entrypoint.sh
 # 容器内固定路径：SQLite 库落 /data 数据卷，下载落盘指向 /downloads 音乐库挂载点
 ENV DB_DATABASE=/data/database.sqlite
-ENV MC_DOWNLOAD_DIR=/downloads
+ENV MC_MUSIC_DOWNLOAD_DIR=/downloads
 VOLUME ["/data"]
 EXPOSE 17017
 ENTRYPOINT ["docker/entrypoint.sh"]

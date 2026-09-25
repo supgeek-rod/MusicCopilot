@@ -5,15 +5,6 @@ export interface ApiResponse<T> {
   data: T
 }
 
-/** 登录接口返回（sa-token 风格） */
-export interface LoginInfo {
-  tokenName: string
-  tokenValue: string
-  isLogin?: boolean
-  loginId?: unknown
-  loginDevice?: string | null
-}
-
 /** 音源插件选项（getOption） */
 export interface PlugOption {
   label: string
@@ -114,9 +105,6 @@ export interface FnosAppConfig {
 /** 应用运行时配置（dev 由 Vite 从 .env 生成；生产为运行时 config.json 文件） */
 export interface AppConfig {
   baseUrl?: string
-  username?: string
-  password?: string
-  autoLogin?: boolean
   /** 信息性字段：服务端转发层（Vite / nginx）使用的后端地址，仅供设置面板展示，应用行为不读取 */
   proxyTarget?: string
   /** fnOS 音乐库接入配置（可选：未配置 MC_FNOS_BASE_URL 时无此块） */

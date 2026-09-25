@@ -4,41 +4,33 @@ services:
   web:
     build: .
     image: ghcr.io/supgeek-rod/music-copilot:${MC_IMAGE_TAG:-latest}
-    container_name: music-copilot
+    container_name: music-copilot-web
     ports:
-      - "${MC_PORT:-17016}:80"
+      - "${MC_WEB_PORT:-17016}:80"
     environment:
-      MC_API_BASE_URL: http://server:17017
-      MC_API_USERNAME: ${MC_API_USERNAME:-}
-      MC_API_PASSWORD: ${MC_API_PASSWORD:-}
-      MC_API_AUTO_LOGIN: ${MC_API_AUTO_LOGIN:-true}
-      MC_FNOS_BASE_URL: ${MC_FNOS_BASE_URL:-}
-      MC_FNOS_USERNAME: ${MC_FNOS_USERNAME:-}
-      MC_FNOS_PASSWORD: ${MC_FNOS_PASSWORD:-}
-      MC_FNOS_AUTO_LOGIN: ${MC_FNOS_AUTO_LOGIN:-true}
+      - MC_API_BASE_URL=http://server:17017
+      - MC_FNOS_AUTO_LOGIN
+      - MC_FNOS_BASE_URL
+      - MC_FNOS_USERNAME
+      - MC_FNOS_PASSWORD
     restart: unless-stopped
 
   server:
     build: ./server
     image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot-server
-    ports:
-      - "127.0.0.1:17017:17017"
+    expose:
+      - "17017"
+    environment:
+      - MC_MUSIC_DOWNLOAD_PATH_TEMPLATE
+    volumes:
+      - "${MC_SERVER_DATA_DIR:-./data}:/data"
+      - "${MC_MUSIC_DOWNLOAD_DIR:-./downloads}:/downloads"
     healthcheck:
-      test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:17017/api/config/isLogin\"));'"]
+      test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:17017/api/healthcheck\"));'"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
     stop_grace_period: 10m
-    environment:
-      MC_API_USERNAME: ${MC_API_USERNAME:-admin}
-      MC_API_PASSWORD: ${MC_API_PASSWORD:-password}
-      MC_DIR_TEMPLATE: ${MC_DIR_TEMPLATE:-{albumArtist}/{album}/{title} - {albumArtist}.{ext}}
-    volumes:
-      - server-data:/data
-      - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
     restart: unless-stopped
-
-volumes:
-  server-data:

@@ -1,9 +1,8 @@
 # MusicCopilot Server（server/）
 
-自建音乐下载服务（对标 [simple_sq_music_plus](https://github.com/59799517/simple_sq_music_plus)），
-**PHP / Laravel 13 纯后端 + Docker 部署**，音源插件化，第一个接入**酷我音乐（kw）**。
-按 MusicCopilot 的 SQMusic 接口契约实现（契约见 MusicCopilot 仓库 `docs/api-test-report.md`），
-目标是前端零改动切换。
+自建音乐下载服务，**PHP / Laravel 13 纯后端 + Docker 部署**，音源插件化，第一个接入**酷我音乐（kw）**。
+无认证、连接即用；接口以 OpenAPI 3.1 规范为准（本目录 `openapi.json`，契约类型经
+MusicCopilot 仓库 `packages/api-contract` 自动生成）。
 
 > 本目录已从独立仓库并入 MusicCopilot monorepo（git subtree，保留历史）；
 > Laravel 应用根就是本目录（`app/ composer.json artisan` 直接在此）。
@@ -12,10 +11,10 @@
 
 - [x] 酷我接口调研：搜索 / 详情 / 歌词 / 直链解析 全链路 curl 实测通过（2026-09-10）
 - [x] Laravel 13 应用（WSL PHP 8.4 运行，`php artisan serve --port=17017`）
-- [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，SQMusic `{code,msg,data}` 契约，
+- [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，统一 `{code,msg,data}` 信封，
       字段对齐 MusicCopilot 前端 `SongRecord/ArtistRecord/AlbumRecord`）
 - [x] API 文档 + 在线测试台：Scalar（本地化）+ Scramble 自动生成 OpenAPI 3.1 规范（2026-09-11）
-- [x] 鉴权：`POST /api/config/login|logout`、`GET|POST /api/config/isLogin`、`GET /api/config/getOption|getPlugBrTypeList`（2026-09-11 第 5 期 M1，`sqmusic` 头中间件 + token 落库）
+- [x] ~~鉴权~~：`POST /api/config/login|logout`、`GET|POST /api/config/isLogin`（2026-09-11 第 5 期 M1 落地；**2026-09-25 认证移除、2026-09-26 端点删除**，探活由 `/api/healthcheck` 承担，见下节）；`GET /api/config/getOption|getPlugBrTypeList` 保留
 - [x] 歌词：`POST /api/music/getLyric`（酷我 newlyric 代理，2026-09-11 随第 4 期 M1 落地）
 - [x] 歌曲详情 / 直链解析：`GET searchTips|artistAlbumById|albumInfoById` + `POST getDownloadUrl`
       （2026-09-12 第 5 期 M2；⚠️ 直链有大陆 IP 区域限制，海外出口 code:407）
@@ -41,22 +40,18 @@ curl 'http://127.0.0.1:17017/api/music/searchAlbum?plugName=kw&keyword=叶惠美
 `pageIndex` 从 1 开始（内部转酷我 pn=pageIndex-1）；`pageSize` 上限 100。
 错误统一 `{code:500, msg, data:null}`：keyword 缺失、plugName 未注册、上游请求失败。
 
-### 鉴权（第 5 期 M1 起）
+### 认证（2026-09-25 移除，2026-09-26 端点删除）
 
-除 `POST /api/config/login` 与 `config/isLogin` 外，所有 `/api/*` 端点要求 `sqmusic` 请求头；
-缺失/无效/过期返回 **HTTP 403**（前端 `http.ts` 据此自动重登并重试）：
+所有 `/api/*` 端点**公开可访问，无需任何凭证或请求头**。原鉴权体系（`sqmusic` 请求头 +
+登录 token 落库 + 403 拦截）整体删除，`login` / `isLogin` / `logout` 端点不复存在，
+`MC_API_USERNAME` / `MC_API_PASSWORD` / `MC_AUTH_TTL` 配置废弃：
 
 ```bash
-TOKEN=$(curl -s --noproxy '*' -X POST 'http://127.0.0.1:17017/api/config/login' \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"password","device":"web"}' | jq -r .data.tokenValue)
-curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:17017/api/config/getOption'
+curl -s --noproxy '*' 'http://127.0.0.1:17017/api/config/getOption'
 ```
 
-- 登录 body 必须带 `device` 字段（缺失报「请填写登录设备类型」），返回 sa-token 风格
-  `data.tokenName/tokenValue`；`isLogin` 恒返回 200，登录态在 `data` 布尔值上（不复制 SQMusic 无 token 也返回 true 的瑕疵）
-- token 有效期 7 天（`MC_AUTH_TTL`），库里只存 sha256 摘要（`auth_tokens` 表），`logout` 撤销、多设备并存
-- 凭证经 `MC_API_USERNAME` / `MC_API_PASSWORD` 配置（默认 admin/password，见 `.env.example`）
+- 探活统一走 **`GET /api/healthcheck`**（恒 200 + 统一信封；Docker healthcheck、运维探测与前端连接探测共用）
+- 已有部署升级后无需任何迁移：旧 token 记录（`auth_tokens` 表）留存库中但不再被读取，可无视
 
 ### 下载与任务队列（第 5 期 M3）
 
@@ -65,18 +60,18 @@ curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:17017/api/config/ge
 php artisan queue:work --tries=1 --timeout=3600
 
 # 创建单曲任务（body 为搜索返回的完整歌曲记录；brType 省略自动选最高可用音质）
-curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application/json' \
+curl -s --noproxy '*' -X POST -H 'Content-Type: application/json' \
   --data-binary @song.json 'http://127.0.0.1:17017/api/download/downloadSong'
 
 # 任务列表（分页 + downloadStatus 筛选：waiting/downloading/loading/success/error）
-curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application/json' \
+curl -s --noproxy '*' -X POST -H 'Content-Type: application/json' \
   -d '{"pageIndex":1,"pageSize":20}' 'http://127.0.0.1:17017/api/task/list'
 ```
 
 - 状态机：waiting → loading（解析直链）→ downloading → success / error；失败经 `errorTaskRetry` 回 waiting
-- 落盘「歌手 - 标题.格式」，重名追加序号；目录 `MC_DOWNLOAD_DIR`（默认 `storage/app/downloads`；容器内由镜像 ENV 指向 `/downloads` 音乐库挂载点）
+- 落盘「歌手 - 标题.格式」，重名追加序号；目录 `MC_MUSIC_DOWNLOAD_DIR`（默认 `storage/app/downloads`；容器内由镜像 ENV 固定为 `/downloads`，即音乐库挂载点）
 - 整张专辑同步展开（响应为任务数组，前端取长度计数）；歌手全部专辑队列异步展开、任务渐进出现
-- 删除任务记录不删已落盘文件；`delSuccessTask` 清空全部成功记录（契约保留，前端有确认弹窗）
+- 删除任务记录不删已落盘文件；`delSuccessTask` 清空全部成功记录（前端有确认弹窗，脚本调用务必谨慎）
 
 ### API 文档与在线测试（Scalar + Scramble）
 

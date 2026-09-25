@@ -3,97 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Plugins\Sources\SourceManager;
-use App\Services\SqmusicTokenService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
- * 配置与鉴权接口：/api/config/login|logout|isLogin|getOption|getPlugBrTypeList
- * 契约对齐 SQMusic（sa-token 风格 LoginInfo），两处按「新端点不复制历史瑕疵」修正：
- * isLogin 无论登录与否都返回 200 + data:boolean（SQMusic 无 token 也返回 true）；
- * 凭证错误返回明确的「用户名或密码错误」（SQMusic 行为未实测，信封风格一致）。
+ * 配置接口：/api/config/getOption|getPlugBrTypeList（音源插件元信息）。
+ * 认证已移除（2026-09-25）：所有端点公开可访问；原登录 / 登录态 / 注销端点已随
+ * SqMusic 契约清理删除（2026-09-26），探活由 /api/healthcheck 承担。
  */
 class ConfigController extends Controller
 {
     public function __construct(
         private readonly SourceManager $sources,
-        private readonly SqmusicTokenService $tokens,
     ) {
-    }
-
-    /**
-     * 登录：body 必须带 device 字段（对齐 SQMusic，缺失报「请填写登录设备类型」）
-     *
-     * @response status=200 {"code":200,"msg":null,"data":{"tokenName":"sqmusic","tokenValue":"<64位hex>","isLogin":true,"loginId":"admin","loginDevice":"web"}}
-     * @response status=200 {"code":500,"msg":"用户名或密码错误","data":null}
-     */
-    public function login(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
-            'device' => 'required|string|max:32',
-        ], [
-            'username.required' => '请填写用户名',
-            'password.required' => '请填写密码',
-            'device.required' => '请填写登录设备类型',
-        ]);
-
-        if (! hash_equals((string) config('mc.auth.username'), $validated['username'])
-            || ! hash_equals((string) config('mc.auth.password'), $validated['password'])
-        ) {
-            return response()->json([
-                'code' => 500,
-                'msg' => '用户名或密码错误',
-                'data' => null,
-            ]);
-        }
-
-        $token = $this->tokens->issue($validated['username'], $validated['device']);
-
-        return response()->json([
-            'code' => 200,
-            'msg' => null,
-            'data' => [
-                'tokenName' => config('mc.auth.token_name'),
-                'tokenValue' => $token,
-                'isLogin' => true,
-                'loginId' => $validated['username'],
-                'loginDevice' => $validated['device'],
-            ],
-        ]);
-    }
-
-    /**
-     * 登录态查询：GET/POST 均可（对齐 SQMusic）；恒返回 200，登录态在 data 布尔值上
-     *
-     * @response status=200 {"code":200,"msg":null,"data":true}
-     */
-    public function isLogin(Request $request): JsonResponse
-    {
-        $token = $request->header((string) config('mc.auth.token_name'));
-
-        return response()->json([
-            'code' => 200,
-            'msg' => null,
-            'data' => $this->tokens->resolve($token) !== null,
-        ]);
-    }
-
-    /**
-     * 注销：撤销当前 token（受鉴权保护）
-     *
-     * @response status=200 {"code":200,"msg":null,"data":null}
-     */
-    public function logout(Request $request): JsonResponse
-    {
-        $this->tokens->revoke($request->header((string) config('mc.auth.token_name')));
-
-        return response()->json([
-            'code' => 200,
-            'msg' => null,
-            'data' => null,
-        ]);
     }
 
     /**

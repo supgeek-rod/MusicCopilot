@@ -10,235 +10,6 @@
         }
     ],
     "paths": {
-        "/config/login": {
-            "post": {
-                "operationId": "config.login",
-                "summary": "\u767b\u5f55\uff1abody \u5fc5\u987b\u5e26 device \u5b57\u6bb5\uff08\u5bf9\u9f50 SQMusic\uff0c\u7f3a\u5931\u62a5\u300c\u8bf7\u586b\u5199\u767b\u5f55\u8bbe\u5907\u7c7b\u578b\u300d\uff09",
-                "tags": [
-                    "Config"
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "username": {
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "type": "string"
-                                    },
-                                    "device": {
-                                        "type": "string",
-                                        "maxLength": 32
-                                    }
-                                },
-                                "required": [
-                                    "username",
-                                    "password",
-                                    "device"
-                                ]
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "code": {
-                                                    "type": "integer",
-                                                    "const": 200
-                                                },
-                                                "msg": {
-                                                    "type": "null"
-                                                },
-                                                "data": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "tokenName": {
-                                                            "type": "string"
-                                                        },
-                                                        "tokenValue": {
-                                                            "type": "string"
-                                                        },
-                                                        "isLogin": {
-                                                            "type": "boolean"
-                                                        },
-                                                        "loginId": {
-                                                            "type": "string"
-                                                        },
-                                                        "loginDevice": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "tokenName",
-                                                        "tokenValue",
-                                                        "isLogin",
-                                                        "loginId",
-                                                        "loginDevice"
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "code",
-                                                "msg",
-                                                "data"
-                                            ]
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "code": {
-                                                    "type": "integer",
-                                                    "const": 500
-                                                },
-                                                "msg": {
-                                                    "type": "string",
-                                                    "const": "\u7528\u6237\u540d\u6216\u5bc6\u7801\u9519\u8bef"
-                                                },
-                                                "data": {
-                                                    "type": "null"
-                                                }
-                                            },
-                                            "required": [
-                                                "code",
-                                                "msg",
-                                                "data"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/config/isLogin": {
-            "get": {
-                "operationId": "config.isLogin_1",
-                "summary": "\u767b\u5f55\u6001\u67e5\u8be2\uff1aGET/POST \u5747\u53ef\uff08\u5bf9\u9f50 SQMusic\uff09\uff1b\u6052\u8fd4\u56de 200\uff0c\u767b\u5f55\u6001\u5728 data \u5e03\u5c14\u503c\u4e0a",
-                "tags": [
-                    "Config"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "const": 200
-                                        },
-                                        "msg": {
-                                            "type": "null"
-                                        },
-                                        "data": {
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "operationId": "config.isLogin_2",
-                "summary": "\u767b\u5f55\u6001\u67e5\u8be2\uff1aGET/POST \u5747\u53ef\uff08\u5bf9\u9f50 SQMusic\uff09\uff1b\u6052\u8fd4\u56de 200\uff0c\u767b\u5f55\u6001\u5728 data \u5e03\u5c14\u503c\u4e0a",
-                "tags": [
-                    "Config"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "const": 200
-                                        },
-                                        "msg": {
-                                            "type": "null"
-                                        },
-                                        "data": {
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/config/logout": {
-            "post": {
-                "operationId": "config.logout",
-                "summary": "\u6ce8\u9500\uff1a\u64a4\u9500\u5f53\u524d token\uff08\u53d7\u9274\u6743\u4fdd\u62a4\uff09",
-                "tags": [
-                    "Config"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "code": {
-                                            "type": "integer",
-                                            "const": 200
-                                        },
-                                        "msg": {
-                                            "type": "null"
-                                        },
-                                        "data": {
-                                            "type": "null"
-                                        }
-                                    },
-                                    "required": [
-                                        "code",
-                                        "msg",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/config/getOption": {
             "get": {
                 "operationId": "config.getOption",
@@ -744,6 +515,43 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/healthcheck": {
+            "get": {
+                "operationId": "healthcheck",
+                "tags": [
+                    "Healthcheck"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1408,7 +1216,7 @@
         "/music/getLyric": {
             "post": {
                 "operationId": "musicSearch.getLyric",
-                "summary": "\u6b4c\u8bcd\uff08\u9177\u6211\u52a0\u5bc6\u6b4c\u8bcd\u63a5\u53e3 newlyric\uff09\n\u5951\u7ea6\u5bf9\u9f50 SQMusic \u7684 POST /api/music/getLyric\uff0c\u4f46\u6309\u300c\u65b0\u7aef\u70b9\u4e0d\u590d\u5236\u5386\u53f2\u7455\u75b5\u300d\n\u628a LRC \u6587\u672c\u653e data\uff08SQMusic \u653e msg\uff0c\u524d\u7aef music.ts getLyric \u4e24\u79cd\u5747\u517c\u5bb9\uff09\u3002",
+                "summary": "\u6b4c\u8bcd\uff08\u9177\u6211\u52a0\u5bc6\u6b4c\u8bcd\u63a5\u53e3 newlyric\uff09\uff1bLRC \u6587\u672c\u653e data \u5b57\u6bb5",
                 "tags": [
                     "MusicSearch"
                 ],
@@ -1515,7 +1323,7 @@
         "/music/getDownloadUrl": {
             "post": {
                 "operationId": "musicSearch.getDownloadUrl",
-                "summary": "\u83b7\u53d6\u4e0b\u8f7d/\u8bd5\u542c\u76f4\u94fe\uff08\u9177\u6211 mobi convert_url_with_sign\uff0c\u26a0\ufe0f \u5927\u9646 IP \u533a\u57df\u9650\u5236\uff09\n\u5951\u7ea6\u5bf9\u9f50 SQMusic\uff1aPOST\uff0cbody \u5e26 plugName/id/brType\uff0cbrTypes\uff08\u5b8c\u6574\u6b4c\u66f2\u5bf9\u8c61\uff09\u517c\u5bb9\u63a5\u6536\u4f46\u4e0d\u53c2\u4e0e\u89e3\u6790",
+                "summary": "\u83b7\u53d6\u4e0b\u8f7d/\u8bd5\u542c\u76f4\u94fe\uff08\u9177\u6211 mobi convert_url_with_sign\uff0c\u26a0\ufe0f \u5927\u9646 IP \u533a\u57df\u9650\u5236\uff09\nPOST\uff0cbody \u5e26 plugName/id/brType\uff1bbrTypes\uff08\u5b8c\u6574\u6b4c\u66f2\u5bf9\u8c61\uff09\u517c\u5bb9\u63a5\u6536\u4f46\u4e0d\u53c2\u4e0e\u89e3\u6790",
                 "tags": [
                     "MusicSearch"
                 ],
@@ -1570,7 +1378,7 @@
         "/task/list": {
             "post": {
                 "operationId": "task.list",
-                "summary": "\u4efb\u52a1\u5217\u8868\uff08\u5206\u9875 + \u72b6\u6001\u7b5b\u9009\uff1b\u53e6\u63a5\u53d7 SQMusic \u5951\u7ea6\u4e2d\u7684\u5176\u4f59\u7b5b\u9009\u5b57\u6bb5\u4f46\u4ec5\u5b9e\u73b0\u72b6\u6001\u7b5b\u9009\uff09",
+                "summary": "\u4efb\u52a1\u5217\u8868\uff08\u5206\u9875 + \u72b6\u6001\u7b5b\u9009\uff1b\u5176\u4f59\u5386\u53f2\u7b5b\u9009\u5b57\u6bb5\u4ec5\u5b9e\u73b0\u72b6\u6001\u7b5b\u9009\uff09",
                 "tags": [
                     "Task"
                 ],
@@ -2033,7 +1841,7 @@
         "/task/delSuccessTask": {
             "get": {
                 "operationId": "task.delSuccessTask",
-                "summary": "\u26a0\ufe0f \u6e05\u7a7a\u5168\u90e8\u6210\u529f\u4efb\u52a1\u8bb0\u5f55\uff08\u4e0d\u5220\u843d\u76d8\u6587\u4ef6\uff1bSQMusic \u5951\u7ea6\u8bed\u4e49\uff0c\u524d\u7aef\u6709\u786e\u8ba4\u5f39\u7a97\uff09",
+                "summary": "\u26a0\ufe0f \u6e05\u7a7a\u5168\u90e8\u6210\u529f\u4efb\u52a1\u8bb0\u5f55\uff08\u4e0d\u5220\u843d\u76d8\u6587\u4ef6\uff1b\u524d\u7aef\u6709\u786e\u8ba4\u5f39\u7a97\uff09",
                 "tags": [
                     "Task"
                 ],

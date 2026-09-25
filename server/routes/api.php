@@ -2,26 +2,22 @@
 
 use App\Http\Controllers\ConfigController;
 use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\HealthcheckController;
 use App\Http\Controllers\MusicSearchController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 
-// 鉴权契约对齐 SQMusic：除 login / isLogin 外一律要求 sqmusic 请求头，
-// 缺失或无效返回 HTTP 403（前端 http.ts 据此自动重登并重试）。
-Route::prefix('config')->group(function () {
-    Route::post('login', [ConfigController::class, 'login']);
-    // 前端用 GET，SQMusic 两种都支持
-    Route::get('isLogin', [ConfigController::class, 'isLogin']);
-    Route::post('isLogin', [ConfigController::class, 'isLogin']);
+// 认证已移除（2026-09-25）：所有端点公开可访问，无需任何凭证或请求头；
+// 原登录 / 登录态 / 注销端点已随 SqMusic 契约清理删除（2026-09-26）。
+// 探活：Docker healthcheck、运维探测与前端连接探测统一走 /api/healthcheck。
+Route::get('healthcheck', HealthcheckController::class);
 
-    Route::middleware('sqmusic.auth')->group(function () {
-        Route::post('logout', [ConfigController::class, 'logout']);
-        Route::get('getOption', [ConfigController::class, 'getOption']);
-        Route::get('getPlugBrTypeList', [ConfigController::class, 'getPlugBrTypeList']);
-    });
+Route::prefix('config')->group(function () {
+    Route::get('getOption', [ConfigController::class, 'getOption']);
+    Route::get('getPlugBrTypeList', [ConfigController::class, 'getPlugBrTypeList']);
 });
 
-Route::middleware('sqmusic.auth')->prefix('music')->group(function () {
+Route::prefix('music')->group(function () {
     Route::get('searchSong', [MusicSearchController::class, 'searchSong']);
     Route::get('searchArtist', [MusicSearchController::class, 'searchArtist']);
     Route::get('searchAlbum', [MusicSearchController::class, 'searchAlbum']);
@@ -32,13 +28,13 @@ Route::middleware('sqmusic.auth')->prefix('music')->group(function () {
     Route::post('getDownloadUrl', [MusicSearchController::class, 'getDownloadUrl']);
 });
 
-Route::middleware('sqmusic.auth')->prefix('download')->group(function () {
+Route::prefix('download')->group(function () {
     Route::post('downloadSong', [DownloadController::class, 'downloadSong']);
     Route::post('downloadAlbum', [DownloadController::class, 'downloadAlbum']);
     Route::post('downloadArtistAlbum', [DownloadController::class, 'downloadArtistAlbum']);
 });
 
-Route::middleware('sqmusic.auth')->prefix('task')->group(function () {
+Route::prefix('task')->group(function () {
     Route::post('list', [TaskController::class, 'list']);
     Route::post('del', [TaskController::class, 'del']);
     Route::post('refreshTask', [TaskController::class, 'refreshTask']);

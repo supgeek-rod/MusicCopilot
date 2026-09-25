@@ -8,13 +8,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * 下载任务管理：/api/task/*（契约对齐 SQMusic，MyBatis-Plus 风格分页）。
- * 注意 delSuccessTask 在 SQMusic 语义里是清空全部成功记录（根 AGENTS.md 警示），照契约保留。
+ * 下载任务管理：/api/task/*（统一信封 + MyBatis-Plus 风格分页）。
+ * 注意 delSuccessTask 是清空全部成功记录（只删记录不删文件，前端有确认弹窗）。
  */
 class TaskController extends Controller
 {
     /**
-     * 任务列表（分页 + 状态筛选；另接受 SQMusic 契约中的其余筛选字段但仅实现状态筛选）
+     * 任务列表（分页 + 状态筛选；其余历史筛选字段仅实现状态筛选）
      *
      * @response status=200 {"code":200,"msg":null,"data":{"records":[{"id":1,"downloadMusicname":"晴天","downloadStatus":"success"}],"total":1,"size":20,"current":1,"pages":1}}
      */
@@ -115,7 +115,7 @@ class TaskController extends Controller
         return $this->deleteByStatus(DownloadTask::STATUS_ERROR);
     }
 
-    /** ⚠️ 清空全部成功任务记录（不删落盘文件；SQMusic 契约语义，前端有确认弹窗） */
+    /** ⚠️ 清空全部成功任务记录（不删落盘文件；前端有确认弹窗） */
     public function delSuccessTask(): JsonResponse
     {
         return $this->deleteByStatus(DownloadTask::STATUS_SUCCESS);

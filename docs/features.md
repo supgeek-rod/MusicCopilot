@@ -5,9 +5,8 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 # MusicCopilot 功能说明
 
-> 本文档描述前端已实现的全部功能与实现要点。后端接口的实测差异与完整清单见仓库内
-> `docs/api-test-report.md`（含内网部署细节，仅保留在代码仓库、不发布到文档站），
-> 整体架构见[架构设计](./architecture.md)。
+> 本文档描述前端已实现的全部功能与实现要点。后端接口的完整清单见 `server/openapi.json`
+> （在线测试台见 `server/README.md`），整体架构见[架构设计](./architecture.md)。
 
 ## 页面与路由（hash 模式）
 
@@ -22,14 +21,11 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 顶部导航：Logo「MusicCopilot」+ 连接状态指示（绿点已连接 / 红点异常 + 错误横幅）+ 页签导航 + 快捷搜索框（md 以上屏幕显示，回车跳转搜索页）+ 深色模式切换。「音乐库」页签仅在配置了 `MC_FNOS_BASE_URL`（fnOS 接入启用）时显示。
 
-## 启动与登录（stores/app.ts）
+## 启动与连接（stores/app.ts）
 
 1. 启动时 `fetch` 加载运行时配置 `config.json`（`no-store`，缺失则用空配置）。dev/preview 下由 Vite 中间件从 `.env`（或环境变量）虚拟生成，生产为部署目录下的 `config.json` 文件。
-2. 读取 localStorage 中的 token（键 `musiccopilot:auth:<baseUrl>`，同时清理更名前遗留的 `sqmusic:auth:*` 旧键）。
-3. **仅当本地已有 token** 才调 `isLogin` 校验（该后端无 token 时也返回 true，不能作为跳过登录的依据）；无 token 或已失效则用配置的账号密码自动登录（`device: "web"`）。
-4. 登录响应的 `tokenName`/`tokenValue` 存入 localStorage；之后所有请求自动带该请求头。
-5. 任何接口遇 HTTP 403：自动用配置账号重登一次并重试原请求（认证接口本身不重试，防死循环）。
-6. 登录成功后并行拉取：音源插件列表（`getOption`，渲染音源下拉）与音质枚举表（`getPlugBrTypeList`，用于音质标签展示；当前部署返回空数组时回退到本地解析）。
+2. 调探活端点 `/api/healthcheck`（恒 200 + 统一信封，与 compose 健康检查共用）确认后端可达；后端无认证（2026-09-25 起），探活成功即「已连接」，无需账号密码。
+3. 连接成功后并行拉取：音源插件列表（`getOption`，渲染音源下拉）与音质枚举表（`getPlugBrTypeList`，用于音质标签展示；当前部署返回空数组时回退到本地解析）。
 
 ## 搜索页
 
@@ -99,12 +95,12 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 - **单条操作**：失败→重试（`errorTaskRetry`）；等待/解析中→重新入队（`refreshTask`）；删除（`del`，确认框）。
 - **批量操作**（确认框）：重试全部失败（`againTask`）、删除失败/成功/等待中任务。
 - 分页：`total/pages`，页大小 20。
-- **完成通知（全局）**：`lib/taskToaster.ts` 登录成功后随 App 启动，15 秒轮询最近 50 条任务，检测「进行中 → 成功/失败」迁移后弹 toast（任意页面可见）；首次建档不通知（避免启动刷屏），同轮多条自动聚合成摘要（成功/失败各一条，描述取前 3 个歌名），失败描述附带后端消息（截断 60 字）。
+- **完成通知（全局）**：`lib/taskToaster.ts` 连接成功后随 App 启动，15 秒轮询最近 50 条任务，检测「进行中 → 成功/失败」迁移后弹 toast（任意页面可见）；首次建档不通知（避免启动刷屏），同轮多条自动聚合成摘要（成功/失败各一条，描述取前 3 个歌名），失败描述附带后端消息（截断 60 字）。
 
 ## 基础设施
 
-- **Pinia stores**：`app`（配置、连接与登录状态、token、插件列表、音质枚举）、`player`（队列与播放状态）、`fnos`（飞牛音乐库会话）。
-- **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、动态 token 头（名取登录响应 `tokenName`）、统一解包 `{code, msg, data}`、网络错误友好提示。fnOS 走独立的 `api/fnos.ts`（同源 `/fnos` 反代、Cookie 鉴权、`code==0` 成功码与会话失效重登自成一体）。
+- **Pinia stores**：`app`（配置与连接状态、插件列表、音质枚举）、`player`（队列与播放状态）、`fnos`（飞牛音乐库会话）。
+- **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、统一解包 `{code, msg, data}`、网络错误友好提示。fnOS 走独立的 `api/fnos.ts`（同源 `/fnos` 反代、Cookie 鉴权、`code==0` 成功码与会话失效重登自成一体）。
 - **竞态防御**：页面组件的异步请求在卸载后丢弃响应（`disposed` 守卫），避免与路由切换竞态引发渲染崩溃。
 - **深色模式**：`useDark`（`vueuse-color-scheme` 持久化），主题变量见 `src/style.css`。
 - **PWA（vite-plugin-pwa）**：`registerType: autoUpdate` 静默更新；构建产物全量预缓存 + SPA `navigateFallback`；`/api/*` 与 `config.json` 在 `navigateFallbackDenylist` 中永不缓存（后者容器内运行时生成）；封面等图片走 `StaleWhileRevalidate` 运行时缓存（限 200 条 / 14 天）。图标由 `public/favicon.svg` 经 sharp 一次性生成（192/512/maskable-512/apple-touch-180）。仅在构建产物（preview / Docker）生效，dev 模式默认无 SW。
@@ -113,10 +109,10 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 配置统一以 `MC_` 前缀变量提供（真实环境变量 > `.env` 文件），完整变量表见[配置说明](./configuration.md)。
 
-应用侧始终 `fetch /config.json`：dev/preview 由 Vite 中间件虚拟生成（`baseUrl` 恒为空串即同源）；`npm run build` 时若配置了账号则生成 `dist/config.json`（也可手动修改，运行时读取）；Docker 由容器入口脚本从环境变量生成。连接配置也可在应用设置面板按设备覆盖，仅存于该设备浏览器。
+应用侧始终 `fetch /config.json`：dev/preview 由 Vite 中间件虚拟生成（`baseUrl` 恒为空串即同源）；`npm run build` 时若配置了后端地址或 fnOS 接入则生成 `dist/config.json`（也可手动修改，运行时读取）；Docker 由容器入口脚本从环境变量生成。连接配置也可在应用设置面板按设备覆盖，仅存于该设备浏览器。
 
 ## 已知注意事项
 
-- 后端接口的文档差异、危险接口（`delSuccessTask` 会清空全部成功记录）、插件开关状态等**务必先读仓库内 `docs/api-test-report.md`**（该页含内网部署细节，仅保留在代码仓库）。
+- `GET /api/task/delSuccessTask` 会清空全部成功任务记录（不删落盘文件），前端已加确认弹窗，脚本调用务必谨慎。
 - 搜索联想面板遮挡结果首行属于正常交互（失焦即关闭）；自动化测试点击列表操作前需先让输入框失焦。
 - 直链有时效，试听/下载均实时获取，不做缓存。

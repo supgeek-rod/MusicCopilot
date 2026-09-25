@@ -16,7 +16,7 @@ server 建任务 → SQLite 队列（waiting）
     ▼
 解析直链（loading）→ 传输落盘（downloading）→ success
     │
-    ▼ 按 MC_DIR_TEMPLATE 重排
+    ▼ 按 MC_MUSIC_DOWNLOAD_PATH_TEMPLATE 重排
 音乐库目录（fnOS「音乐」应用扫描自动入库）
 ```
 
@@ -49,7 +49,7 @@ waiting → loading（解析直链）→ downloading（传输中）→ success
                               ↘ 任一步失败 → error（手动重试回 waiting）
 ```
 
-`$tries = 1`：不做自动重试，失败即落 `error` 并写明原因，由用户在任务页手动重试（`errorTaskRetry` / `againTask`）——对齐 SQMusic 语义，避免坏任务无限循环打上游。任务管理共 8 个端点：`list`（分页 + 状态筛选）、`del`、`refreshTask`、`errorTaskRetry`、`againTask`、`delErrorTask`、`delWaitingTask`、`delSuccessTask`（⚠️ 沿用 SQMusic「清空全部成功记录」语义，只删记录不删文件）。
+`$tries = 1`：不做自动重试，失败即落 `error` 并写明原因，由用户在任务页手动重试（`errorTaskRetry` / `againTask`），避免坏任务无限循环打上游。任务管理共 8 个端点：`list`（分页 + 状态筛选）、`del`、`refreshTask`、`errorTaskRetry`、`againTask`、`delErrorTask`、`delWaitingTask`、`delSuccessTask`（⚠️ 清空全部成功记录、只删记录不删文件，前端有确认弹窗）。
 
 ### 直链解析
 
@@ -69,7 +69,7 @@ worker 在 `loading` 阶段调用音源插件的直链解析：酷我走 `mobi.k
 
 ## 目录布局（下载完成后）
 
-落盘成功后 worker 按 `MC_DIR_TEMPLATE`（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`；模板不含目录部分即为平铺，如 `{title}.{ext}`）把文件移入「歌手/专辑/」两级目录：
+落盘成功后 worker 按 `MC_MUSIC_DOWNLOAD_PATH_TEMPLATE`（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`；模板不含目录部分即为平铺，如 `{title}.{ext}`）把文件移入「歌手/专辑/」两级目录：
 
 - 专辑上下文（专辑歌手/年份/音轨号）经本机插件原生查询（albumInfoById），无专辑 id 或查询失败时用任务自带字段尽力渲染
 - 模板逐段渲染：中间空段（如无专辑时的 `{album}/`）整体丢弃；非法字符替换为下划线

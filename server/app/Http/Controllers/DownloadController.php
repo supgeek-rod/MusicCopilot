@@ -13,7 +13,7 @@ use Throwable;
 
 /**
  * 下载任务创建：/api/download/downloadSong|downloadAlbum|downloadArtistAlbum
- * 契约对齐 SQMusic：入参为前端搜索/详情记录原样回传（单曲带 brType，整张/歌手带 bit 整数码率）。
+ * 入参为前端搜索/详情记录原样回传（单曲带 brType，整张/歌手带 bit 整数码率）。
  */
 class DownloadController extends Controller
 {

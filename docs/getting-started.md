@@ -5,7 +5,7 @@ description: MusicCopilot 的安装、开发、构建与文档站开发步骤
 
 # 快速开始
 
-MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/main/server) 为自建后端（PHP / Laravel 13，酷我音源）。v0.2.0 起由自建后端提供数据与下载服务，**无需再部署 Simple SQ Music Plus**。后端地址与账号通过环境变量注入，见[配置说明](./configuration.md)；完整部署见[部署指南](./deployment.md)。
+MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/main/server) 为自建后端（PHP / Laravel 13，酷我音源），自包含、无认证、连接即用。后端地址通过环境变量注入，见[配置说明](./configuration.md)；完整部署见[部署指南](./deployment.md)。
 
 ## 环境要求
 
@@ -21,7 +21,7 @@ cd MusicCopilot
 npm install
 
 cp .env.example .env    # 模板默认已指向本地后端 127.0.0.1:17017，可直接开发（.env 不入库）
-npm run dev             # http://localhost:<MC_PORT>（默认 5173），/api 由 Vite 代理转发到后端
+npm run dev             # http://localhost:<MC_WEB_PORT>（默认 5173），/api 由 Vite 代理转发到后端
 ```
 
 ## 构建

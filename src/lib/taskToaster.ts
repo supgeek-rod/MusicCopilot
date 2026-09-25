@@ -72,7 +72,7 @@ function check(list: TaskInfo[]) {
 
 /**
  * 启动全局下载完成 toast 通知（幂等）。
- * 由 App.vue 在登录成功后调用；仅通知应用运行期间发生的状态迁移。
+ * 由 App.vue 在连接成功后调用；仅通知应用运行期间发生的状态迁移。
  */
 export function startTaskToasts() {
   if (started) return

@@ -13,17 +13,17 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // withMiddleware 即使无自定义项也必须调用：框架靠它注册默认中间件组/别名，
+    // 缺了会让 api 路由的 'api' 组字符串解析失败（Target class [api] does not exist）
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'sqmusic.auth' => \App\Http\Middleware\SqmusicAuth::class,
-        ]);
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // 统一错误契约：api/* 下的验证失败不抛 422，转为 SQMusic 风格 {code:500,msg}
+        // 统一错误契约：api/* 下的验证失败不抛 422，转为 {code:500,msg,data:null} 信封
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([

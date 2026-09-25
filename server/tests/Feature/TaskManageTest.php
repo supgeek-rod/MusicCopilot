@@ -32,7 +32,7 @@ class TaskManageTest extends TestCase
         $this->createTask(['music_name' => '失败任务', 'status' => DownloadTask::STATUS_ERROR]);
 
         // 不筛选：id 倒序 + 分页字段（MyBatis-Plus 风格）
-        $res = $this->withSqmusicToken()
+        $res = $this
             ->postJson('/api/task/list', ['pageIndex' => 1, 'pageSize' => 2]);
         $res->assertOk()->assertJsonPath('code', 200);
         $data = $res->json('data');
@@ -44,7 +44,7 @@ class TaskManageTest extends TestCase
         $this->assertSame('失败任务', $data['records'][0]['downloadMusicname']);
 
         // 状态筛选
-        $res = $this->withSqmusicToken()
+        $res = $this
             ->postJson('/api/task/list', ['downloadStatus' => 'error']);
         $records = $res->json('data.records');
         $this->assertSame(1, $res->json('data.total'));
@@ -60,7 +60,7 @@ class TaskManageTest extends TestCase
     {
         $task = $this->createTask();
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/task/del', ['id' => $task->id])
             ->assertOk()
             ->assertJsonPath('code', 200);
@@ -75,18 +75,18 @@ class TaskManageTest extends TestCase
         $success = $this->createTask(['status' => DownloadTask::STATUS_SUCCESS]);
         $error = $this->createTask(['status' => DownloadTask::STATUS_ERROR]);
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/task/refreshTask', ['id' => $waiting->id])
             ->assertOk()
             ->assertJsonPath('code', 200);
         Queue::assertPushed(DownloadSongJob::class, 1);
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/task/refreshTask', ['id' => $success->id])
             ->assertOk()
             ->assertJsonPath('code', 500);
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/task/refreshTask', ['id' => $error->id])
             ->assertOk()
             ->assertJsonPath('code', 500);
@@ -98,7 +98,7 @@ class TaskManageTest extends TestCase
         $error = $this->createTask(['status' => DownloadTask::STATUS_ERROR]);
         $waiting = $this->createTask();
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/task/errorTaskRetry', ['id' => $error->id])
             ->assertOk()
             ->assertJsonPath('code', 200);
@@ -107,7 +107,7 @@ class TaskManageTest extends TestCase
         $this->assertSame('waiting', $error->status);
         Queue::assertPushed(DownloadSongJob::class, 1);
 
-        $this->withSqmusicToken()
+        $this
             ->postJson('/api/task/errorTaskRetry', ['id' => $waiting->id])
             ->assertOk()
             ->assertJsonPath('code', 500);
@@ -120,7 +120,7 @@ class TaskManageTest extends TestCase
         $this->createTask(['status' => DownloadTask::STATUS_ERROR]);
         $this->createTask();
 
-        $this->withSqmusicToken()
+        $this
             ->getJson('/api/task/againTask')
             ->assertOk()
             ->assertJsonPath('code', 200);
@@ -136,21 +136,16 @@ class TaskManageTest extends TestCase
         $success2 = $this->createTask(['status' => DownloadTask::STATUS_SUCCESS]);
         $this->createTask();
 
-        $res = $this->withSqmusicToken()->getJson('/api/task/delSuccessTask');
+        $res = $this->getJson('/api/task/delSuccessTask');
         $res->assertOk()->assertJsonPath('code', 200)->assertJsonPath('data.count', 2);
         $this->assertDatabaseMissing('download_tasks', ['id' => $success2->id]);
 
-        $this->withSqmusicToken()->getJson('/api/task/delErrorTask')
+        $this->getJson('/api/task/delErrorTask')
             ->assertOk()->assertJsonPath('data.count', 1);
 
-        $this->withSqmusicToken()->getJson('/api/task/delWaitingTask')
+        $this->getJson('/api/task/delWaitingTask')
             ->assertOk()->assertJsonPath('data.count', 1);
 
         $this->assertDatabaseCount('download_tasks', 0);
-    }
-
-    public function test_requires_sqmusic_token(): void
-    {
-        $this->postJson('/api/task/list')->assertStatus(403)->assertJsonPath('code', 403);
     }
 }
