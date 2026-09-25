@@ -61,7 +61,7 @@ curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:8097/api/config/get
 ### 下载与任务队列（第 5 期 M3）
 
 ```bash
-# 启动 worker（开发期；Docker 部署由 server-worker 容器承担）
+# 启动 worker（开发期；Docker 部署时由 server 容器 entrypoint 自动拉起，与 API 同容器）
 php artisan queue:work --tries=1 --timeout=3600
 
 # 创建单曲任务（body 为搜索返回的完整歌曲记录；brType 省略自动选最高可用音质）

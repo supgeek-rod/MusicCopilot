@@ -10,4 +10,37 @@ fi
 
 php artisan migrate --force
 
-exec "$@"
+# ── 队列 worker（与 API 同容器分进程）──
+# worker 由本进程（PID 1）直接派生并 wait 监管：意外退出 1s 后重新拉起（自愈）；
+# TERM/INT（docker stop）时转发给 worker 与 API，等当前下载收尾（.part → rename）
+# 后自然退出，收尾窗口由 compose stop_grace_period 兜底。
+stop=""
+serve_pid=""
+worker_child=""
+
+on_term() {
+    trap - TERM INT
+    stop=1
+    kill -TERM "$serve_pid" 2>/dev/null
+    if [ -n "$worker_child" ]; then
+        kill -TERM "$worker_child" 2>/dev/null
+    fi
+}
+
+trap on_term TERM INT
+
+"$@" &
+serve_pid=$!
+
+while [ -z "$stop" ]; do
+    php artisan queue:work --tries=1 --timeout=3600 &
+    worker_child=$!
+    wait "$worker_child" || true
+    if [ -z "$stop" ]; then
+        sleep 1
+    fi
+done
+
+# TERM 后等 worker 收尾当前任务再退（PID 1 退出即容器终止）
+wait "$worker_child" 2>/dev/null || true
+exit 0

@@ -7,20 +7,6 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
-# build 只声明在 server：两服务同 tag，--build 时构建一次即可，worker 复用刚构建出的本地镜像
-x-server-base: &server-base
-  image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
-  environment:
-    DB_DATABASE: /data/database.sqlite
-    MC_DOWNLOAD_DIR: /downloads
-  env_file:
-    - .env
-  volumes:
-    - server-data:/data
-    - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
-  restart: unless-stopped
-  logging: *default-logging
-
 services:
   web:
     build: .
@@ -38,32 +24,35 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
-  # ── 自建后端（第 5 期起为默认拓扑）──
+  # ── 自建后端（第 5 期起为默认拓扑；API 与下载队列 worker 同容器分进程）──
+  # SQLite 库在 server-data 卷；下载目录挂音乐库目录（fnOS「音乐」应用扫描入库），
+  # NAS 端 .env 配 MC_MUSIC_HOST_DIR=音乐库绝对路径（未配则落到项目目录 data/downloads）。
   server:
-    <<: *server-base
     build: ./server
+    image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot-server
     ports:
       - "${MC_SERVER_PORT:-8097}:8097"
-    # 免鉴权端点探活（镜像无 curl，用 php 探测）；serve 监听即 migrate 完成，
-    # worker 以此为启动门槛，避免与首次建表竞态
+    # 免鉴权端点探活（镜像无 curl，用 php 探测）
     healthcheck:
       test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:8097/api/config/isLogin\"));'"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
-
-  server-worker:
-    <<: *server-base
-    container_name: music-copilot-server-worker
-    command: ["php", "artisan", "queue:work", "--tries=1", "--timeout=3600"]
-    depends_on:
-      server:
-        condition: service_healthy
-    # SIGTERM 后等当前下载收尾（.part → rename），不被默认 10s SIGKILL 腰斩；
-    # 兜底 10 分钟，小于任务本身的 1h 超时
+    # SIGTERM 后等队列 worker 收尾当前下载（.part → rename），不被默认 10s
+    # SIGKILL 腰斩；兜底 10 分钟，小于任务本身的 1h 超时
     stop_grace_period: 10m
+    env_file:
+      - .env
+    environment:
+      DB_DATABASE: /data/database.sqlite
+      MC_DOWNLOAD_DIR: /downloads
+    volumes:
+      - server-data:/data
+      - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
+    restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   server-data:

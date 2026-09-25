@@ -5,7 +5,7 @@
 **MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA + 自建后端一体的 monorepo。**自建后端已上线（第 5 期，2026-09-12 完成）：`server/` 子目录（PHP / Laravel 13，原独立仓库 MusicCopilotServer 于 2026-09-11 subtree 并入，保留历史），fnOS 线上已切换自建后端，SQMusic（simple_sq_music_plus）容器退役**——v0.2.0 起无需 SQMusic，接口契约保持与其对齐（`sqmusic` 请求头等，见架构 [docs/architecture.md](docs/architecture.md)）。
 
 - 自建后端开发服务: `http://127.0.0.1:8097`（WSL 内 `php artisan serve`，见下方常用命令；账号取 `.env` 的 `MC_AUTH_USERNAME/MC_AUTH_PASSWORD`，默认 admin/admin）
-- fnOS 线上（fnOS-Just4fun）: 前端 `http://192.168.31.31:12312`，三容器拓扑（web + server + server-worker）
+- fnOS 线上（fnOS-Just4fun）: 前端 `http://192.168.31.31:12312`，两容器拓扑（web + server，server 内含下载队列 worker）
 - 前端开发服务器: `npm run dev`（端口取 `.env` 的 `MC_PORT`，默认 5173；`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
 - 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
 - ~~SQMusic 官方接口文档~~（已退役，历史参考）: https://59799517.github.io/simple_sq_music_plus/#/README

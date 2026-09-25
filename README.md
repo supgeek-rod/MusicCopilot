@@ -41,7 +41,7 @@ npm run preview    # 本地预览构建产物
 
 ## Docker 部署
 
-推荐**克隆仓库用自带 compose 一键拉起三容器**（web 前端 + server API + server-worker 下载队列，自建后端自包含，无需 SQ Music）：
+推荐**克隆仓库用自带 compose 一键拉起两容器**（web 前端 + server 后端，server 内含下载队列 worker，自建后端自包含，无需 SQ Music）：
 
 ```bash
 git clone https://github.com/supgeek-rod/MusicCopilot.git && cd MusicCopilot

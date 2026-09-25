@@ -105,7 +105,7 @@ MusicCopilot/
 │ auth / music / download /   │
 │ tasks（SQLite data 卷）     │
 └──────┬──────────────────────┘
-       ▼ queue:work（server-worker 容器）
+       ▼ queue:work（server 容器内 worker 子进程）
 [音乐目录卷 rw] ⇅（fnOS / Navidrome 自动扫描入库）
 ```
 

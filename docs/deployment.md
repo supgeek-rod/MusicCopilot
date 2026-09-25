@@ -7,18 +7,17 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 
 ## 容器与拓扑（自建后端）
 
-三容器默认拓扑（`docker compose up -d` 一键拉起），各司其职：
+两容器默认拓扑（`docker compose up -d` 一键拉起），各司其职：
 
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
 | `web`（music-copilot） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
-| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端 API：登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与任务管理（SQMusic 对齐契约），附 OpenAPI 文档 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
-| `server-worker`（music-copilot-server-worker） | 与 server 同镜像 | 下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 完成后按目录模板重排 | — | — | 与 server 共享（SQLite + 音乐库目录） |
+| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与管理（SQMusic 对齐契约），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按目录模板重排 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
 
-server 与 server-worker 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
+server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
 
 1. 前端发起下载 → server 写入 SQLite 队列
-2. server-worker 解析直链，把文件下载到音乐库目录
+2. server 内的队列 worker 解析直链，把文件下载到音乐库目录
 3. worker 按目录模板（`MC_DIR_TEMPLATE`）把文件重排为「歌手/专辑/」结构（Navidrome 友好，详见[下载与目录布局](./download)）
 4. fnOS「音乐」应用扫描目录自动入库
 
@@ -26,7 +25,7 @@ server 与 server-worker 的下载目录挂载的是宿主机音乐库目录（`
 
 ### 容器互访（compose 网络）
 
-三个容器同处 compose 自动创建的网络，互相用**服务名**访问（Docker 内嵌 DNS `127.0.0.11`，运行时解析）：
+两个容器同处 compose 自动创建的网络，互相用**服务名**访问（Docker 内嵌 DNS `127.0.0.11`，运行时解析）：
 
 | 调用方 | 目标 | 引用变量 |
 | --- | --- | --- |
@@ -106,7 +105,7 @@ docker run -d -p 17016:80 \
 
 ```bash
 docker build -t music-copilot .                       # 前端
-docker build -t music-copilot-server ./server         # 自建后端（server-worker 共用）
+docker build -t music-copilot-server ./server         # 自建后端（API 与 worker 同容器）
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的 SQ Music 后端地址>:8096 \
   -e MC_API_USERNAME=admin -e MC_API_PASSWORD=admin \
@@ -146,7 +145,7 @@ docker run -d -p 17016:80 \
 | 文件 | 说明 |
 | --- | --- |
 | `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
-| `docker-compose.yml` | 一键编排三容器（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；env_file 复用 `.env`） |
+| `docker-compose.yml` | 一键编排两容器（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；env_file 复用 `.env`） |
 | `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
 | `server/Dockerfile` | 自建后端镜像（php:8.4-cli-alpine 多阶段，vendor 分层；API 与 worker 同镜像） |
 | `.github/workflows/docker-publish.yml` | 前端镜像自动构建与发布（GHCR + Docker Hub） |
