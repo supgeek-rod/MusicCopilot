@@ -54,7 +54,7 @@ class TaskController extends Controller
     /** 删除单个任务记录（不删已落盘文件） */
     public function del(Request $request): JsonResponse
     {
-        $validated = $request->validate(['id' => 'required']);
+        $validated = $request->validate(['id' => 'required|integer|min:1']);
 
         DownloadTask::query()->whereKey((int) $validated['id'])->delete();
 
@@ -64,7 +64,7 @@ class TaskController extends Controller
     /** 重新入队：等待/解析/传输中卡住的任务重新排队（成功/失败走专门端点） */
     public function refreshTask(Request $request): JsonResponse
     {
-        $validated = $request->validate(['id' => 'required']);
+        $validated = $request->validate(['id' => 'required|integer|min:1']);
 
         $task = DownloadTask::query()->find((int) $validated['id']);
         if ($task === null) {
@@ -83,7 +83,7 @@ class TaskController extends Controller
     /** 重试失败任务 */
     public function errorTaskRetry(Request $request): JsonResponse
     {
-        $validated = $request->validate(['id' => 'required']);
+        $validated = $request->validate(['id' => 'required|integer|min:1']);
 
         $task = DownloadTask::query()->find((int) $validated['id']);
         if ($task === null) {

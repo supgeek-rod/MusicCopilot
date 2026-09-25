@@ -99,7 +99,7 @@ class MusicSearchController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return $this->fail('歌词获取失败：'.$e->getMessage());
+            return $this->fail('歌词获取失败：'.self::errorDetail($e));
         }
 
         if ($lyric === null || $lyric === '') {
@@ -228,7 +228,7 @@ class MusicSearchController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return $this->fail($errorPrefix.'：'.$e->getMessage());
+            return $this->fail($errorPrefix.'：'.self::errorDetail($e));
         }
     }
 
@@ -258,7 +258,7 @@ class MusicSearchController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return $this->fail('音源请求失败：'.$e->getMessage());
+            return $this->fail('音源请求失败：'.self::errorDetail($e));
         }
 
         return response()->json([

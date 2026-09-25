@@ -11,6 +11,8 @@ return [
         // 路径布局模板（下载完成 worker 按此重排为「歌手/专辑/」结构）；空串 = 关闭平铺
         // 变量：{albumArtist} {album} {artist} {title} {year} {trackNo} {ext}
         'path_template' => env('MC_MUSIC_DOWNLOAD_PATH_TEMPLATE', '{albumArtist}/{album}/{title} - {albumArtist}.{ext}'),
+        // 单文件体积上限（MB）：异常/被污染直链中止传输，防灌满音乐库所在盘
+        'max_size_mb' => (int) env('MC_MUSIC_DOWNLOAD_MAX_MB', 1024),
     ],
 
 ];
