@@ -1,7 +1,7 @@
 # 回归测试报告（2026-09-11）
 
 > 对象：`development` 分支（merge 31f06bb 并入代码审查两批修复后）
-> 方式：`npm run build` / `npm run docs:build` 静态验证 + Vite dev 服务器 + 浏览器（真实后端 http://192.168.31.31:8096 与 fnOS 5666 均在线）端到端实测
+> 方式：`npm run build` / `npm run docs:build` 静态验证 + Vite dev 服务器 + 浏览器（真实后端 `http://<NAS>:8096` 与 fnOS 音乐服务 5666 均在线）端到端实测
 > 结论：**发现并修复 3 个问题**（1 个 P0 级缺口 + 2 个合并引入的 BUG），全部复验通过后推送。
 
 ## 一、回归发现并修复的问题

@@ -18,7 +18,7 @@
 | 下载队列 | database queue（SQLite）+ `queue:work`，Docker 内独立 worker 进程；直链有时效，即时解析即时下载、不落库，任务表只存状态/路径/音质（§10 建议 5） |
 | 下载完成刮削 | 复用第 4 期 `scraper/` 写入能力（taglib-wasm，dry-run/备份先例）；**M4 定稿（2026-09-12）**：server 下载成功后 fire-and-forget HTTP 推送**真值元数据**到 scraper `POST /mc/api/downloads`（只带音乐目录根下文件名 + 歌名/歌手/专辑/封面地址/kw 歌曲id，scraper 按自身 MC_MUSIC_DIR 定位文件）——不走模糊匹配，标题/歌手/专辑按覆盖写入；通知失败仅记日志不回滚任务（体检页兜底）；部署期 server 与 scraper 容器经 compose 网络直连（`MC_SCRAPER_URL`） |
 | 音质 | 酷我 brType 枚举（128kmp3…2000kflac）与对外别名双向映射（§10 建议 3）；`getDownloadUrl` 需完整歌曲对象 + `brTypes`，否则解析码率失败 |
-| 部署 | Docker；容器需大陆出口环境（酷我直链海外返回 `code:407`，§10 建议 6），目标 fnOS-Just4fun；nginx `/api/*` 反代目标由 SQMusic 切到 server（架构决策 #9 前缀稳定思路） |
+| 部署 | Docker；容器需大陆出口环境（酷我直链海外返回 `code:407`，§10 建议 6），目标 fnOS NAS；nginx `/api/*` 反代目标由 SQMusic 切到 server（架构决策 #9 前缀稳定思路） |
 | 前端切换 | `src/api/*` 调用面已收敛（`http.ts` 统一信封解包/token 头/403 重登），切换仅改 `.env`；token 头名前端已动态化（`stores/app.ts` tokenName，默认 `sqmusic`） |
 
 ## 3. 对齐范围：SQMusic 契约端点全表（前端调用面）
@@ -121,12 +121,12 @@
 | --- | --- |
 | 本地全链路回归（dev 代理切自建后端 127.0.0.1:8097，浏览器实测）：自动登录 / 搜索 3587 首（音源选项 + 音质徽章）/ 播放取流（CDN 流式进度走动）/ 服务端下载（自动最高音质 + 大小估算展示）/ 任务页状态与下载中流转 | ✅ |
 | 部署编排：compose server/scraper profile 完整化（音乐库目录 bind 挂载 `MC_MUSIC_HOST_DIR`、scraper CI 镜像回归、scraper 通知走 compose 网络） | ✅ |
-| fnOS-Just4fun 部署：web 重建 + server/worker/scraper 四容器上线 + `/api` 反代切自建后端（`http://server:8097`） | ✅ |
-| fnOS-Just4fun 全链路验证：12312 登录/搜索 3587 首/任务列表（SQMusic 历史清零）→ 下载晴天 128k 约 25 秒落库音乐目录 → scraper 自动刮削（albumArtist + 封面 + 歌词 written，errorCount 0）→ 文件 4,436,339 字节（含标签体积） | ✅ |
+| fnOS NAS 部署：web 重建 + server/worker/scraper 四容器上线 + `/api` 反代切自建后端（`http://server:8097`） | ✅ |
+| fnOS NAS 全链路验证：登录/搜索 3587 首/任务列表（SQMusic 历史清零）→ 下载晴天 128k 约 25 秒落库音乐目录 → scraper 自动刮削（albumArtist + 封面 + 歌词 written，errorCount 0）→ 文件 4,436,339 字节（含标签体积） | ✅ |
 | SQMusic 退役：`sqmusic_web/main/mysql` 三容器已停（数据与卷保留，`docker start` 可逆） | ✅ |
 | `/v2` 清理版契约规划（见下） | ✅ |
 
-**部署踩坑记录（fnOS-Just4fun，均已在仓库修复）**：
+**部署踩坑记录（fnOS NAS，均已在仓库修复）**：
 
 - NAS 构建需 composer 走阿里镜像 + `--no-scripts`（vendor 阶段无 artisan，post-autoload-dump 必失败）
 - `.dockerignore` 必须排除 `bootstrap/cache/*.php`：本地 dev 的包发现清单含 pail 等 dev 依赖 provider，`--no-dev` 镜像启动即崩
@@ -134,7 +134,7 @@
 - web 的 `/mc` 反代改 Docker DNS 运行时解析：scraper 容器缺失/重启时 web 降级 502 而非 nginx emerg 拒绝启动
 - 开发联调（非容器）注意：WSL→Windows 环回/NAT 网关被防火墙拦截，走宿主 LAN IP
 - **版本检测生效流程**：Docker 构建上下文无 .git，需本机 `node scripts/gen-build-info.mjs` 预生成 `src/build-info.json` 并单独 rsync 到 NAS（deploy 的 rsync filter 会排除但不会删除它）；gen-build-info 已改为非 git 环境保留已有生成物（b2191ee 起生效）
-- **音乐库目录迁移（2026-09-12）**：NAS 端 MC_MUSIC_HOST_DIR 改为 `/vol1/1000/Musics/MusicCopilot`（fnOS 音乐库新位置，用户建目录），server/worker/scraper 三容器挂载已切换并全链路验收通过（下载一生有你 → 落盘新目录 → 刮削 written）。顺带修复 `/api` 反代静态解析问题（与 /mc 同款，server 重建换 IP 不再需要重启 web）。注意：酷我部分歌曲 128k 实际返回 AAC 流，worker 按直链实际 format 落盘为 .aac（scraper taglib-wasm 可写标签）
+- **音乐库目录迁移（2026-09-12）**：NAS 端 MC_MUSIC_HOST_DIR 改为 fnOS 音乐库新位置（用户自建目录），server/worker/scraper 三容器挂载已切换并全链路验收通过（下载一生有你 → 落盘新目录 → 刮削 written）。顺带修复 `/api` 反代静态解析问题（与 /mc 同款，server 重建换 IP 不再需要重启 web）。注意：酷我部分歌曲 128k 实际返回 AAC 流，worker 按直链实际 format 落盘为 .aac（scraper taglib-wasm 可写标签）
 - 并行分支合并：`fix/remove-source-dropdown` 的 11 项前端修复（含版本检测）已并入本分支一并部署（8e35c6b）
 
 **`/v2` 清理版契约规划**（SQMusic 退役后作为独立小迭代，不阻塞本期）：
@@ -161,4 +161,4 @@
 - 2026-09-12：M2 完成（联想词/歌手详情/专辑详情/直链四端点；契约 13 端点；30 tests 全绿；真机全链路含真实直链解析通过）。发现并处理：albumlist 大响应在 WSL2 链路超时（KUWO_TIMEOUT→30s、rn 收敛 500）
 - 2026-09-12：M3 完成（download 3 端点 + task 8 端点 + SQLite 队列 worker；契约 24 端点；47 tests 全绿；端到端真机下载晴天 128k 落盘 4.3MB 成功）。至此前端契约 20/20 端点全部落地，SQMusic 契约面补齐
 - 2026-09-12：M4 完成（server 推送真值元数据 → scraper `POST /downloads` 真值写标签；50 tests 全绿；三进程端到端联调通过——封面 106KB、歌词 8716 字符成功嵌入）。环境坑记录：WSL→Windows 环回/NAT 网关均不可达（防火墙），开发联调走宿主 LAN IP；容器部署无此问题
-- 2026-09-12：M5 完成，**第 5 期收官，SQMusic 退役**。本地浏览器全链路回归通过；fnOS-Just4fun 四容器上线（web 12312 + server/worker + scraper），12312 经 nginx 反代自建后端，下载→自动刮削→音乐库入库闭环验证通过（晴天 128k 约 25 秒落库并嵌入封面歌词）；sqmusic 三容器停止（数据保留）。部署踩坑五条已回填仓库（见 M5 节）
+- 2026-09-12：M5 完成，**第 5 期收官，SQMusic 退役**。本地浏览器全链路回归通过；fnOS NAS 四容器上线（web + server/worker + scraper），web 经 nginx 反代自建后端，下载→自动刮削→音乐库入库闭环验证通过（晴天 128k 约 25 秒落库并嵌入封面歌词）；sqmusic 三容器停止（数据保留）。部署踩坑五条已回填仓库（见 M5 节）

@@ -2,7 +2,7 @@
 
 > 状态：仅记录，供后续排期修复用。
 > 检查方式：通读 `src/` 全部业务代码（api / stores / lib / views / components）、构建与部署配置（vite.config / Dockerfile / docker / CI）、`npm run build` 与本地 dev 冒烟测试。
-> 后端实测说明：审查当日 `http://192.168.31.31:8096` 不可达（连接超时，本机同网段 192.168.31.12），SQ Music 在线接口未复测；结论基于代码走读 + `docs/api-test-report.md` 记忆。dev 服务器冒烟（config.json 虚拟端点、/api 代理、错误路径）已验证通过。
+> 后端实测说明：审查当日 SQ Music 后端（NAS 部署的 `http://<NAS>:8096`）不可达（连接超时），SQ Music 在线接口未复测；结论基于代码走读 + `docs/api-test-report.md` 记忆。dev 服务器冒烟（config.json 虚拟端点、/api 代理、错误路径）已验证通过。
 >
 > **修复进度**：
 > - P0-1 ✅ 已修复——分支 `fix/library-genre-grid`（commit 5236498）

@@ -143,7 +143,7 @@ fnOS 接入配置（`MC_FNOS_*` 变量生成，`enabled` 控制音乐库入口�
     "username": "",
     "password": "",
     "autoLogin": true,
-    "proxyTarget": "http://192.168.31.31:5666"  // 信息性字段，供设置面板展示
+    "proxyTarget": "http://192.168.1.100:5666"  // 信息性字段，供设置面板展示
   }
 }
 ```
@@ -155,7 +155,7 @@ fnOS 接入配置（`MC_FNOS_*` 变量生成，`enabled` 控制音乐库入口�
   "scraper": {
     "enabled": true,
     "token": "",                                 // 非空时前端带 x-mc-token 头
-    "proxyTarget": "http://192.168.31.31:8098"   // 信息性字段，供设置面板展示
+    "proxyTarget": "http://192.168.1.100:8098"   // 信息性字段，供设置面板展示
   }
 }
 ```

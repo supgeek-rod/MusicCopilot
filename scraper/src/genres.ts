@@ -2,7 +2,7 @@ import { fetch as undiciFetch, ProxyAgent, type RequestInit as UndiciRequestInit
 import type { Env } from './env.js'
 
 /**
- * 外部 HTTP（流派源）请求层：可选 HTTP 代理（MC_HTTP_PROXY，如 http://192.168.31.11:7890）。
+ * 外部 HTTP（流派源）请求层：可选 HTTP 代理（MC_HTTP_PROXY，如 http://192.168.1.2:7890）。
  * 大陆直连 api.deezer.com / ws.audioscrobbler.com 均不可达，经代理即可用；
  * 未配置代理时走全局 fetch（保持直连语义与单测 mock 能力）。
  */

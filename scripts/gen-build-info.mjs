@@ -1,5 +1,5 @@
 // 生成 src/build-info.json（构建前置步骤，见 package.json 的 build 脚本）。
-// 必须在同步代码到部署机之前在本机执行：fnOS-Just4fun 的 Docker 构建上下文
+// 必须在同步代码到部署机之前在本机执行：部署机的 Docker 构建上下文
 // 没有 .git（rsync 排除），容器内无法现场取 git 信息。
 // 文件已加入 .gitignore——生成物不入库，dirty 判断（工作区是否有未提交改动）才准确。
 import { execSync } from 'node:child_process'

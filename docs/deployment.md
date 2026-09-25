@@ -11,7 +11,7 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
-| `web`（music-copilot-web） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_WEB_PORT`（如 12312） | — |
+| `web`（music-copilot-web） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_WEB_PORT`（默认 17016） | — |
 | `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责搜索/详情/歌词/直链解析、下载任务创建与管理（无认证），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按路径模板重排 | 17017 | -（不发布宿主端口） | `data/` → `/data`（SQLite 库） |
 
 server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_DOWNLOAD_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
@@ -62,7 +62,7 @@ compose 变量已统一改名，**旧名会被静默忽略**（无告警、回�
 
 ```bash
 # NAS 端 .env（节选，完整模板见仓库 .env.example）
-MC_MUSIC_DOWNLOAD_DIR=/vol1/1000/Musics/MusicCopilot   # 音乐库绝对路径（下载落盘目录）
+MC_MUSIC_DOWNLOAD_DIR=/vol1/music/MusicCopilot   # 音乐库绝对路径（下载落盘目录，按 NAS 实际路径修改）
 docker compose up -d
 ```
 

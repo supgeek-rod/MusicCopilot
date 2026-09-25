@@ -5,7 +5,7 @@
 **MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA + 自建后端一体的 monorepo。**自建后端已上线（第 5 期，2026-09-12 完成）：`server/` 子目录（PHP / Laravel 13，原独立仓库 MusicCopilotServer 于 2026-09-11 subtree 并入，保留历史），fnOS 线上已切换自建后端**——v0.2.0 起无需 SQMusic；**2026-09-26 完成契约清理**：server 认证（2026-09-25 移除）连同其 SqMusic 对齐残留（`sqmusic` 请求头、login/isLogin/logout 端点、token 存储）一并删除，连接即用（见架构 [docs/architecture.md](docs/architecture.md)）。
 
 - 自建后端开发服务: `http://127.0.0.1:17017`（WSL 内 `php artisan serve`，见下方常用命令；无认证，无需账号密码；探活端点 `/api/healthcheck`）
-- fnOS 线上（fnOS-Just4fun）: 前端 `http://192.168.31.31:12312`，两容器拓扑（web + server，server 内含下载队列 worker）
+- fnOS 线上部署：两容器拓扑（web + server，server 内含下载队列 worker）；对外地址与端口由部署机 `.env` 的 `MC_WEB_PORT` 决定
 - 前端开发服务器: `npm run dev`（端口取 `.env` 的 `MC_WEB_PORT`，默认 5173；`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
 - 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
 
@@ -15,7 +15,7 @@
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
 - `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
-- `wsl -e bash -lc "cd '/mnt/c/Users/superod/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"` —— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
+- `wsl -e bash -lc "cd '<仓库路径>/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"`（`<仓库路径>` 按本机实际位置替换）—— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
 
 ## server/ 子目录（自建后端，Laravel 13）
 

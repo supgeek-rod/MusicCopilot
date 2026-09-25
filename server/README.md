@@ -26,7 +26,7 @@ MusicCopilot 仓库 `packages/api-contract` 自动生成）。
 
 ```bash
 # PHP/Composer 只在 WSL（详见根 AGENTS.md server/ 一节）
-wsl -e bash -lc "cd '/mnt/c/Users/superod/OneDrive/文档/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"
+wsl -e bash -lc "cd '<仓库路径>/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"   # <仓库路径> 按本机实际位置替换
 ```
 
 ### 搜索 API 用法
@@ -128,6 +128,6 @@ scripts/kw-download.sh 228908 128kmp3      # 解析并下载文件
 
 1. 搜索、详情、歌词接口**海外 IP 可用**；仅**直链解析**（`mobi.kuwo.cn` convert_url_with_sign）有
    **大陆 IP 区域限制**（海外返回 `code:407`），CDN 直链文件本身不限区域可下载。
-   → 自建服务需部署在大陆出口环境（如家中 NAS）。
+   → 自建服务需部署在大陆出口环境（如内网 NAS）。
 2. 参考仓库（Java 3.1.20）当前所用端点家族 2026-09 仍然全部有效。
 3. 歌词接口需两层 XOR（key `yeelion`）+ base64 + zlib，最终 gb18030 解码，仅 `lrcx=1` 模式有效。

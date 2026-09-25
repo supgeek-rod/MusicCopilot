@@ -6,7 +6,7 @@
 
 ## 1. 背景与目标
 
-MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NAS 上已运行官方「音乐」应用（`http://192.168.31.31:5666/music/`），其音乐库目录与 SQ Music 下载目录相同（`/vol1/@team/DockerSpace/simple-sq-music-plus/music/`），即「下载的歌自动进曲库」已天然成立。
+MusicCopilot 目前只能从 SQ Music 在线源搜索下载。飞牛（fnOS）NAS 上已运行官方「音乐」应用（`http://<NAS>:5666/music/`），其音乐库目录与 SQ Music 下载目录相同，即「下载的歌自动进曲库」已天然成立。
 
 本期目标：把 NAS 本地曲库接入 MusicCopilot，支持**浏览、搜索、流式播放（含歌词封面）、歌单查看与播放**。这对应 README 开发路线图第 3 期的前两项能力；「歌单补全下载」及 Node 伴生服务仍按路线图推后（见 §6）。
 
