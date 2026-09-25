@@ -60,7 +60,7 @@ npm run preview    # 本地预览构建产物（同样走 /api 代理，MC_API_B
 项目文档基于 VitePress，源码即站点（docs as code），文档源文件在 `docs/`：
 
 ```bash
-npm run docs:dev      # 文档站本地开发，http://localhost:5174
+npm run docs:dev      # 文档站本地开发，http://localhost:17015
 npm run docs:build    # 构建到 docs/.vitepress/dist（含死链检查），改动 docs/ 后提交前应构建通过
 npm run docs:preview  # 本地预览文档站构建产物
 ```

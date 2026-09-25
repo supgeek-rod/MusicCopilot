@@ -102,7 +102,7 @@ src/lib/               # 工具：格式化、数据适配（adapter）、富文
 ## 文档站开发
 
 ```bash
-npm run docs:dev      # 文档站本地开发，http://localhost:5174
+npm run docs:dev      # 文档站本地开发，http://localhost:17015
 npm run docs:build    # 构建文档站（含死链检查）
 npm run docs:preview  # 本地预览文档站构建产物
 ```
