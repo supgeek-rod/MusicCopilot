@@ -9,10 +9,17 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 
 两容器默认拓扑（`docker compose up -d` 一键拉起），各司其职：
 
-| 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
-| --- | --- | --- | --- | --- | --- |
-| `web`（music-copilot-web） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_WEB_PORT`（如 12312） | — |
-| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责搜索/详情/歌词/直链解析、下载任务创建与管理（无认证），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按路径模板重排 | 17017 | -（不发布宿主端口） | `data/` → `/data`（SQLite 库） |
+| 服务（容器名） | 镜像 | 端口（容器内 → 宿主） | 数据卷 |
+| --- | --- | --- | --- |
+| `web`（music-copilot-web） | `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布，或本地 `Dockerfile` 构建） | 80 → `MC_WEB_PORT`（如 12312） | — |
+| `server`（music-copilot-server） | `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布，也可 `--build` 本地构建） | 17017 → 不发布宿主端口 | `data/` → `/data`（SQLite 库） |
+
+**web** —— nginx 托管前端静态文件，`/api` 反代到 server，启动时按环境变量生成 `config.json`。
+
+**server** —— 自建后端（php:8.4-cli-alpine 多阶段镜像，`server/Dockerfile`），一容器两进程：
+
+- **API 进程**（`php artisan serve`）：搜索 / 详情 / 歌词 / 直链解析、下载任务创建与管理（无认证），附 OpenAPI 文档
+- **下载队列 worker**（`queue:work`，entrypoint 拉起并监督）：解析直链 → 流式下载落盘 → 状态回写 → 按路径模板重排
 
 server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_DOWNLOAD_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
 
