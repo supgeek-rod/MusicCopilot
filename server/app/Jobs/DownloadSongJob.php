@@ -196,15 +196,24 @@ class DownloadSongJob implements ShouldQueue
         $segs[count($segs) - 1] = $file;
 
         $target = $baseDir.'/'.implode('/', $segs);
-        if (realpath($target) === realpath($currentAbs)) {
+        // WSL /mnt/c（9p）对本进程刚 rename 出的文件 stat/realpath 短暂不可见：
+        // 先清统计缓存，且仅在目标真实存在时才可能判「已在目标位置」——
+        // 否则首次下载（目标必然不存在）会因 realpath 双双返回 false 被误判为同位置而静默跳过
+        clearstatcache();
+        if (is_file($target) && realpath($target) === realpath($currentAbs)) {
             return null; // 已在目标位置
         }
 
         // 冲突处理：同名追加序号；同内容视为重复下载，删源保留既有文件
+        // （stat 失败时放弃去重、降级为追加序号，不让告警中断重排）
         $candidate = $target;
         $n = 2;
         while (is_file($candidate)) {
-            if (filesize($candidate) === filesize($currentAbs) && md5_file($candidate) === md5_file($currentAbs)) {
+            clearstatcache();
+            $sizeExisting = filesize($candidate);
+            $sizeCurrent = filesize($currentAbs);
+            if ($sizeExisting !== false && $sizeCurrent !== false
+                && $sizeExisting === $sizeCurrent && md5_file($candidate) === md5_file($currentAbs)) {
                 @unlink($currentAbs);
                 $this->cleanEmptyDirs(dirname($currentAbs), $baseDir);
 
