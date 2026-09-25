@@ -27,6 +27,8 @@ const error = ref('')
 /** 解析后的歌词行：time 为秒（无时间轴的纯文本行为 null） */
 const lines = ref<{ time: number | null; text: string }[]>([])
 let disposed = false
+/** 请求序号：换歌/重开弹窗后丢弃迟到响应（disposed 只护卸载，不护换歌竞态） */
+let reqSeq = 0
 
 /** 元数据标签（[ti:]/[ar:]/[offset:] 等）剔除时间标签后残留 "ti:xxx" 形式，识别后整行丢弃 */
 const META_LINE_RE = /^(?:ti|ar|al|by|offset|ver|kuwo|ml|hash|encoding|total|length|sign|re):/i
@@ -59,6 +61,7 @@ watch(
   () => props.open,
   async (open) => {
     if (!open || !props.song) return
+    const seq = ++reqSeq
     loading.value = true
     error.value = ''
     lines.value = []
@@ -68,17 +71,21 @@ watch(
         props.song.plugName === 'fnos'
           ? await getFnosLyric(props.song.id)
           : await musicApi.getLyric(props.song.plugName, props.song.id)
-      if (disposed) return
-      const parsed = String(text ?? '')
+      if (disposed || seq !== reqSeq) return
+      const raw = String(text ?? '')
+      // LRC 全局偏移（[offset:±ms]，标准元数据）：正值 = 歌词整体提前，高亮计算时抵消
+      const offset = Number(raw.match(/\[offset:\s*([+-]?\d+)\s*\]/i)?.[1] ?? 0) / 1000
+      const parsed = raw
         .split(/\r?\n/)
         .map(parseLine)
         .filter((l) => l.text !== '')
       lines.value = parsed.length ? parsed : [{ time: null, text: '（无歌词或纯音乐）' }]
+      offsetSec.value = Number.isFinite(offset) ? offset : 0
     } catch (e) {
-      if (disposed) return
+      if (disposed || seq !== reqSeq) return
       error.value = e instanceof Error ? e.message : String(e)
     } finally {
-      if (!disposed) loading.value = false
+      if (!disposed && seq === reqSeq) loading.value = false
     }
   },
 )
@@ -86,10 +93,13 @@ watch(
 /** 歌词是否带时间轴（决定是否高亮/跟随） */
 const timed = computed(() => lines.value.some((l) => l.time !== null))
 
-/** 当前行：最后一个 time ≤ 进度(+0.3s 前瞻补偿) 的行；无时间轴恒 -1 */
+/** [offset:±ms] 全局偏移（秒）：正值歌词提前，高亮时从进度里扣回 */
+const offsetSec = ref(0)
+
+/** 当前行：最后一个 time ≤ 进度(+0.3s 前瞻补偿 − offset 偏移) 的行；无时间轴恒 -1 */
 const activeIdx = computed(() => {
   if (!timed.value) return -1
-  const t = player.currentTime + 0.3
+  const t = player.currentTime + 0.3 - offsetSec.value
   let idx = -1
   for (let i = 0; i < lines.value.length; i++) {
     const time = lines.value[i]!.time

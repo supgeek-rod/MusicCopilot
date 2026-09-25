@@ -128,6 +128,18 @@ function onVolume(value: number[] | undefined) {
   if (audioRef.value) audioRef.value.volume = player.volume
 }
 
+/** 静音前的音量：取消静音恢复原值（此前硬编码回 70%） */
+let lastVolume = 0.7
+
+function toggleMute() {
+  if (player.volume === 0) {
+    onVolume([lastVolume * 100])
+  } else {
+    lastVolume = player.volume
+    onVolume([0])
+  }
+}
+
 function close() {
   const audio = audioRef.value
   audio?.pause()
@@ -217,7 +229,7 @@ function close() {
             variant="ghost"
             size="icon-sm"
             :title="player.volume === 0 ? '取消静音' : '静音'"
-            @click="onVolume([player.volume === 0 ? 70 : 0])"
+            @click="toggleMute"
           >
             <VolumeXIcon v-if="player.volume === 0" class="size-4" />
             <Volume2Icon v-else class="size-4" />

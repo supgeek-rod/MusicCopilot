@@ -114,9 +114,10 @@ async function fetchTasks(silent = false) {
   }
 }
 
+// 状态筛选只改页码：请求统一由 watch(pageIndex) 触发，避免两 watch 叠加发重复请求
 watch(status, () => {
-  pageIndex.value = 1
-  fetchTasks()
+  if (pageIndex.value === 1) fetchTasks()
+  else pageIndex.value = 1
 })
 watch(pageIndex, () => fetchTasks())
 
