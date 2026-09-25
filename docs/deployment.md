@@ -146,9 +146,8 @@ docker run -d -p 17016:80 \
 MusicCopilot 是**内网自托管**设计，安全边界 = 局域网边界：
 
 - **后端无认证**（2026-09-25 起）：所有 `/api/*` 端点对能访问到它的人完全开放。已有最小对冲（破坏性批量操作收敛为 POST、api/* 按 IP 限速 120/min、下载单文件体积上限），但这些都**不能替代网络隔离**——不要把 `MC_WEB_PORT` 端口映射到公网；确需公网访问请在前面加一层带认证的反向代理（并建议套 HTTPS）。
-- **fnOS 凭据会下发到浏览器**：配置了 `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 时，web 容器会把它明文写入 `config.json`（站点静态资源，匿名可 GET），前端凭它自动登录 fnOS——任何能打开该站点的人都能读到这组凭据并直接登录 fnOS 网关。fnOS 账号往往与 NAS 管理凭据同源，请确认这符合你的信任模型；不希望下发就**不要配置 `MC_FNOS_*` 变量**（「音乐库」入口自动隐藏）。
-- `config.json` 的 `proxyTarget`（信息性字段）会把内网后端/网关地址暴露给浏览器端访问者，内网场景可接受，公网暴露前需知悉。
-- 站点会话（fnOS music-token Cookie）由 JS 写入、SameSite=Lax 无 Secure（内网 HTTP 部署的平台限制），XSS 面已用 DOMPurify 白名单净化收敛，仍应保持内网使用。
+- **fnOS 凭据由 server 代持，不下发浏览器**（2026-09-26 起）：`MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 配置在 **server 容器**环境，由 `/api/fnos/login` 在服务端代调 fnOS 登录，换取的 token 经 **HttpOnly Cookie** 下发——`config.json` 与前端 JS 均接触不到密码与 token 值，任何访问者都无法再从浏览器侧读到 fnOS 凭据。注意凭据配置位置在 **server 服务**（compose 已就位）；`MC_FNOS_BASE_URL` 在 web（反代）与 server（直连登录）都需要。
+- 站点会话为 HttpOnly Cookie（`music-token`，SameSite=Lax、无 Secure——内网 HTTP 部署的平台限制），浏览器脚本不可读；XSS 面已用 DOMPurify 白名单净化收敛，仍应保持内网使用。
 
 ### 镜像 tag 说明
 

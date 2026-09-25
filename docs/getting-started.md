@@ -24,6 +24,8 @@ cp .env.example .env    # 模板默认已指向本地后端 127.0.0.1:17017，�
 npm run dev             # http://localhost:<MC_WEB_PORT>（默认 5173），/api 由 Vite 代理转发到后端
 ```
 
+> 想在本地开发「音乐库（fnOS）」功能：除根 `.env` 的 `MC_FNOS_BASE_URL`（Vite 代理用）外，需把 `MC_FNOS_BASE_URL` / `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 同步配到 `server/.env`——登录由 server 代持凭据完成，前端不接触密码。
+
 ## 构建
 
 ```bash
