@@ -29,7 +29,8 @@ function requireMcApiBaseUrl(env: Record<string, string>): string {
  *  baseUrl 恒为空串（同源）：后端地址 MC_API_BASE_URL 只供服务端转发层使用
  *  （dev/preview 的 Vite 代理、Docker 的 nginx），浏览器直连后端可用设置面板按设备覆盖。
  *  proxyTarget 为信息性字段：把转发目标带给浏览器，供设置面板展示。
- *  fnos 块为飞牛音乐库接入配置（未配置 MC_FNOS_BASE_URL 时 enabled=false）。 */
+ *  fnos 块为飞牛音乐库接入配置（未配置 MC_FNOS_BASE_URL 时 enabled=false）；
+ *  凭据（MC_FNOS_USERNAME/PASSWORD）由 server 代持，从不进入浏览器侧配置。 */
 function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
   const fnosAutoLoginRaw = mcEnv(env, 'MC_FNOS_AUTO_LOGIN')
   const fnosBaseUrl = mcEnv(env, 'MC_FNOS_BASE_URL') ?? ''
@@ -38,8 +39,6 @@ function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
     proxyTarget,
     fnos: {
       enabled: Boolean(fnosBaseUrl),
-      username: mcEnv(env, 'MC_FNOS_USERNAME') ?? '',
-      password: mcEnv(env, 'MC_FNOS_PASSWORD') ?? '',
       autoLogin: fnosAutoLoginRaw === undefined ? true : fnosAutoLoginRaw.toLowerCase() !== 'false',
       proxyTarget: fnosBaseUrl,
     },

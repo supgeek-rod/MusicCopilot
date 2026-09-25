@@ -11,19 +11,6 @@ export interface FnosEnvelope<T> {
   data: T
 }
 
-/** password-login 响应（token 需前端自行写入 music-token Cookie） */
-export interface FnosLoginData {
-  userToken: string
-  user: {
-    guid: string
-    name: string
-    role: string
-    lastAccessedAt?: number | null
-    createdAt?: number | null
-    updatedAt?: number | null
-  }
-}
-
 export interface FnosUser {
   guid: string
   name: string

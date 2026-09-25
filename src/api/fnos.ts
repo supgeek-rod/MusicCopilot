@@ -1,26 +1,24 @@
 import axios, { AxiosError } from 'axios'
-import { sha256Hex } from '@/lib/sha256'
 import type {
   FnosAlbum,
   FnosArtist,
   FnosEnvelope,
   FnosGenre,
   FnosLyricData,
-  FnosLoginData,
   FnosPage,
   FnosPlaylist,
   FnosTrack,
   FnosUser,
 } from './fnosTypes'
-import { ApiError } from './http'
+import { request, ApiError } from './http'
 
 /**
  * fnOS 音乐 API 客户端：经同源 /fnos 反代直连 fnOS 网关（dev 走 Vite proxy，
  * 生产走 nginx），与主后端 http.ts 互相独立 —— 鉴权方式
- * （Cookie music-token）与成功码（code==0）均不同，见 docs/architecture.md 决策 #8。
+ * （Cookie music-token，HttpOnly 由 /api/fnos/login 下发）与成功码（code==0）
+ * 均不同，见 docs/architecture.md 决策 #8。
  */
 const FNAS_BASE = '/fnos/music/api/v1'
-const TOKEN_COOKIE = 'music-token'
 const DEVICE_KEY = 'music-copilot:fnos-device'
 
 /** 由 fnos store 在启动时绑定（与 http.ts 的 httpRuntime 同款解耦模式） */
@@ -82,17 +80,10 @@ function get<T>(path: string, params?: Record<string, string | number>): Promise
   return fnosRequest<T>({ method: 'GET', url: `${FNAS_BASE}${path}`, params })
 }
 
-// ── 会话（Cookie 由前端自行维护：登录接口不返回 Set-Cookie）──
+// ── 会话（2026-09-26 起凭据由 server 代持：token 经 HttpOnly Cookie 下发，
+//    前端不再写/读 Cookie，也接触不到密码与 token 值）──
 
-export function setFnosTokenCookie(token: string): void {
-  document.cookie = `${TOKEN_COOKIE}=${token}; path=/; SameSite=Lax; max-age=${60 * 60 * 24 * 30}`
-}
-
-export function clearFnosTokenCookie(): void {
-  document.cookie = `${TOKEN_COOKIE}=; path=/; SameSite=Lax; max-age=0`
-}
-
-/** 设备 ID：32 位 hex，首次生成后持久化（登录参数，服务端用于会话区分） */
+/** 设备 ID：32 位 hex，首次生成后持久化（登录参数，fnOS 服务端用于会话区分） */
 function getDeviceId(): string {
   let id = localStorage.getItem(DEVICE_KEY)
   if (!id || !/^[0-9a-f]{32}$/.test(id)) {
@@ -104,15 +95,17 @@ function getDeviceId(): string {
   return id
 }
 
-/** 账号密码登录（密码以 SHA-256 hex 提交，与官方前端一致） */
-export async function fnosPasswordLogin(username: string, password: string): Promise<FnosLoginData> {
-  const data = await fnosRequest<FnosLoginData>({
-    method: 'POST',
-    url: `${FNAS_BASE}/user/password-login`,
-    data: { username, password: sha256Hex(password), deviceId: getDeviceId() },
-  })
-  setFnosTokenCookie(data.userToken)
-  return data
+/**
+ * 登录（走主后端 /api/fnos/login）：server 用 MC_FNOS_* 配置代调 fnOS 登录，
+ * 成功后经 Set-Cookie 下发 HttpOnly music-token；后续 /fnos 请求浏览器自动携带。
+ */
+export async function fnosServerLogin(): Promise<void> {
+  await request<unknown>({ url: '/api/fnos/login', method: 'POST', data: { deviceId: getDeviceId() } })
+}
+
+/** 登出：server 置空 HttpOnly Cookie（JS 无法清除 HttpOnly Cookie） */
+export async function fnosServerLogout(): Promise<void> {
+  await request<unknown>({ url: '/api/fnos/logout', method: 'POST' })
 }
 
 /** 校验当前 Cookie 会话是否有效（轻量探测） */

@@ -95,8 +95,6 @@ export interface TaskPage {
 export interface FnosAppConfig {
   /** 是否启用音乐库入口（取决于是否配置了 MC_FNOS_BASE_URL） */
   enabled?: boolean
-  username?: string
-  password?: string
   autoLogin?: boolean
   /** 信息性字段：/fnos 反代目标地址，仅供展示，应用行为不读取 */
   proxyTarget?: string
