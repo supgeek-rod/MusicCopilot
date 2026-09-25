@@ -50,7 +50,6 @@ MusicCopilot/
 │  ├─ docs/kuwo-api-notes.md   # 酷我端点/加密/区域限制调研
 │  ├─ research/ scripts/       # 酷我调研资料与 curl 验证脚本
 │  └─ openapi.json             # OpenAPI 3.1 规范固化（scramble:export）
-├─ scraper/                     # （已移除）音乐元数据刮削工具源码存档，不构建不运行
 ├─ docker/                      # nginx 反代模板 + 容器入口配置生成脚本（前端镜像构建用根级 Dockerfile，server 镜像用 server/Dockerfile）
 └─ docs/                       # 文档（VitePress 文档站）
 ```
