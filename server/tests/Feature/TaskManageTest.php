@@ -121,7 +121,7 @@ class TaskManageTest extends TestCase
         $this->createTask();
 
         $this
-            ->getJson('/api/task/againTask')
+            ->postJson('/api/task/againTask')
             ->assertOk()
             ->assertJsonPath('code', 200);
 
@@ -136,14 +136,14 @@ class TaskManageTest extends TestCase
         $success2 = $this->createTask(['status' => DownloadTask::STATUS_SUCCESS]);
         $this->createTask();
 
-        $res = $this->getJson('/api/task/delSuccessTask');
+        $res = $this->postJson('/api/task/delSuccessTask');
         $res->assertOk()->assertJsonPath('code', 200)->assertJsonPath('data.count', 2);
         $this->assertDatabaseMissing('download_tasks', ['id' => $success2->id]);
 
-        $this->getJson('/api/task/delErrorTask')
+        $this->postJson('/api/task/delErrorTask')
             ->assertOk()->assertJsonPath('data.count', 1);
 
-        $this->getJson('/api/task/delWaitingTask')
+        $this->postJson('/api/task/delWaitingTask')
             ->assertOk()->assertJsonPath('data.count', 1);
 
         $this->assertDatabaseCount('download_tasks', 0);
