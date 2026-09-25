@@ -20,7 +20,7 @@ git clone https://github.com/supgeek-rod/MusicCopilot.git
 cd MusicCopilot
 npm install
 
-cp .env.example .env    # 模板默认已指向本地后端 127.0.0.1:8097，可直接开发（.env 不入库）
+cp .env.example .env    # 模板默认已指向本地后端 127.0.0.1:17017，可直接开发（.env 不入库）
 npm run dev             # http://localhost:<MC_PORT>（默认 5173），/api 由 Vite 代理转发到后端
 ```
 

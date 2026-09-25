@@ -97,7 +97,7 @@ MusicCopilot/
    ▼
 ┌────────────────────── nginx (web 容器) ─────────────────────┐
 │  /            → SPA 静态文件                                 │
-│  /api/*       → MusicCopilot Server（server 容器 :8097）     │
+│  /api/*       → MusicCopilot Server（server 容器 :17017）     │
 │  /fnos/*      → fnOS 网关 5666（直连，Cookie 鉴权）          │
 └───────┬─────────────────────────────────────┬───────────────┘
         ▼                                     ▼

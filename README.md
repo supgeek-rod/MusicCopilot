@@ -32,7 +32,7 @@ monorepo（2026-09-11 起）：根目录为 Web 前端（本 README 所述）；
 ```bash
 npm install
 npm run dev        # 开发，默认 http://localhost:5173（先 cp .env.example .env 配置后端地址；
-                   #  自建后端开发服务见 server/README.md，如 http://127.0.0.1:8097）
+                   #  自建后端开发服务见 server/README.md，如 http://127.0.0.1:17017）
 npm run build      # vue-tsc 类型检查 + Vite 构建，产物输出 dist/
 npm run preview    # 本地预览构建产物
 ```
@@ -49,7 +49,7 @@ cp .env.example .env
 
 # .env 默认值即可部署，按需调整：
 #   MC_MUSIC_HOST_DIR=/path/to/music                   # 音乐库目录（下载落盘处）
-#   MC_AUTH_USERNAME / MC_AUTH_PASSWORD                # 自建后端登录凭证（默认 admin/admin）
+#   MC_API_USERNAME / MC_API_PASSWORD                # 自建后端登录凭证（默认 admin/password）
 
 docker compose up -d
 ```

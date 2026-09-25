@@ -11,7 +11,7 @@
 ## 当前进度
 
 - [x] 酷我接口调研：搜索 / 详情 / 歌词 / 直链解析 全链路 curl 实测通过（2026-09-10）
-- [x] Laravel 13 应用（WSL PHP 8.4 运行，`php artisan serve --port=8097`）
+- [x] Laravel 13 应用（WSL PHP 8.4 运行，`php artisan serve --port=17017`）
 - [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，SQMusic `{code,msg,data}` 契约，
       字段对齐 MusicCopilot 前端 `SongRecord/ArtistRecord/AlbumRecord`）
 - [x] API 文档 + 在线测试台：Scalar（本地化）+ Scramble 自动生成 OpenAPI 3.1 规范（2026-09-11）
@@ -27,15 +27,15 @@
 
 ```bash
 # PHP/Composer 只在 WSL（详见根 AGENTS.md server/ 一节）
-wsl -e bash -lc "cd '/mnt/c/Users/superod/OneDrive/文档/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=8097"
+wsl -e bash -lc "cd '/mnt/c/Users/superod/OneDrive/文档/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"
 ```
 
 ### 搜索 API 用法
 
 ```bash
-curl 'http://127.0.0.1:8097/api/music/searchSong?plugName=kw&keyword=晴天&pageIndex=1&pageSize=3'
-curl 'http://127.0.0.1:8097/api/music/searchArtist?plugName=kw&keyword=周杰伦'
-curl 'http://127.0.0.1:8097/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
+curl 'http://127.0.0.1:17017/api/music/searchSong?plugName=kw&keyword=晴天&pageIndex=1&pageSize=3'
+curl 'http://127.0.0.1:17017/api/music/searchArtist?plugName=kw&keyword=周杰伦'
+curl 'http://127.0.0.1:17017/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
 ```
 
 `pageIndex` 从 1 开始（内部转酷我 pn=pageIndex-1）；`pageSize` 上限 100。
@@ -47,16 +47,16 @@ curl 'http://127.0.0.1:8097/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
 缺失/无效/过期返回 **HTTP 403**（前端 `http.ts` 据此自动重登并重试）：
 
 ```bash
-TOKEN=$(curl -s --noproxy '*' -X POST 'http://127.0.0.1:8097/api/config/login' \
+TOKEN=$(curl -s --noproxy '*' -X POST 'http://127.0.0.1:17017/api/config/login' \
   -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin","device":"web"}' | jq -r .data.tokenValue)
-curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:8097/api/config/getOption'
+  -d '{"username":"admin","password":"password","device":"web"}' | jq -r .data.tokenValue)
+curl -s --noproxy '*' -H "sqmusic: $TOKEN" 'http://127.0.0.1:17017/api/config/getOption'
 ```
 
 - 登录 body 必须带 `device` 字段（缺失报「请填写登录设备类型」），返回 sa-token 风格
   `data.tokenName/tokenValue`；`isLogin` 恒返回 200，登录态在 `data` 布尔值上（不复制 SQMusic 无 token 也返回 true 的瑕疵）
 - token 有效期 7 天（`MC_AUTH_TTL`），库里只存 sha256 摘要（`auth_tokens` 表），`logout` 撤销、多设备并存
-- 凭证经 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD` 配置（默认 admin/admin，见 `.env.example`）
+- 凭证经 `MC_API_USERNAME` / `MC_API_PASSWORD` 配置（默认 admin/password，见 `.env.example`）
 
 ### 下载与任务队列（第 5 期 M3）
 
@@ -66,11 +66,11 @@ php artisan queue:work --tries=1 --timeout=3600
 
 # 创建单曲任务（body 为搜索返回的完整歌曲记录；brType 省略自动选最高可用音质）
 curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application/json' \
-  --data-binary @song.json 'http://127.0.0.1:8097/api/download/downloadSong'
+  --data-binary @song.json 'http://127.0.0.1:17017/api/download/downloadSong'
 
 # 任务列表（分页 + downloadStatus 筛选：waiting/downloading/loading/success/error）
 curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"pageIndex":1,"pageSize":20}' 'http://127.0.0.1:8097/api/task/list'
+  -d '{"pageIndex":1,"pageSize":20}' 'http://127.0.0.1:17017/api/task/list'
 ```
 
 - 状态机：waiting → loading（解析直链）→ downloading → success / error；失败经 `errorTaskRetry` 回 waiting
@@ -80,10 +80,10 @@ curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application
 
 ### API 文档与在线测试（Scalar + Scramble）
 
-- **`http://127.0.0.1:8097/api-docs.html`** —— Scalar 渲染的交互式文档 + 请求测试控制台
+- **`http://127.0.0.1:17017/api-docs.html`** —— Scalar 渲染的交互式文档 + 请求测试控制台
   （资产已本地化到 `public/vendor/scalar/`，离线 NAS 可用；CDN 产物有坏包问题勿换回，见 git 历史）
-- `http://127.0.0.1:8097/docs/api` —— Scramble 自带文档页（Stoplight Elements，控制台经实测可发真实请求）
-- `http://127.0.0.1:8097/docs/api.json` —— OpenAPI 3.1 规范（Scramble 从控制器自动生成，可喂 openapi-typescript 生成前端契约类型）
+- `http://127.0.0.1:17017/docs/api` —— Scramble 自带文档页（Stoplight Elements，控制台经实测可发真实请求）
+- `http://127.0.0.1:17017/docs/api.json` —— OpenAPI 3.1 规范（Scramble 从控制器自动生成，可喂 openapi-typescript 生成前端契约类型）
 - 本目录 `openapi.json` —— 规范固化产物（`php artisan scramble:export`），
   契约类型单一来源：前端仓库 `packages/api-contract`（`npm run gen`）
 

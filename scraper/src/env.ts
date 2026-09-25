@@ -25,7 +25,7 @@ export function loadEnv(): Env {
     musicDir: resolve(process.env.MC_MUSIC_DIR ?? 'music'),
     dataDir: resolve(process.env.MC_DATA_DIR ?? 'data'),
     token: process.env.MC_SCRAPER_TOKEN ?? '',
-    serverUrl: (process.env.MC_SERVER_URL ?? 'http://127.0.0.1:8097').replace(/\/+$/, ''),
+    serverUrl: (process.env.MC_SERVER_URL ?? 'http://127.0.0.1:17017').replace(/\/+$/, ''),
     serverUsername: process.env.MC_SERVER_USERNAME ?? '',
     serverPassword: process.env.MC_SERVER_PASSWORD ?? '',
     lastfmApiKey: process.env.MC_LASTFM_API_KEY ?? '',

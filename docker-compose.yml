@@ -8,10 +8,10 @@ services:
     ports:
       - "${MC_PORT:-17016}:80"
     environment:
-      MC_API_BASE_URL: http://server:8097
+      MC_API_BASE_URL: http://server:17017
       MC_API_USERNAME: ${MC_API_USERNAME:-}
       MC_API_PASSWORD: ${MC_API_PASSWORD:-}
-      MC_AUTO_LOGIN: ${MC_AUTO_LOGIN:-true}
+      MC_API_AUTO_LOGIN: ${MC_API_AUTO_LOGIN:-true}
       MC_FNOS_BASE_URL: ${MC_FNOS_BASE_URL:-}
       MC_FNOS_USERNAME: ${MC_FNOS_USERNAME:-}
       MC_FNOS_PASSWORD: ${MC_FNOS_PASSWORD:-}
@@ -23,9 +23,9 @@ services:
     image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot-server
     ports:
-      - "8097:8097"
+      - "127.0.0.1:17017:17017"
     healthcheck:
-      test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:8097/api/config/isLogin\"));'"]
+      test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:17017/api/config/isLogin\"));'"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -34,8 +34,8 @@ services:
     environment:
       DB_DATABASE: /data/database.sqlite
       MC_DOWNLOAD_DIR: /downloads
-      MC_AUTH_USERNAME: ${MC_AUTH_USERNAME:-admin}
-      MC_AUTH_PASSWORD: ${MC_AUTH_PASSWORD:-admin}
+      MC_API_USERNAME: ${MC_API_USERNAME:-admin}
+      MC_API_PASSWORD: ${MC_API_PASSWORD:-password}
       MC_DIR_TEMPLATE: ${MC_DIR_TEMPLATE:-{albumArtist}/{album}/{title} - {albumArtist}.{ext}}
     volumes:
       - server-data:/data

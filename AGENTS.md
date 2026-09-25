@@ -4,7 +4,7 @@
 
 **MusicCopilot**（本仓库）—— 基于 Vue 3 + TypeScript + shadcn-vue 的音乐搜索与下载 SPA + 自建后端一体的 monorepo。**自建后端已上线（第 5 期，2026-09-12 完成）：`server/` 子目录（PHP / Laravel 13，原独立仓库 MusicCopilotServer 于 2026-09-11 subtree 并入，保留历史），fnOS 线上已切换自建后端，SQMusic（simple_sq_music_plus）容器退役**——v0.2.0 起无需 SQMusic，接口契约保持与其对齐（`sqmusic` 请求头等，见架构 [docs/architecture.md](docs/architecture.md)）。
 
-- 自建后端开发服务: `http://127.0.0.1:8097`（WSL 内 `php artisan serve`，见下方常用命令；账号取 `.env` 的 `MC_AUTH_USERNAME/MC_AUTH_PASSWORD`，默认 admin/admin）
+- 自建后端开发服务: `http://127.0.0.1:17017`（WSL 内 `php artisan serve`，见下方常用命令；账号取 `.env` 的 `MC_API_USERNAME/MC_API_PASSWORD`，默认 admin/password）
 - fnOS 线上（fnOS-Just4fun）: 前端 `http://192.168.31.31:12312`，两容器拓扑（web + server，server 内含下载队列 worker）
 - 前端开发服务器: `npm run dev`（端口取 `.env` 的 `MC_PORT`，默认 5173；`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
 - 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
@@ -27,12 +27,12 @@
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
 - `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
-- `wsl -e bash -lc "cd '/mnt/c/Users/superod/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=8097"` —— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
+- `wsl -e bash -lc "cd '/mnt/c/Users/superod/ZCode/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"` —— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
 
 ## server/ 子目录（自建后端，Laravel 13）
 
 - 定位：第 5 期替换 SQMusic 的自建后端（原 MusicCopilotServer 仓库 subtree 并入），音源插件化（`app/Plugins/Sources/`），已实现酷我搜索三端点与鉴权/config 端点；进度与用法见 `server/README.md`
-- 文档与测试台：`http://127.0.0.1:8097/api-docs.html`（Scalar）、`/docs/api`（Stoplight Elements）、`/docs/api.json` 与 `server/openapi.json`（规范固化，契约类型源）
+- 文档与测试台：`http://127.0.0.1:17017/api-docs.html`（Scalar）、`/docs/api`（Stoplight Elements）、`/docs/api.json` 与 `server/openapi.json`（规范固化，契约类型源）
 - 契约策略：过渡期保持 SQMusic 对齐契约；**新端点不复制历史瑕疵**；SQMusic 退役后以 /v2 出清理版（详见 `packages/api-contract/README.md`）
 - 酷我直链解析有**大陆 IP 区域限制**（海外 407），本机测酷我 curl 一律 `--noproxy '*'`；Windows mingw curl 的 argv 中文会转 GBK（先经 node `encodeURIComponent` 编码）——详见 `server/docs/kuwo-api-notes.md`
 

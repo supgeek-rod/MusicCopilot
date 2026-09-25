@@ -31,7 +31,7 @@ function requireMcApiBaseUrl(env: Record<string, string>): string {
  *  proxyTarget 为信息性字段：把转发目标带给浏览器，供设置面板展示。
  *  fnos 块为飞牛音乐库接入配置（未配置 MC_FNOS_BASE_URL 时 enabled=false）。 */
 function buildAppConfig(env: Record<string, string>, proxyTarget = '') {
-  const autoLoginRaw = mcEnv(env, 'MC_AUTO_LOGIN')
+  const autoLoginRaw = mcEnv(env, 'MC_API_AUTO_LOGIN')
   const fnosAutoLoginRaw = mcEnv(env, 'MC_FNOS_AUTO_LOGIN')
   const fnosBaseUrl = mcEnv(env, 'MC_FNOS_BASE_URL') ?? ''
   return {

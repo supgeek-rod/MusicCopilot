@@ -23,7 +23,7 @@ RUN chmod +x docker/entrypoint.sh
 # 下载落盘目录（部署时挂卷指向 fnOS 音乐库目录）
 ENV MC_DOWNLOAD_DIR=/data/downloads
 VOLUME ["/data"]
-EXPOSE 8097
+EXPOSE 17017
 ENTRYPOINT ["docker/entrypoint.sh"]
 # API 进程；entrypoint 会同时拉起队列 worker 自愈循环（同容器分进程）
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8097"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=17017"]

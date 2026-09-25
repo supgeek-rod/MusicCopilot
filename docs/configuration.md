@@ -15,9 +15,9 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 | 变量 | 说明 |
 | --- | --- |
-| `MC_API_BASE_URL` | 后端服务地址，**仅本地开发使用**：`npm run dev` / `preview` 的 Vite 代理目标，模板默认 `http://127.0.0.1:8097`。**Docker 部署忽略此变量**——compose 内固定反代到 server 容器（`http://server:8097`）；`docker run` 对接外部后端时用 `-e` 传入。自建后端的凭证变量（`MC_AUTH_*`）与下载相关变量见[部署指南](./deployment.md) |
-| `MC_API_USERNAME` / `MC_API_PASSWORD` | 自动登录账号（token 失效也会用它静默重登；留空则不自动登录，可在应用设置面板按设备配置连接） |
-| `MC_AUTO_LOGIN` | 是否自动登录（`true` / `false`，默认 `true`） |
+| `MC_API_BASE_URL` | 后端服务地址，**仅本地开发使用**：`npm run dev` / `preview` 的 Vite 代理目标，模板默认 `http://127.0.0.1:17017`。**Docker 部署忽略此变量**——compose 内固定反代到 server 容器（`http://server:17017`）；`docker run` 对接外部后端时用 `-e` 传入。自建后端的下载相关变量见[部署指南](./deployment.md) |
+| `MC_API_USERNAME` / `MC_API_PASSWORD` | 后端登录凭证，一变量两用：既是 server 校验的登录真值，也随 `config.json` 下发浏览器用于自动登录（token 失效静默重登；默认 `admin`/`password`；SQMusic 对齐契约，鉴权请求头为 `sqmusic`）。留空则不自动登录，可在应用设置面板按设备配置连接 |
+| `MC_API_AUTO_LOGIN` | 是否自动登录主后端（`true` / `false`，默认 `true`；`false` 时停在未登录态，需在设置面板手动连接） |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
 | `MC_FNOS_BASE_URL` | 飞牛（fnOS）网关地址（如 `http://192.168.31.31:5666`）：Vite 代理与 Docker nginx 把 `/fnos` 反代到该地址；**不配置则「音乐库」入口不显示** |
 | `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号（token 失效也会用它静默重登；密码经 SHA-256 后提交） |
@@ -25,10 +25,9 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_PORT` | 端口：docker-compose.yml 的对外端口，同时是本地 `npm run dev` / `npm run preview` 的服务器端口（默认 `17016`；本地未配置或非法值回退 `5173`，端口被占用自动 +1） |
 | `MC_IMAGE_TAG` | 仓库自带 compose 拉取的镜像 tag（仅 docker-compose.yml 读取，默认 `latest`）。跟 `development` 分支预构建镜像时设为 `development`；本地构建用 `docker compose up -d --build` |
 | `MC_MUSIC_HOST_DIR` | 自建后端下载落盘的音乐库目录（宿主机绝对路径，即 fnOS「音乐」应用扫描的目录）。未配置时落到项目目录 `data/downloads` |
-| `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD` | 自建后端登录凭证（默认 `admin`/`admin`；SQMusic 对齐契约，鉴权请求头为 `sqmusic`） |
 | `MC_DIR_TEMPLATE` | 下载完成后的目录布局模板（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`）；可用变量 `{albumArtist} {album} {artist} {title} {year} {trackNo} {ext}`。模板不含目录部分即为平铺（如 `{title}.{ext}`），详见[下载与目录布局](./download) |
 
-> `MC_DOWNLOAD_DIR`（容器内下载目录）由 docker-compose.yml 固定为 `/downloads` 并指向挂载的音乐库目录，`.env` 无需配置。server API 的宿主端口亦固定为 `8097`（本机/LAN 直连 API 与 OpenAPI 文档用），无需配置。
+> `MC_DOWNLOAD_DIR`（容器内下载目录）由 docker-compose.yml 固定为 `/downloads` 并指向挂载的音乐库目录，`.env` 无需配置。server API 的宿主端口亦固定为 `127.0.0.1:17017`（仅本机直连 API 与 OpenAPI 文档调试用，不对局域网开放），无需配置。
 
 > 注意：`.env` 以明文保存密码，请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。「登录框 + 记住 token」模式规划在[路线图](./roadmap.md)第 2 期。
 >

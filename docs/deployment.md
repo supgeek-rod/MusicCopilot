@@ -12,7 +12,7 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
 | `web`（music-copilot） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
-| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与管理（SQMusic 对齐契约），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按目录模板重排 | 8097 | `8097`（固定） | `server-data` → `/data`（SQLite 库） |
+| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与管理（SQMusic 对齐契约），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按目录模板重排 | 17017 | `17017`（固定，仅绑 127.0.0.1） | `server-data` → `/data`（SQLite 库） |
 
 server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
 
@@ -29,18 +29,18 @@ server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`
 
 | 调用方 | 目标 | 说明 |
 | --- | --- | --- |
-| web nginx | `http://server:8097`（`/api` 反代） | compose 内固定值，无需配置 |
+| web nginx | `http://server:17017`（`/api` 反代） | compose 内固定值，无需配置 |
 
-nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建换 IP 后 web 自动跟上，无需重启。这些服务名**只在容器网络内可解析**——server API 在宿主机固定发布 `8097:8097`，供本机/LAN 直连 API 与 OpenAPI 文档；所有前端访问统一走 web 的 `/api` 反代。SQLite 库在 `server-data` 卷中跨容器重建保留；音乐库目录里的文件是最终产物，可随目录迁移。
+nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建换 IP 后 web 自动跟上，无需重启。这些服务名**只在容器网络内可解析**——server API 在宿主机固定发布 `127.0.0.1:17017`，仅本机可直连 API 与 OpenAPI 文档，不对局域网开放；所有前端访问统一走 web 的 `/api` 反代。SQLite 库在 `server-data` 卷中跨容器重建保留；音乐库目录里的文件是最终产物，可随目录迁移。
 
 ### compose 机制说明
 
 docker-compose.yml 本身保持无注释、可直接复制使用，非显性约束记录在此：
 
 - **容器变量全部显式声明**：compose 不用 `env_file` 整包注入 `.env`——容器能收到哪些变量，读 compose 的 `environment` 即可一目了然；`.env`（及真实环境变量）只对 yaml 中出现的 `${...}` 生效，其余键（如仅 Vite dev 使用的 `MC_ALLOWED_HOSTS`）不再进入容器。
-- **web 的 `MC_API_BASE_URL` 固定**：compose 中写死 `http://server:8097`（server 容器），`.env` 里为本地开发配置的值不影响容器——两套场景互不干扰。`docker run` 等场景用 `-e MC_API_BASE_URL=...` 传入。
+- **web 的 `MC_API_BASE_URL` 固定**：compose 中写死 `http://server:17017`（server 容器），`.env` 里为本地开发配置的值不影响容器——两套场景互不干扰。`docker run` 等场景用 `-e MC_API_BASE_URL=...` 传入。
 - **server 健康检查**：镜像基于 php:8.4-cli-alpine，没有 curl，故用 `php -r` 探测免鉴权端点 `/api/config/isLogin`。
-- **server 端口固定 `8097:8097`**：供本机/LAN 直连 API、查看 OpenAPI 文档；所有前端访问（含局域网设备）统一走 web 的 `/api` 反代，不需要放行该端口。
+- **server 端口固定 `127.0.0.1:17017:17017`**：仅绑宿主 loopback，供本机直连 API、查看 OpenAPI 文档（本地 dev 直连本机 Docker 栈的后端即填 `http://127.0.0.1:17017`），不对局域网开放；所有前端访问（含局域网设备）统一走 web 的 `/api` 反代。
 - **`stop_grace_period: 10m`**：`docker compose stop` 发出 SIGTERM 后等队列 worker 收尾当前下载（`.part` → rename 落盘），不被默认 10s 的 SIGKILL 腰斩；兜底 10 分钟，小于单个下载任务本身的 1h 超时。
 - **卷映射**：SQLite 库在 `server-data` 命名卷（`/data`）；下载目录挂 `MC_MUSIC_HOST_DIR`（未配置时落到项目目录 `./data/downloads`）。容器内路径 `MC_DOWNLOAD_DIR=/downloads` 由 compose 固定，`.env` 无需配置。
 
@@ -52,7 +52,7 @@ MC_MUSIC_HOST_DIR=/vol1/1000/Musics/MusicCopilot   # 音乐库绝对路径（下
 docker compose up -d
 ```
 
-server 的登录凭证用 `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD`（默认 admin/admin）；数据库迁移随容器启动自动执行，无需手工操作。
+server 的登录凭证用 `MC_API_USERNAME` / `MC_API_PASSWORD`（默认 admin/password）；数据库迁移随容器启动自动执行，无需手工操作。
 
 ## Docker 部署（仅前端，对接外部后端）
 
@@ -97,7 +97,7 @@ docker compose pull && docker compose up -d
 ```bash
 git clone https://github.com/supgeek-rod/MusicCopilot.git
 cd MusicCopilot
-cp .env.example .env    # 默认值即可部署；仅本地开发需把后端地址改为 http://127.0.0.1:8097（.env 不入库）
+cp .env.example .env    # 默认值即可部署；仅本地开发需把后端地址改为 http://127.0.0.1:17017（.env 不入库）
 # 可选：MC_IMAGE_TAG=development 跟随开发分支预构建镜像
 docker compose up -d
 # 或跟当前代码：docker compose up -d --build
@@ -125,7 +125,7 @@ docker run -d -p 17016:80 \
 
 ### 部署注意事项
 
-- `MC_API_BASE_URL`：仓库自带 compose **无需设置**（yaml 内固定 `http://server:8097` 指向 server 容器，`.env` 里的本地开发值不影响容器）；仅 `docker run` / 自带 sample compose 对接外部后端时用 `-e` 传入。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用宿主机局域网 IP。
+- `MC_API_BASE_URL`：仓库自带 compose **无需设置**（yaml 内固定 `http://server:17017` 指向 server 容器，`.env` 里的本地开发值不影响容器）；仅 `docker run` / 自带 sample compose 对接外部后端时用 `-e` 传入。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用宿主机局域网 IP。
 - 密码避免包含 `"` 或 `\`。
 - 对外端口默认 `17016`；克隆仓库部署时可在 `.env` 里用 `MC_PORT` 覆盖。
 - 仓库自带 compose 的镜像 tag 默认 `latest`；在 `.env` 里用 `MC_IMAGE_TAG` 覆盖（如 `development`），不要按分支改 yaml。

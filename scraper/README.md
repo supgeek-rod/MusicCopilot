@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | `MC_MUSIC_DIR` | `/music`（容器）/ `music`（本地 dev） | 音乐目录（读写；备份写入 `<dir>/.mc-backup/`） |
 | `MC_DATA_DIR` | `/data`（容器）/ `data`（本地 dev） | SQLite 目录（曲目索引/任务历史/配置/忽略清单） |
-| `MC_SERVER_URL` | `http://127.0.0.1:8097` | 音源后端基址（searchSong/getLyric） |
+| `MC_SERVER_URL` | `http://127.0.0.1:17017` | 音源后端基址（searchSong/getLyric） |
 | `MC_SERVER_USERNAME` / `MC_SERVER_PASSWORD` | 空 | 音源后端登录凭证（server M1 起接口要求 `sqmusic` 头；非空时 403 自动登录重试，留空兼容未鉴权后端） |
 | `MC_HTTP_PROXY` | 空 | 流派源外部请求代理（如 http://192.168.31.11:7890）；大陆直连两源不可达 |
 | `MC_LASTFM_API_KEY` | 空 | Last.fm API key（流派补全优先源，免费申请）；留空仅用 Deezer。两源大陆直连均不可达，不可达时静默跳过 |
@@ -28,7 +28,7 @@
 cd scraper
 npm install
 # 造样例（或指向真实目录）：MC_MUSIC_DIR=./dev-music
-MC_MUSIC_DIR=./dev-music MC_DATA_DIR=./data MC_SERVER_URL=http://127.0.0.1:8097 npm run dev
+MC_MUSIC_DIR=./dev-music MC_DATA_DIR=./data MC_SERVER_URL=http://127.0.0.1:17017 npm run dev
 curl -s localhost:8098/mc/api/status
 ```
 
