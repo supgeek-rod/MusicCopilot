@@ -33,6 +33,16 @@ server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`
 
 nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建换 IP 后 web 自动跟上，无需重启。这些服务名**只在容器网络内可解析**——局域网访问后端要走宿主发布的端口（`MC_SERVER_PORT`）。SQLite 库在 `server-data` 卷中跨容器重建保留；音乐库目录里的文件是最终产物，可随目录迁移。
 
+### compose 机制说明
+
+docker-compose.yml 本身保持无注释、可直接复制使用，非显性约束记录在此：
+
+- **日志滚动**：两个服务共用 `x-logging` 锚点（json-file，单文件 10m × 3 个），防 NAS 长期运行日志占满磁盘。
+- **web 的 `environment` 与 `env_file` 同名声明**：`MC_API_BASE_URL` 两处都写是为了让宿主 shell 环境变量 / `docker compose` 的 `-e` 能覆盖 `.env` 里的值（`environment` 优先级高于 `env_file`）。
+- **server 健康检查**：镜像基于 php:8.4-cli-alpine，没有 curl，故用 `php -r` 探测免鉴权端点 `/api/config/isLogin`。
+- **`stop_grace_period: 10m`**：`docker compose stop` 发出 SIGTERM 后等队列 worker 收尾当前下载（`.part` → rename 落盘），不被默认 10s 的 SIGKILL 腰斩；兜底 10 分钟，小于单个下载任务本身的 1h 超时。
+- **卷映射**：SQLite 库在 `server-data` 命名卷（`/data`）；下载目录挂 `MC_MUSIC_HOST_DIR`（未配置时落到项目目录 `./data/downloads`）。容器内路径 `MC_DOWNLOAD_DIR=/downloads` 由 compose 固定，`.env` 无需配置。
+
 ### 启用与配置
 
 ```bash
@@ -122,12 +132,11 @@ docker run -d -p 17016:80 \
 
 ### 镜像 tag 说明
 
-构建触发规则：push `development` / `main` 分支发布对应分支名 tag（`main` 分支额外发布 `latest`）；push `v*` 版本 tag 发布语义化版本。**前端（`music-copilot`）与自建后端（`music-copilot-server`）双镜像使用同一套 tag 策略，由同一 workflow 矩阵并行构建**：
+构建触发规则：push `development` 分支发布 `development` tag；push `v*` 版本 tag 发布语义化版本并发布 `latest`（稳定线 = 版本发布）。**前端（`music-copilot`）与自建后端（`music-copilot-server`）双镜像使用同一套 tag 策略，由同一 workflow 矩阵并行构建**：
 
 | tag | 对应构建 |
 | --- | --- |
-| `latest` | `main` 分支的最新构建 |
-| `main` | `main` 分支的最新构建（与 `latest` 同时发布） |
+| `latest` | `v*` 版本 tag 的最新发布构建 |
 | `development` | `development` 分支的最新构建 |
 | `0.2.0` / `0.2` | `v*` 版本 tag 的发布构建 |
 
