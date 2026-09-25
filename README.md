@@ -77,7 +77,7 @@ docker compose up -d
 ```
 .env / .env.example    # 运行配置（后端地址 / 账号；.env 不入库，模板见 .env.example）
 Dockerfile             # 前端镜像（多阶段构建，nginx 托管 + /api 反代）
-docker-compose.yml     # 一键编排（默认拉取 CI 预构建镜像，env_file 复用 .env）
+docker-compose.yml     # 一键编排（默认拉取 CI 预构建镜像，容器变量显式声明）
 docker/                # nginx 反代模板 + 容器入口配置生成脚本
 .github/workflows/     # CI：Docker 镜像构建发布 + 文档站 Pages 部署
 docs/                  # 项目文档（VitePress 文档站，docs as code）

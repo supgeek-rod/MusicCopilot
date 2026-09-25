@@ -26,7 +26,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_IMAGE_TAG` | 仓库自带 compose 拉取的镜像 tag（仅 docker-compose.yml 读取，默认 `latest`）。跟 `development` 分支预构建镜像时设为 `development`；本地构建用 `docker compose up -d --build` |
 | `MC_MUSIC_HOST_DIR` | 自建后端下载落盘的音乐库目录（宿主机绝对路径，即 fnOS「音乐」应用扫描的目录）。未配置时落到项目目录 `data/downloads` |
 | `MC_AUTH_USERNAME` / `MC_AUTH_PASSWORD` | 自建后端登录凭证（默认 `admin`/`admin`；SQMusic 对齐契约，鉴权请求头为 `sqmusic`） |
-| `MC_DIR_TEMPLATE` | 下载完成后的目录布局模板（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`，空串=平铺）；可用变量 `{albumArtist} {album} {artist} {title} {year} {trackNo} {ext}`，详见[下载与目录布局](./download) |
+| `MC_DIR_TEMPLATE` | 下载完成后的目录布局模板（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`）；可用变量 `{albumArtist} {album} {artist} {title} {year} {trackNo} {ext}`。模板不含目录部分即为平铺（如 `{title}.{ext}`），详见[下载与目录布局](./download) |
 
 > `MC_DOWNLOAD_DIR`（容器内下载目录）由 docker-compose.yml 固定为 `/downloads` 并指向挂载的音乐库目录，`.env` 无需配置。server API 的宿主端口亦固定为 `8097`（本机/LAN 直连 API 与 OpenAPI 文档用），无需配置。
 

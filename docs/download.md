@@ -69,7 +69,7 @@ worker 在 `loading` 阶段调用音源插件的直链解析：酷我走 `mobi.k
 
 ## 目录布局（下载完成后）
 
-落盘成功后 worker 按 `MC_DIR_TEMPLATE`（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`，空串平铺）把文件移入「歌手/专辑/」两级目录：
+落盘成功后 worker 按 `MC_DIR_TEMPLATE`（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`；模板不含目录部分即为平铺，如 `{title}.{ext}`）把文件移入「歌手/专辑/」两级目录：
 
 - 专辑上下文（专辑歌手/年份/音轨号）经本机插件原生查询（albumInfoById），无专辑 id 或查询失败时用任务自带字段尽力渲染
 - 模板逐段渲染：中间空段（如无专辑时的 `{album}/`）整体丢弃；非法字符替换为下划线

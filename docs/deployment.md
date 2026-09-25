@@ -37,6 +37,7 @@ nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建�
 
 docker-compose.yml 本身保持无注释、可直接复制使用，非显性约束记录在此：
 
+- **容器变量全部显式声明**：compose 不用 `env_file` 整包注入 `.env`——容器能收到哪些变量，读 compose 的 `environment` 即可一目了然；`.env`（及真实环境变量）只对 yaml 中出现的 `${...}` 生效，其余键（如仅 Vite dev 使用的 `MC_ALLOWED_HOSTS`）不再进入容器。
 - **web 的 `MC_API_BASE_URL` 固定**：compose 中写死 `http://server:8097`（server 容器），`.env` 里为本地开发配置的值不影响容器——两套场景互不干扰。`docker run` 等场景用 `-e MC_API_BASE_URL=...` 传入。
 - **server 健康检查**：镜像基于 php:8.4-cli-alpine，没有 curl，故用 `php -r` 探测免鉴权端点 `/api/config/isLogin`。
 - **server 端口固定 `8097:8097`**：供本机/LAN 直连 API、查看 OpenAPI 文档；所有前端访问（含局域网设备）统一走 web 的 `/api` 反代，不需要放行该端口。
@@ -154,7 +155,7 @@ docker run -d -p 17016:80 \
 | 文件 | 说明 |
 | --- | --- |
 | `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
-| `docker-compose.yml` | 一键编排两容器（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；env_file 复用 `.env`） |
+| `docker-compose.yml` | 一键编排两容器（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；容器变量在 `environment` 中显式声明，`.env` 经插值传入） |
 | `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
 | `server/Dockerfile` | 自建后端镜像（php:8.4-cli-alpine 多阶段，vendor 分层；API 与 worker 同镜像） |
 | `.github/workflows/docker-publish.yml` | 前端镜像自动构建与发布（GHCR + Docker Hub） |

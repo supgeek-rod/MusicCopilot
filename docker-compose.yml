@@ -9,8 +9,13 @@ services:
       - "${MC_PORT:-17016}:80"
     environment:
       MC_API_BASE_URL: http://server:8097
-    env_file:
-      - .env
+      MC_API_USERNAME: ${MC_API_USERNAME:-}
+      MC_API_PASSWORD: ${MC_API_PASSWORD:-}
+      MC_AUTO_LOGIN: ${MC_AUTO_LOGIN:-true}
+      MC_FNOS_BASE_URL: ${MC_FNOS_BASE_URL:-}
+      MC_FNOS_USERNAME: ${MC_FNOS_USERNAME:-}
+      MC_FNOS_PASSWORD: ${MC_FNOS_PASSWORD:-}
+      MC_FNOS_AUTO_LOGIN: ${MC_FNOS_AUTO_LOGIN:-true}
     restart: unless-stopped
 
   server:
@@ -26,11 +31,12 @@ services:
       retries: 3
       start_period: 15s
     stop_grace_period: 10m
-    env_file:
-      - .env
     environment:
       DB_DATABASE: /data/database.sqlite
       MC_DOWNLOAD_DIR: /downloads
+      MC_AUTH_USERNAME: ${MC_AUTH_USERNAME:-admin}
+      MC_AUTH_PASSWORD: ${MC_AUTH_PASSWORD:-admin}
+      MC_DIR_TEMPLATE: ${MC_DIR_TEMPLATE:-{albumArtist}/{album}/{title} - {albumArtist}.{ext}}
     volumes:
       - server-data:/data
       - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
