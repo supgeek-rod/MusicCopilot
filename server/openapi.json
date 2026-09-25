@@ -1758,7 +1758,7 @@
             }
         },
         "/task/againTask": {
-            "get": {
+            "post": {
                 "operationId": "task.againTask",
                 "summary": "\u5168\u90e8\u5931\u8d25\u4efb\u52a1\u91cd\u8bd5",
                 "tags": [
@@ -1796,7 +1796,7 @@
             }
         },
         "/task/delErrorTask": {
-            "get": {
+            "post": {
                 "operationId": "task.delErrorTask",
                 "tags": [
                     "Task"
@@ -1839,7 +1839,7 @@
             }
         },
         "/task/delSuccessTask": {
-            "get": {
+            "post": {
                 "operationId": "task.delSuccessTask",
                 "summary": "\u26a0\ufe0f \u6e05\u7a7a\u5168\u90e8\u6210\u529f\u4efb\u52a1\u8bb0\u5f55\uff08\u4e0d\u5220\u843d\u76d8\u6587\u4ef6\uff1b\u524d\u7aef\u6709\u786e\u8ba4\u5f39\u7a97\uff09",
                 "tags": [
@@ -1883,7 +1883,7 @@
             }
         },
         "/task/delWaitingTask": {
-            "get": {
+            "post": {
                 "operationId": "task.delWaitingTask",
                 "tags": [
                     "Task"

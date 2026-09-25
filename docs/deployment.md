@@ -148,6 +148,15 @@ docker run -d -p 17016:80 \
 - 仓库自带 compose 的镜像 tag 默认 `latest`；在 `.env` 里用 `MC_IMAGE_TAG` 覆盖（如 `development`），不要按分支改 yaml。
 - 容器启动失败先看容器日志（自带 compose 为 `docker logs music-copilot-web`）：`docker run` 未传 `-e` 时多为缺少 `MC_API_BASE_URL`（compose 部署已内置）。后端无认证，无需任何账号密码配置。
 
+### 安全边界（务必阅读）
+
+MusicCopilot 是**内网自托管**设计，安全边界 = 局域网边界：
+
+- **后端无认证**（2026-09-25 起）：所有 `/api/*` 端点对能访问到它的人完全开放。已有最小对冲（破坏性批量操作收敛为 POST、api/* 按 IP 限速 120/min、下载单文件体积上限），但这些都**不能替代网络隔离**——不要把 `MC_WEB_PORT` 端口映射到公网；确需公网访问请在前面加一层带认证的反向代理（并建议套 HTTPS）。
+- **fnOS 凭据会下发到浏览器**：配置了 `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 时，web 容器会把它明文写入 `config.json`（站点静态资源，匿名可 GET），前端凭它自动登录 fnOS——任何能打开该站点的人都能读到这组凭据并直接登录 fnOS 网关。fnOS 账号往往与 NAS 管理凭据同源，请确认这符合你的信任模型；不希望下发就**不要配置 `MC_FNOS_*` 变量**（「音乐库」入口自动隐藏）。
+- `config.json` 的 `proxyTarget`（信息性字段）会把内网后端/网关地址暴露给浏览器端访问者，内网场景可接受，公网暴露前需知悉。
+- 站点会话（fnOS music-token Cookie）由 JS 写入、SameSite=Lax 无 Secure（内网 HTTP 部署的平台限制），XSS 面已用 DOMPurify 白名单净化收敛，仍应保持内网使用。
+
 ### 镜像 tag 说明
 
 构建触发规则：push `development` 分支发布 `development` tag；push `v*` 版本 tag 发布语义化版本并发布 `latest`（稳定线 = 版本发布）。**前端（`music-copilot`）与自建后端（`music-copilot-server`）双镜像使用同一套 tag 策略，由同一 workflow 矩阵并行构建**：

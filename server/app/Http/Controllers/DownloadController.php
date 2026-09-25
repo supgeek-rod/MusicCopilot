@@ -77,7 +77,7 @@ class DownloadController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return $this->fail('专辑下载任务创建失败：'.$e->getMessage());
+            return $this->fail('专辑下载任务创建失败：'.self::errorDetail($e));
         }
 
         return response()->json(['code' => 200, 'msg' => null, 'data' => $created]);

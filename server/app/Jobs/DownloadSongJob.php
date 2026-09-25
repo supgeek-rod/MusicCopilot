@@ -30,6 +30,18 @@ class DownloadSongJob implements ShouldQueue
     {
     }
 
+    /**
+     * 尝试耗尽被队列判死（不进 handle，典型：worker 中途重启后出队 attempts 已超限）时，
+     * 把卡在中间态的任务落 ERROR，避免永久停在 downloading 且无法重试。
+     */
+    public function failed(Throwable $e): void
+    {
+        $task = DownloadTask::query()->find($this->taskId);
+        if ($task !== null && ! in_array($task->status, [DownloadTask::STATUS_SUCCESS, DownloadTask::STATUS_ERROR], true)) {
+            $task->markStatus(DownloadTask::STATUS_ERROR, '下载进程中断，请重试');
+        }
+    }
+
     public function handle(SourceManager $sources): void
     {
         $task = DownloadTask::query()->find($this->taskId);
@@ -51,7 +63,7 @@ class DownloadSongJob implements ShouldQueue
                 : $this->autoBrType($plugin, $task->br_types ?? []);
             $info = $plugin->downloadUrl($task->music_id, $brType);
         } catch (Throwable $e) {
-            $task->markStatus(DownloadTask::STATUS_ERROR, '直链解析失败：'.$e->getMessage());
+            $task->markStatus(DownloadTask::STATUS_ERROR, '直链解析失败：'.self::errorDetail($e));
 
             return;
         }
@@ -67,16 +79,28 @@ class DownloadSongJob implements ShouldQueue
         if (! is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
+        // 扩展名白名单：format 来自上游响应，仅允许字母数字短串拼进落盘路径
         $ext = strtolower((string) ($info['format'] ?? 'mp3'));
-        $final = $this->uniquePath(
-            $dir,
-            $this->sanitize(($task->artist_name ?: '未知歌手').' - '.$task->music_name),
-            $ext,
-        );
-        $tmp = $final.'.part';
+        if (preg_match('/^[a-z0-9]{1,8}$/', $ext) !== 1) {
+            $ext = 'mp3';
+        }
+        $base = $this->sanitize(($task->artist_name ?: '未知歌手').' - '.$task->music_name);
+        $final = $this->uniquePath($dir, $base, $ext);
+        // 临时文件掺入任务 id：同名任务重叠执行时各自的 .part 互不干扰
+        $tmp = $final.'.'.$this->taskId.'.part';
 
         try {
-            $response = Http::timeout(1800)->sink($tmp)->get($info['url']);
+            $url = (string) $info['url'];
+            if (preg_match('#^https?://#i', $url) !== 1) {
+                throw new RuntimeException('直链协议异常');
+            }
+            $maxBytes = max(1, (int) config('mc.download.max_size_mb', 1024)) * 1024 * 1024;
+            $response = Http::timeout(1800)
+                ->withOptions(['progress' => function (int $expected, int $got) use ($maxBytes): int {
+                    // 上限兜底：异常直链（超大/无限流）中止传输，防灌满音乐库所在盘
+                    return max($got, $expected) > $maxBytes ? 1 : 0;
+                }])
+                ->sink($tmp)->get($url);
             if ($response->failed()) {
                 throw new RuntimeException('文件下载 HTTP '.$response->status());
             }
@@ -85,7 +109,7 @@ class DownloadSongJob implements ShouldQueue
             }
         } catch (Throwable $e) {
             @unlink($tmp);
-            $task->markStatus(DownloadTask::STATUS_ERROR, '文件下载失败：'.$e->getMessage());
+            $task->markStatus(DownloadTask::STATUS_ERROR, '文件下载失败：'.self::errorDetail($e));
 
             return;
         }
@@ -97,7 +121,16 @@ class DownloadSongJob implements ShouldQueue
             return;
         }
 
-        rename($tmp, $final);
+        // 下载窗口内同名成品已被并发任务占用：换带序号的名字落盘，避免静默覆盖
+        if (is_file($final)) {
+            $final = $this->uniquePath($dir, $base, $ext);
+        }
+        if (! @rename($tmp, $final)) {
+            @unlink($tmp);
+            $task->markStatus(DownloadTask::STATUS_ERROR, '文件落盘失败');
+
+            return;
+        }
         $task->forceFill([
             'status' => DownloadTask::STATUS_SUCCESS,
             'file_path' => $final,
@@ -269,12 +302,19 @@ class DownloadSongJob implements ShouldQueue
         return (string) array_search(max($candidates), $candidates, true);
     }
 
-    /** 文件名清洗：路径分隔符与 Windows 非法字符替换为下划线 */
+    /** 文件名清洗：路径分隔符与 Windows 非法字符替换为下划线；控制字符剔除（防 file_exists 抛 ValueError 卡死任务） */
     private function sanitize(string $name): string
     {
+        $name = (string) preg_replace('/[\x00-\x1F\x7F]/', '', $name);
         $name = trim((string) preg_replace('/[\\\\\/:*?"<>|]/', '_', $name));
 
         return $name !== '' ? $name : 'unknown';
+    }
+
+    /** worker 内异常详情口径与控制器一致：RuntimeException 消息可控可读，其余收敛固定文案 */
+    private static function errorDetail(Throwable $e): string
+    {
+        return $e instanceof RuntimeException ? $e->getMessage() : '内部错误，请稍后重试';
     }
 
     /** 「歌手 - 标题」重名时追加序号 */

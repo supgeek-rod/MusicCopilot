@@ -1,8 +1,10 @@
+import DOMPurify from 'dompurify'
 import { ref, watch } from 'vue'
 
 /**
  * 渲染后端返回的富文本（歌手/专辑简介），限制默认高度、可展开。
- * 内容来自自有后端，仍做基础净化（去 script / 危险标签 / on* 事件属性 / javascript: 链接）。
+ * 内容来自上游音源 API（后端透传），不可信——必须经 DOMPurify 白名单净化，
+ * 手写正则存在属性分隔符（<svg/onload>）、HTML 实体（&#106;avascript:）等绕过面。
  */
 export function useSanitizedHtml(html: () => string | null | undefined) {
   const clean = ref('')
@@ -10,14 +12,12 @@ export function useSanitizedHtml(html: () => string | null | undefined) {
   watch(
     html,
     (v) => {
-      clean.value = String(v ?? '')
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<(iframe|object|embed|form|meta|link)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
-        .replace(/<(iframe|object|embed|form|meta|link)\b[^>]*\/?>/gi, '')
-        // 事件属性：覆盖带引号 / 无引号 / 反引号三种写法
-        .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|`[^`]*`|[^\s>]*)/gi, '')
-        // 危险协议链接（href / src 等）
-        .replace(/\s(href|src|xlink:href)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]*)/gi, '')
+      clean.value = DOMPurify.sanitize(String(v ?? ''), {
+        // 简介只用得到排版与图文，显式白名单兜底未来 DOMPurify 默认面变化
+        ALLOWED_TAGS: ['a', 'b', 'i', 'em', 'strong', 'u', 's', 'p', 'br', 'hr', 'span', 'div', 'blockquote', 'ul', 'ol', 'li', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel'],
+        ALLOW_DATA_ATTR: false,
+      })
     },
     { immediate: true },
   )

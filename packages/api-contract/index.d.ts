@@ -317,10 +317,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 全部失败任务重试 */
-        get: operations["task.againTask"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** 全部失败任务重试 */
+        post: operations["task.againTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -334,9 +334,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["task.delErrorTask"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["task.delErrorTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -350,10 +350,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ⚠️ 清空全部成功任务记录（不删落盘文件；前端有确认弹窗） */
-        get: operations["task.delSuccessTask"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** ⚠️ 清空全部成功任务记录（不删落盘文件；前端有确认弹窗） */
+        post: operations["task.delSuccessTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -367,9 +367,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["task.delWaitingTask"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["task.delWaitingTask"];
         delete?: never;
         options?: never;
         head?: never;

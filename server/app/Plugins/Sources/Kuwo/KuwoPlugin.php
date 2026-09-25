@@ -73,11 +73,18 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
     {
         $json = $this->search($keyword, $pageIndex, $pageSize, 'album');
 
-        // 专辑搜索响应没有 TOTAL，用 SHOW（本页返回数）兜底
-        $total = (int) ($json['TOTAL'] ?? $json['SHOW'] ?? count($json['albumlist'] ?? []));
+        // 专辑搜索响应无 TOTAL，SHOW 只是本页条数——直接兜底会让前端误判恒为 1 页。
+        // 本页满页时以「已加载量 + 1」表示至少还有下一页（增量探底），不满页即为末页
+        $list = $json['albumlist'] ?? [];
+        $count = count($list);
+        $total = (int) ($json['TOTAL'] ?? 0);
+        if ($total <= 0) {
+            $loaded = max(0, $pageIndex - 1) * $pageSize + $count;
+            $total = $count === $pageSize && $count > 0 ? $loaded + 1 : $loaded;
+        }
 
         return [
-            'records' => array_map($this->mapAlbum(...), $json['albumlist'] ?? []),
+            'records' => array_map($this->mapAlbum(...), $list),
             'total' => $total,
         ];
     }
@@ -159,11 +166,11 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
 
         return [
             'id' => $artistId,
-            'musicArtistsName' => (string) ($info['name'] ?? ''),
+            'musicArtistsName' => $this->clean((string) ($info['name'] ?? '')),
             'musicArtistsSex' => ($info['gender'] ?? '') !== '' ? (string) $info['gender'] : null,
             'musicArtistsPhoto' => $this->artistPicOf((string) ($info['hts_pic'] ?? ''), (string) ($info['pic'] ?? '')),
             'musicArtistsDescribe' => $describe !== '' ? $describe : null,
-            'musicArtistsAlias' => ($info['aartist'] ?? '') !== '' ? (string) $info['aartist'] : null,
+            'musicArtistsAlias' => ($info['aartist'] ?? '') !== '' ? $this->clean((string) $info['aartist']) : null,
             'albums' => array_map($this->mapAlbumDetail(...), $albums['albumlist'] ?? []),
         ];
     }
@@ -195,12 +202,15 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
             'pcjson' => '1',
         ]);
 
+        $albumName = (string) ($json['name'] ?? '');
+        $albumArtist = (string) ($json['artist'] ?? '');
+
         return [
             'albumId' => (string) ($json['albumid'] ?? $albumId),
-            'albumName' => (string) ($json['name'] ?? ''),
+            'albumName' => $albumName !== '' ? $this->clean($albumName) : null,
             'albumTime' => ($json['pub'] ?? '') !== '' ? (string) $json['pub'] : null,
             'albumDescribe' => ($json['info'] ?? '') !== '' ? (string) $json['info'] : null,
-            'albumArtist' => ($json['artist'] ?? '') !== '' ? (string) $json['artist'] : null,
+            'albumArtist' => $albumArtist !== '' ? $this->clean($albumArtist) : null,
             'albumArtistId' => ($json['artistid'] ?? '') !== '' ? (string) $json['artistid'] : null,
             'albumImg' => $this->albumImgOf($json),
             'musics' => array_map($this->mapAlbumSong(...), $json['musiclist'] ?? []),
@@ -377,19 +387,33 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
         return $json;
     }
 
+    /**
+     * 上游脏文本清洗：酷我把外文歌手名/歌名中的空格与符号存成 HTML 实体
+     * （&nbsp;/&amp;/&#039; 等），不解码会原样进入展示与落盘文件名
+     * （与前端 format.decodeHtmlEntities 同口径；U+00A0 保留）。
+     */
+    private function clean(string $value): string
+    {
+        $decoded = htmlspecialchars_decode($value, ENT_QUOTES | ENT_HTML5);
+
+        return trim((string) preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $decoded));
+    }
+
     /** 字段契约对齐前端 SongRecord（MusicCopilot src/api/types.ts） */
     private function mapSong(array $e): array
     {
+        $album = (string) ($e['ALBUM'] ?? '');
+
         return [
             'id' => preg_replace('/^MUSIC_/', '', (string) ($e['MUSICRID'] ?? '')),
-            'name' => (string) ($e['NAME'] ?? ''),
+            'name' => $this->clean((string) ($e['NAME'] ?? '')),
             'artistName' => $this->splitAmp((string) ($e['ARTIST'] ?? '')),
             'artistids' => $this->splitAmp((string) ($e['allartistid'] ?? '')),
             'pic' => $this->picOf(
                 (string) ($e['web_albumpic_short'] ?? ''),
                 (string) ($e['web_artistpic_short'] ?? ''),
             ),
-            'albumName' => (string) ($e['ALBUM'] ?? '') !== '' ? $e['ALBUM'] : null,
+            'albumName' => $album !== '' ? $this->clean($album) : null,
             'albumid' => $this->albumidOf($e),
             'lyric' => null,
             'lyricId' => null,
@@ -405,7 +429,7 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
     private function mapArtist(array $e): array
     {
         return [
-            'artistName' => (string) ($e['ARTIST'] ?? ''),
+            'artistName' => $this->clean((string) ($e['ARTIST'] ?? '')),
             'artistid' => (string) ($e['ARTISTID'] ?? ''),
             // hts_PICPATH 为绝对地址（/240/ 规格），PICPATH 为相对路径
             'pic' => $this->artistPicOf(
@@ -422,10 +446,13 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
     /** 字段契约对齐前端 AlbumRecord */
     private function mapAlbum(array $e): array
     {
+        $album = (string) ($e['name'] ?? '');
+        $artist = (string) ($e['artist'] ?? '');
+
         return [
-            'albumName' => (string) ($e['name'] ?? ''),
+            'albumName' => $album !== '' ? $this->clean($album) : null,
             'albumid' => (string) ($e['albumid'] ?? ''),
-            'artistName' => ($e['artist'] ?? '') !== '' ? $e['artist'] : null,
+            'artistName' => $artist !== '' ? $this->clean($artist) : null,
             'artistid' => ($e['artistid'] ?? '') !== '' ? $e['artistid'] : null,
             'pic' => isset($e['pic'])
                 ? $this->coverSize((string) config('kuwo.song_cover_url').$e['pic'])
@@ -486,12 +513,15 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
     /** 字段契约对齐前端 AlbumDetailRecord（artistAlbumById.albums 元素） */
     private function mapAlbumDetail(array $e): array
     {
+        $album = (string) ($e['name'] ?? '');
+        $artist = (string) ($e['artist'] ?? '');
+
         return [
             'albumId' => (string) ($e['albumid'] ?? ''),
-            'albumName' => (string) ($e['name'] ?? ''),
+            'albumName' => $album !== '' ? $this->clean($album) : null,
             'albumTime' => ($e['pub'] ?? '') !== '' ? (string) $e['pub'] : null,
             'albumDescribe' => ($e['info'] ?? '') !== '' ? (string) $e['info'] : null,
-            'albumArtist' => ($e['artist'] ?? '') !== '' ? (string) $e['artist'] : null,
+            'albumArtist' => $artist !== '' ? $this->clean($artist) : null,
             'albumArtistId' => ($e['artistid'] ?? '') !== '' ? (string) $e['artistid'] : null,
             'albumImg' => $this->albumImgOf($e),
             'dataInfo' => $e,
@@ -511,12 +541,13 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
 
         $album = (string) ($e['album'] ?? $e['ALBUM'] ?? '');
         $track = (int) ($e['track'] ?? $e['TRACK'] ?? 0);
+        $name = (string) ($e['name'] ?? $e['NAME'] ?? '');
 
         return [
             'id' => $id,
-            'musicName' => (string) ($e['name'] ?? $e['NAME'] ?? ''),
+            'musicName' => $this->clean($name),
             'musicArtists' => $this->splitAmp((string) ($e['artist'] ?? $e['ARTIST'] ?? '')),
-            'musicAlbum' => $album !== '' ? $album : null,
+            'musicAlbum' => $album !== '' ? $this->clean($album) : null,
             'musicImage' => $this->picOf(
                 (string) ($e['web_albumpic_short'] ?? ''),
                 (string) ($e['web_artistpic_short'] ?? ''),
@@ -547,11 +578,11 @@ class KuwoPlugin implements SourcePlugin, LyricPlugin
         return null;
     }
 
-    /** 歌手名/ID 按多歌手分隔符 & 拆分，去空 */
+    /** 歌手名/ID 按多歌手分隔符 & 拆分，去空；先拆后解码，防实体（&amp;）破坏分隔语义 */
     private function splitAmp(string $value): array
     {
         return array_values(array_filter(
-            array_map('trim', explode('&', $value)),
+            array_map(fn (string $s) => $this->clean($s), explode('&', $value)),
             fn (string $s) => $s !== '',
         ));
     }

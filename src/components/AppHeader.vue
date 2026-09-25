@@ -85,11 +85,13 @@ function onInputBlur() {
   tipsActive.value = -1
 }
 
-// 搜索联想（防抖），与搜索页一致；失败静默降级为无联想
+// 搜索联想（防抖），与搜索页一致；失败静默降级为无联想；序号守卫防旧响应覆盖新词
+let tipsSeq = 0
 watchDebounced(
   keyword,
   async (kw) => {
     const q = kw.trim()
+    const seq = ++tipsSeq
     if (!q) {
       tips.value = []
       tipsActive.value = -1
@@ -97,11 +99,11 @@ watchDebounced(
     }
     try {
       const data = await musicApi.searchTips(defaultPlug.value, q)
-      if (disposed) return
+      if (disposed || seq !== tipsSeq) return
       tips.value = Array.isArray(data) ? data.slice(0, 8) : []
       tipsActive.value = -1
     } catch {
-      if (disposed) return
+      if (disposed || seq !== tipsSeq) return
       tips.value = []
       tipsActive.value = -1
     }

@@ -39,8 +39,10 @@ Route::prefix('task')->group(function () {
     Route::post('del', [TaskController::class, 'del']);
     Route::post('refreshTask', [TaskController::class, 'refreshTask']);
     Route::post('errorTaskRetry', [TaskController::class, 'errorTaskRetry']);
-    Route::get('againTask', [TaskController::class, 'againTask']);
-    Route::get('delErrorTask', [TaskController::class, 'delErrorTask']);
-    Route::get('delSuccessTask', [TaskController::class, 'delSuccessTask']);
-    Route::get('delWaitingTask', [TaskController::class, 'delWaitingTask']);
+    // 批量破坏性操作一律 POST：GET 型可被任意网页 <img src> 静默触发（drive-by），
+    // 如 <img src="http://NAS/task/delSuccessTask"> 即清空全部成功记录
+    Route::post('againTask', [TaskController::class, 'againTask']);
+    Route::post('delErrorTask', [TaskController::class, 'delErrorTask']);
+    Route::post('delSuccessTask', [TaskController::class, 'delSuccessTask']);
+    Route::post('delWaitingTask', [TaskController::class, 'delWaitingTask']);
 });

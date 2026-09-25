@@ -13,11 +13,11 @@ trap 'rm -f "$TMP"' EXIT
 
 QUERY="$(node -e '
 const KEY=Buffer.from("yeelion");
-const params=Buffer.from("user=12345,web,web,web&requester=localhost&req=1&rid=MUSIC_'+$ID+'&lrcx=1");
+const params=Buffer.from("user=12345,web,web,web&requester=localhost&req=1&rid=MUSIC_"+process.argv[1]+"&lrcx=1");
 const out=Buffer.alloc(params.length);
 for(let i=0,j=0;i<params.length;i++,j=(j+1)%KEY.length) out[i]=params[i]^KEY[j];
 process.stdout.write(encodeURIComponent(out.toString("base64")));
-')"
+' "$ID")"
 
 DECODE_OK=0
 for ATTEMPT in 1 2 3; do

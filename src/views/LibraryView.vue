@@ -169,7 +169,7 @@ async function runSearch() {
 /** 回车：立即搜索并整组播放命中歌曲（最短路径：输入 → 出声）；同词重按直接重播结果 */
 async function onSearchEnter() {
   const q = keyword.value.trim()
-  if (!q) return
+  if (!q || !loginReady.value) return
   const reusable = q === query.value && searchTracksList.value.length > 0 && !searching.value
   query.value = q
   if (!reusable) await runSearch()
@@ -183,7 +183,7 @@ function clearSearch() {
 
 // ── 随便听听：随机取样整组连播 ──
 async function playRandom() {
-  if (roaming.value) return
+  if (roaming.value || !loginReady.value) return
   roaming.value = true
   try {
     const list = await getRandomTracks(30)
@@ -219,6 +219,7 @@ async function playAllSongs(songs: SongRecord[]) {
 
 // ── 浏览模式：进入时按需加载，Tab 切换重载第一页 ──
 function openBrowse(tab: TabKey) {
+  if (!loginReady.value) return
   view.value = 'browse'
   if (activeTab.value === tab) {
     if (!gridItemsFor(tab).length && !loading.value) load(1)
@@ -231,43 +232,50 @@ watch(activeTab, () => {
   if (view.value === 'browse' && loginReady.value) load(1)
 })
 
+/** 请求序号：快速切 Tab 时丢弃迟到响应，防旧 Tab 污染共享的 total/pageIndex/loading */
+let loadSeq = 0
+
 async function load(page: number) {
   if (page < 1 || page > totalPages.value) return
+  const seq = ++loadSeq
   loading.value = true
   error.value = ''
   const tab = activeTab.value
   try {
-    let list: unknown[] = []
+    let mapped: unknown[] = []
+    let loadedTotal = 0
     if (tab === 'tracks') {
       const data = await getTrackList(page, BROWSE_SIZE)
-      list = data.list ?? []
-      total.value = data.total ?? 0
-      if (!disposed) tracks.value = list.map((t) => fnosTrackToRecord(t as FnosTrack))
+      loadedTotal = data.total ?? 0
+      mapped = (data.list ?? []).map((t) => fnosTrackToRecord(t as FnosTrack))
     } else if (tab === 'albums') {
       const data = await getAlbumList(page, BROWSE_SIZE)
-      list = data.list ?? []
-      total.value = data.total ?? 0
-      if (!disposed) albums.value = list as FnosAlbum[]
+      loadedTotal = data.total ?? 0
+      mapped = (data.list ?? []) as FnosAlbum[]
     } else if (tab === 'artists') {
       const data = await getArtistList(page, BROWSE_SIZE)
-      list = data.list ?? []
-      total.value = data.total ?? 0
-      if (!disposed) artists.value = list as FnosArtist[]
+      loadedTotal = data.total ?? 0
+      mapped = (data.list ?? []) as FnosArtist[]
     } else if (tab === 'playlists') {
       const data = await getPlaylists(page, BROWSE_SIZE)
-      list = data.list ?? []
-      total.value = data.total ?? 0
-      if (!disposed) playlists.value = list as FnosPlaylist[]
+      loadedTotal = data.total ?? 0
+      mapped = (data.list ?? []) as FnosPlaylist[]
     } else {
       const data = await getGenreList(page, BROWSE_SIZE)
-      list = data.list ?? []
-      total.value = data.total ?? 0
-      if (!disposed) genres.value = list as FnosGenre[]
+      loadedTotal = data.total ?? 0
+      mapped = (data.list ?? []) as FnosGenre[]
     }
-    if (disposed) return
+    if (disposed || seq !== loadSeq) return
+    // 共享分页状态只在最新请求通过序号检查后写入
+    if (tab === 'tracks') tracks.value = mapped as SongRecord[]
+    else if (tab === 'albums') albums.value = mapped as FnosAlbum[]
+    else if (tab === 'artists') artists.value = mapped as FnosArtist[]
+    else if (tab === 'playlists') playlists.value = mapped as FnosPlaylist[]
+    else genres.value = mapped as FnosGenre[]
+    total.value = loadedTotal
     pageIndex.value = page
   } catch (e) {
-    if (disposed) return
+    if (disposed || seq !== loadSeq) return
     // 失败时清空列表并复位分页，避免沿用上一个 Tab/页码的 total 显示「第 3 / 1 页」
     tracks.value = []
     albums.value = []
@@ -278,7 +286,7 @@ async function load(page: number) {
     pageIndex.value = 1
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
-    if (!disposed) loading.value = false
+    if (!disposed && seq === loadSeq) loading.value = false
   }
 }
 

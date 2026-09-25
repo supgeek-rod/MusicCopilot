@@ -22,10 +22,11 @@ export const taskApi = {
   retryError: (id: number | string) =>
     request<unknown>({ url: '/api/task/errorTaskRetry', method: 'POST', data: { id } }),
 
+  // 批量破坏性操作走 POST（2026-09-26 安全收敛）：GET 型可被任意网页 <img src> 静默触发
   /** 全部错误任务重试 */
-  retryAllError: () => request<unknown>({ url: '/api/task/againTask', method: 'GET' }),
+  retryAllError: () => request<unknown>({ url: '/api/task/againTask', method: 'POST' }),
 
-  delErrorTasks: () => request<unknown>({ url: '/api/task/delErrorTask', method: 'GET' }),
-  delSuccessTasks: () => request<unknown>({ url: '/api/task/delSuccessTask', method: 'GET' }),
-  delWaitingTasks: () => request<unknown>({ url: '/api/task/delWaitingTask', method: 'GET' }),
+  delErrorTasks: () => request<unknown>({ url: '/api/task/delErrorTask', method: 'POST' }),
+  delSuccessTasks: () => request<unknown>({ url: '/api/task/delSuccessTask', method: 'POST' }),
+  delWaitingTasks: () => request<unknown>({ url: '/api/task/delWaitingTask', method: 'POST' }),
 }

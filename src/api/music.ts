@@ -70,8 +70,8 @@ export const musicApi = {
       method: 'POST',
       data: { plugName, id },
     })
-    // http.request 返回 AxiosResponse，真正的响应体在 data 上
-    const body = (res as { data?: unknown }).data ?? res
+    // http.request 返回 AxiosResponse，真正的响应体在 data 上；体为 null/空时直接按无歌词处理
+    const body = (res as { data?: unknown }).data
     if (typeof body === 'string') return body
     const obj = body as { code?: number; msg?: unknown; data?: unknown }
     if (typeof obj?.data === 'string') return obj.data
