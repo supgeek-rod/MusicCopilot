@@ -1,5 +1,30 @@
 name: music-copilot
 
+# ── 公共片段（compose 侧展开，不影响运行时行为）──
+# NAS 长期运行：json-file 日志限体积滚动，防止无限膨胀占满磁盘
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# server / server-worker 共用定义；各服务差异（容器名/端口/进程命令）在自己条目里覆盖。
+# build 只声明在 server 服务上：两服务同 tag，--build 时构建一次即可，worker 直接
+# 复用刚构建出的本地镜像（纯拉取部署时两服务拉取的也是同一镜像）。
+x-server-base: &server-base
+  image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
+  profiles: [server]
+  environment:
+    DB_DATABASE: /data/database.sqlite
+    MC_DOWNLOAD_DIR: /downloads
+  env_file:
+    - .env
+  volumes:
+    - server-data:/data
+    - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
+  restart: unless-stopped
+  logging: *default-logging
+
 services:
   web:
     build: .
@@ -20,6 +45,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    logging: *default-logging
 
   # ── 自建后端（第 5 期，profile: server；启用：在 .env 设 COMPOSE_PROFILES=server）──
   # API 进程（php artisan serve，LAN 自用足够）与下载 worker 同镜像分进程；
@@ -27,39 +53,30 @@ services:
   # NAS 端 .env 配 MC_MUSIC_HOST_DIR=音乐库绝对路径（未配则落到项目目录 data/downloads）。
   # 下载完成后 worker 按目录模板（.env 的 MC_DIR_TEMPLATE，默认 歌手/专辑/）重排。
   server:
+    <<: *server-base
     build: ./server
-    image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot-server
-    profiles: [server]
     ports:
       - "${MC_SERVER_PORT:-8097}:8097"
-    environment:
-      DB_DATABASE: /data/database.sqlite
-      MC_DOWNLOAD_DIR: /downloads
-    env_file:
-      - .env
-    volumes:
-      - server-data:/data
-      - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
-    restart: unless-stopped
+    # isLogin 免鉴权，适合做本地探活；serve 开始监听即代表 entrypoint 的 migrate
+    # 已完成 —— worker 以此为启动门槛，避免与首次建表竞态。无 curl 二进制，走 php 探测。
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:8097/api/config/isLogin\"));'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   server-worker:
-    build: ./server
-    image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
+    <<: *server-base
     container_name: music-copilot-server-worker
-    profiles: [server]
     command: ["php", "artisan", "queue:work", "--tries=1", "--timeout=3600"]
-    environment:
-      DB_DATABASE: /data/database.sqlite
-      MC_DOWNLOAD_DIR: /downloads
-    env_file:
-      - .env
-    volumes:
-      - server-data:/data
-      - "${MC_MUSIC_HOST_DIR:-./data/downloads}:/downloads"
     depends_on:
-      - server
-    restart: unless-stopped
+      server:
+        condition: service_healthy
+    # 收到 SIGTERM 后等当前下载任务收尾（.part → rename），避免默认 10s 即被
+    # SIGKILL 留下 .part 半截文件；极端卡死由 10 分钟兜底（任务本身 1h 超时）
+    stop_grace_period: 10m
 
 volumes:
   server-data:
