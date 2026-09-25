@@ -9,12 +9,8 @@ services:
       - "${MC_WEB_PORT:-17016}:80"
     environment:
       - MC_API_BASE_URL=http://server:17017
-      # fnOS 凭据不经 web 下发浏览器（config.json 只含 enabled/autoLogin/proxyTarget），
-      # 由 server 代持完成登录（见 server 的 environment）
-      - MC_FNOS_AUTO_LOGIN
       - MC_FNOS_BASE_URL
     restart: unless-stopped
-    # 探 /api/healthcheck 经反代到 server：后端挂了 web 即 unhealthy（nginx 静态页正常但服务不可用）
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/api/healthcheck || exit 1"]
       interval: 30s
@@ -30,8 +26,6 @@ services:
       - "17017"
     environment:
       - MC_MUSIC_DOWNLOAD_PATH_TEMPLATE
-      # fnOS 凭据代持（/api/fnos/login）：密码仅存本容器，换取的 token 经
-      # HttpOnly Cookie 下发浏览器；MC_FNOS_BASE_URL 与 web 反代指向同一网关
       - MC_FNOS_BASE_URL
       - MC_FNOS_USERNAME
       - MC_FNOS_PASSWORD

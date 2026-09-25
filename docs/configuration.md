@@ -20,7 +20,6 @@ cd web && cp .env.example .env   # 前端 dev 变量（Vite 在 web/ 内读取�
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
 | `MC_FNOS_BASE_URL` | 飞牛（fnOS）网关地址（如 `http://192.168.1.100:5666`）：Vite 代理与 Docker nginx 把 `/fnos` 反代到该地址；**不配置则「音乐库」入口不显示** |
 | `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号，**由 server 容器代持**（`/api/fnos/login` 服务端代调登录，token 经 HttpOnly Cookie 下发浏览器，**不写入 config.json**）。本地 dev 需将三项同步配到 `server/.env`（server 直连 fnOS 网关） |
-| `MC_FNOS_AUTO_LOGIN` | 是否自动登录飞牛音乐（`true` / `false`，默认 `true`） |
 | `MC_WEB_PORT` | 端口：docker-compose.yml 的 web 对外端口，同时是本地 `npm run dev` / `npm run preview` 的服务器端口（默认 `17016`；本地未配置或非法值回退 `5173`，端口被占用自动 +1） |
 | `MC_IMAGE_TAG` | 仓库自带 compose 拉取的镜像 tag（仅 docker-compose.yml 读取，默认 `latest`）。跟 `development` 分支预构建镜像时设为 `development`；本地构建用 `docker compose up -d --build` |
 | `MC_SERVER_DATA_DIR` | 自建后端 SQLite 库的宿主机目录（绝对路径）。未配置时落到项目目录 `data` |

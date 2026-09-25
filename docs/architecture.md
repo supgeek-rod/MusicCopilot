@@ -142,9 +142,6 @@ fnOS 接入配置（`MC_FNOS_*` 变量生成，`enabled` 控制音乐库入口�
 {
   "fnos": {
     "enabled": true,
-    "username": "",
-    "password": "",
-    "autoLogin": true,
     "proxyTarget": "http://192.168.1.100:5666"  // 信息性字段，供设置面板展示
   }
 }

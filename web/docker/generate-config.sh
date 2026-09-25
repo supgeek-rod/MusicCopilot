@@ -13,13 +13,8 @@ fi
 # nginx 模板 include /etc/nginx/mc-fnos/*.conf（通配，无文件不报错）；
 # 配置了 MC_FNOS_BASE_URL 时按需生成 location 块，剥掉 /fnos 前缀转发到 fnOS 网关
 FNOS_ENABLED=false
-FNOS_AUTO_LOGIN=true
 if [ -n "${MC_FNOS_BASE_URL:-}" ]; then
   FNOS_ENABLED=true
-  case "${MC_FNOS_AUTO_LOGIN:-true}" in
-    false | False | FALSE | 0 | no) FNOS_AUTO_LOGIN=false ;;
-    *) FNOS_AUTO_LOGIN=true ;;
-  esac
   mkdir -p /etc/nginx/mc-fnos
   cat > /etc/nginx/mc-fnos/fnos.conf <<EOF
 location /fnos/ {
@@ -50,8 +45,7 @@ cat > /usr/share/nginx/html/config.json <<EOF
   "proxyTarget": "${PROXY_TARGET}",
   "fnos": {
     "enabled": ${FNOS_ENABLED},
-    "proxyTarget": "${FNOS_TARGET}",
-    "autoLogin": ${FNOS_AUTO_LOGIN}
+    "proxyTarget": "${FNOS_TARGET}"
   }
 }
 EOF
