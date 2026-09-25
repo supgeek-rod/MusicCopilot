@@ -33,7 +33,16 @@ trap on_term TERM INT
 serve_pid=$!
 
 while [ -z "$stop" ]; do
-    php artisan queue:work --tries=1 --timeout=3600 &
+    # serve 探活重拉：API（artisan serve）意外退出后若无人管，容器保持 running、
+    # web 持续 502 且 unless-stopped 不会因 unhealthy 重启。worker 加 --max-time
+    # 保证至多 60s 交还控制权（超时在当前任务完成后生效，不中断下载收尾），
+    # serve 崩溃最迟 1 分钟内被重新拉起。
+    if ! kill -0 "$serve_pid" 2>/dev/null; then
+        wait "$serve_pid" 2>/dev/null || true
+        "$@" &
+        serve_pid=$!
+    fi
+    php artisan queue:work --tries=1 --timeout=3600 --max-time=60 &
     worker_child=$!
     wait "$worker_child" || true
     if [ -z "$stop" ]; then

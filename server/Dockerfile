@@ -23,6 +23,8 @@ RUN chmod +x docker/entrypoint.sh
 # 容器内固定路径：SQLite 库落 /data 数据卷，下载落盘指向 /downloads 音乐库挂载点
 ENV DB_DATABASE=/data/database.sqlite
 ENV MC_MUSIC_DOWNLOAD_DIR=/downloads
+# artisan serve 默认单进程，同步上游调用会阻塞全部请求（含 healthcheck）；多 worker 化解排队
+ENV PHP_CLI_SERVER_WORKERS=8
 VOLUME ["/data"]
 EXPOSE 17017
 ENTRYPOINT ["docker/entrypoint.sh"]

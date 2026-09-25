@@ -30,6 +30,18 @@ class DownloadSongJob implements ShouldQueue
     {
     }
 
+    /**
+     * 尝试耗尽被队列判死（不进 handle，典型：worker 中途重启后出队 attempts 已超限）时，
+     * 把卡在中间态的任务落 ERROR，避免永久停在 downloading 且无法重试。
+     */
+    public function failed(Throwable $e): void
+    {
+        $task = DownloadTask::query()->find($this->taskId);
+        if ($task !== null && ! in_array($task->status, [DownloadTask::STATUS_SUCCESS, DownloadTask::STATUS_ERROR], true)) {
+            $task->markStatus(DownloadTask::STATUS_ERROR, '下载进程中断，请重试');
+        }
+    }
+
     public function handle(SourceManager $sources): void
     {
         $task = DownloadTask::query()->find($this->taskId);
