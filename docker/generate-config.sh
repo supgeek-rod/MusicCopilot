@@ -36,9 +36,10 @@ fi
 
 # 同源模式：baseUrl 固定空串，浏览器访问容器自身 /api，由 nginx 反代到后端；
 # proxyTarget 为信息性字段，把反代目标带给浏览器供设置面板展示
-# JSON 转义：密码等环境变量含 " 或 \ 时避免生成损坏的 config.json
+# JSON 转义：密码等环境变量含 " 或 \ 时避免生成损坏的 config.json；
+# 控制字符（含换行/Tab）先剔除——sed 无法安全跨行转义，残缺 JSON 会让前端启动失败
 json_escape() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+  printf '%s' "$1" | tr -d '\000-\037\177' | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 PROXY_TARGET=$(json_escape "${MC_API_BASE_URL}")
 FNOS_TARGET=$(json_escape "${MC_FNOS_BASE_URL:-}")
