@@ -40,8 +40,11 @@ php artisan serve --port=17017                     # 终端 1：HTTP API
 php artisan queue:work --tries=1 --timeout=3600    # 终端 2：下载队列 worker（serve 不带队列，缺它下载停在「等待中」）
 
 # 前端（新终端）
-cp .env.example .env    # 并取消注释 MC_API_BASE_URL=http://127.0.0.1:17017（dev/preview 必填）
+cp .env.example .env
 npm install
+
+# ⚠️ 必做：编辑 .env 取消注释这行（dev/preview 必填，缺它 npm run dev 启动即失败）
+#   MC_API_BASE_URL=http://127.0.0.1:17017
 npm run dev             # http://localhost:17016，/api 由 Vite 代理转发到后端
 ```
 

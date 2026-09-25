@@ -36,9 +36,10 @@ php artisan queue:work --tries=1 --timeout=3600   # 终端 2：下载队列 work
 
 ```bash
 cp .env.example .env
-# 编辑 .env：取消注释 MC_API_BASE_URL 并指向本地后端：
-#   MC_API_BASE_URL=http://127.0.0.1:17017
 npm install
+
+# ⚠️ 必做：编辑 .env，取消注释这行并指向本地后端（缺它 npm run dev 启动即失败）
+#   MC_API_BASE_URL=http://127.0.0.1:17017
 npm run dev                # http://localhost:17016，/api 由 Vite 代理转发到后端
 ```
 
