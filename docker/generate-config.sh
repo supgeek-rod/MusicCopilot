@@ -43,8 +43,7 @@ json_escape() {
 }
 PROXY_TARGET=$(json_escape "${MC_API_BASE_URL}")
 FNOS_TARGET=$(json_escape "${MC_FNOS_BASE_URL:-}")
-FNOS_USERNAME=$(json_escape "${MC_FNOS_USERNAME:-}")
-FNOS_PASSWORD=$(json_escape "${MC_FNOS_PASSWORD:-}")
+# fnOS 凭据（MC_FNOS_USERNAME/PASSWORD）由 server 容器代持，从不写入浏览器可达的 config.json
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "baseUrl": "",
@@ -52,8 +51,6 @@ cat > /usr/share/nginx/html/config.json <<EOF
   "fnos": {
     "enabled": ${FNOS_ENABLED},
     "proxyTarget": "${FNOS_TARGET}",
-    "username": "${FNOS_USERNAME}",
-    "password": "${FNOS_PASSWORD}",
     "autoLogin": ${FNOS_AUTO_LOGIN}
   }
 }
