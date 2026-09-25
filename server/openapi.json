@@ -6,7 +6,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost:8000/api"
+            "url": "http://localhost/api"
         }
     ],
     "paths": {
@@ -515,6 +515,182 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/fnos/login": {
+            "post": {
+                "operationId": "fnosAuth.login",
+                "summary": "\u4ee3\u767b\u5f55\uff1a\u65e0\u5165\u53c2\u51ed\u636e\uff08\u51ed\u636e\u5728\u670d\u52a1\u7aef\uff09\uff0c\u4ec5\u63a5\u6536\u6d4f\u89c8\u5668\u8bbe\u5907 ID\uff08fnOS \u4f1a\u8bdd\u533a\u5206\u7528\uff09",
+                "tags": [
+                    "FnosAuth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "deviceId": {
+                                        "type": "string",
+                                        "description": "\u6d4f\u89c8\u5668\u751f\u6210\u7684 32 \u4f4d hex \u8bbe\u5907 ID\uff08\u539f\u524d\u7aef getDeviceId \u540c\u53e3\u5f84\uff09",
+                                        "pattern": "^[0-9a-f]{32}$"
+                                    }
+                                },
+                                "required": [
+                                    "deviceId"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 200
+                                                },
+                                                "msg": {
+                                                    "type": "null"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "user"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "fnOS \u767b\u5f55\u63a5\u53e3\u8fd4\u56de\u975e JSON \u6570\u636e"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "const": 500
+                                                },
+                                                "msg": {
+                                                    "type": "string",
+                                                    "const": "fnOS \u97f3\u4e50\u5e93\u672a\u914d\u7f6e\uff08\u9700 MC_FNOS_BASE_URL / MC_FNOS_USERNAME / MC_FNOS_PASSWORD\uff09"
+                                                },
+                                                "data": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "code",
+                                                "msg",
+                                                "data"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/fnos/logout": {
+            "post": {
+                "operationId": "fnosAuth.logout",
+                "summary": "\u4ee3\u767b\u51fa\uff1a\u4ec5\u6e05\u6d4f\u89c8\u5668\u4fa7\u4f1a\u8bdd Cookie\uff08fnOS \u4fa7 token \u81ea\u7136\u8fc7\u671f\uff09",
+                "tags": [
+                    "FnosAuth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "code": {
+                                            "type": "integer",
+                                            "const": 200
+                                        },
+                                        "msg": {
+                                            "type": "null"
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "msg",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1482,7 +1658,8 @@
                                 "type": "object",
                                 "properties": {
                                     "id": {
-                                        "type": "string"
+                                        "type": "integer",
+                                        "minimum": 1
                                     }
                                 },
                                 "required": [
@@ -1541,7 +1718,8 @@
                                 "type": "object",
                                 "properties": {
                                     "id": {
-                                        "type": "string"
+                                        "type": "integer",
+                                        "minimum": 1
                                     }
                                 },
                                 "required": [
@@ -1667,7 +1845,8 @@
                                 "type": "object",
                                 "properties": {
                                     "id": {
-                                        "type": "string"
+                                        "type": "integer",
+                                        "minimum": 1
                                     }
                                 },
                                 "required": [
