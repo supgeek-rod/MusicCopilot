@@ -27,3 +27,6 @@ web/src/build-info.json
 # data 必须锚定根路径——未锚定的 data/ 会误伤任意层级同名目录
 /data/
 downloads/
+
+# ZCode 本地工具配置，不入库
+.zcodeignore
