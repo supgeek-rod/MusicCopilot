@@ -10,7 +10,6 @@ x-logging: &default-logging
 # build 只声明在 server：两服务同 tag，--build 时构建一次即可，worker 复用刚构建出的本地镜像
 x-server-base: &server-base
   image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
-  profiles: [server]
   environment:
     DB_DATABASE: /data/database.sqlite
     MC_DOWNLOAD_DIR: /downloads
@@ -39,7 +38,7 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
-  # ── 自建后端（第 5 期；启用：.env 设 COMPOSE_PROFILES=server）──
+  # ── 自建后端（第 5 期起为默认拓扑）──
   server:
     <<: *server-base
     build: ./server

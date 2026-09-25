@@ -7,7 +7,7 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 
 ## 容器与拓扑（自建后端）
 
-启用第 5 期全家桶（在 `.env` 配置 `COMPOSE_PROFILES=server` 后 `docker compose up -d`）共三个容器，各司其职：
+三容器默认拓扑（`docker compose up -d` 一键拉起），各司其职：
 
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
@@ -38,7 +38,6 @@ nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建�
 
 ```bash
 # NAS 端 .env（节选，完整模板见仓库 .env.example）
-COMPOSE_PROFILES=server
 MC_MUSIC_HOST_DIR=/vol1/1000/Musics/MusicCopilot   # 音乐库绝对路径（下载落盘目录）
 docker compose up -d
 ```
@@ -147,7 +146,7 @@ docker run -d -p 17016:80 \
 | 文件 | 说明 |
 | --- | --- |
 | `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
-| `docker-compose.yml` | 一键编排（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；server 走 profile；env_file 复用 `.env`） |
+| `docker-compose.yml` | 一键编排三容器（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；env_file 复用 `.env`） |
 | `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
 | `server/Dockerfile` | 自建后端镜像（php:8.4-cli-alpine 多阶段，vendor 分层；API 与 worker 同镜像） |
 | `.github/workflows/docker-publish.yml` | 前端镜像自动构建与发布（GHCR + Docker Hub） |

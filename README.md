@@ -48,8 +48,7 @@ git clone https://github.com/supgeek-rod/MusicCopilot.git && cd MusicCopilot
 cp .env.example .env
 
 # .env 中设置：
-#   COMPOSE_PROFILES=server
-#   MC_API_BASE_URL=http://server:8097                  # web 容器反代到自建后端（compose 服务名）
+#   MC_API_BASE_URL=http://server:8097                  # web 容器反代到自建后端（compose 服务名，.env.example 默认值即此）
 #   MC_MUSIC_HOST_DIR=/path/to/music                   # 音乐库目录（下载落盘处）
 #   MC_AUTH_USERNAME / MC_AUTH_PASSWORD                # 自建后端登录凭证（默认 admin/admin）
 
