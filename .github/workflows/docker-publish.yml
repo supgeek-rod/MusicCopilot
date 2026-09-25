@@ -4,7 +4,7 @@ name: Build & Publish Docker Image
 # - push 到 development：发布 development tag
 # - push v* tag：发布语义化版本 tag（如 v0.2.0 -> 0.2.0 / 0.2）并发布 latest（稳定线）
 # - workflow_dispatch：在 Actions 页面手动触发，可选任意包含本文件的分支运行
-# 双镜像矩阵：web（前端 nginx，根 Dockerfile）与 server（自建后端，server/Dockerfile），
+# 双镜像矩阵：web（前端 nginx，web/Dockerfile）与 server（自建后端，server/Dockerfile），
 # 两个矩阵项并行构建，tag 策略一致。
 on:
   push:
@@ -15,6 +15,7 @@ on:
   workflow_dispatch:
 
 env:
+  # 基础名 + 矩阵 suffix 拼出双镜像：web = music-copilot-web，server = music-copilot-server
   GHCR_IMAGE: ghcr.io/supgeek-rod/music-copilot
   DOCKERHUB_IMAGE: supgeekrod/music-copilot
 
@@ -29,10 +30,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 前端镜像：nginx 托管 SPA + /api 反代（根 Dockerfile）
+          # 前端镜像：nginx 托管 SPA + /api 反代（web/Dockerfile），镜像名带 -web 后缀
           - name: web
-            context: .
-            suffix: ''
+            context: ./web
+            suffix: '-web'
             gen-build-info: true
           # 自建后端镜像：Laravel API + queue worker 同镜像分进程（server/Dockerfile）
           - name: server
@@ -47,10 +48,11 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Generate build info
-        # 仅 web 需要：容器内构建无 .git（.dockerignore 排除），gen-build-info 会降级 hash=dev；
-        # checkout 后先在本机生成 src/build-info.json，COPY . . 带入构建上下文，
+        # 仅 web 需要：容器内构建无 .git（web/.dockerignore 排除），gen-build-info 会降级 hash=dev；
+        # checkout 后先在本机生成 web/src/build-info.json，COPY . . 带入构建上下文，
         # 容器内 gen-build-info 走「复用预生成」分支保留真实 hash
         if: matrix.gen-build-info
+        working-directory: web
         run: node scripts/gen-build-info.mjs
 
       - name: Set up QEMU

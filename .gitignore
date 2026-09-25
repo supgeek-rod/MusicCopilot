@@ -16,8 +16,8 @@ npm-debug.log*
 docs/.vitepress/cache
 docs/.vitepress/dist
 
-# 构建信息（scripts/gen-build-info.mjs 生成）
-src/build-info.json
+# 构建信息（web/scripts/gen-build-info.mjs 生成）
+web/src/build-info.json
 
 # 本地工作产物（报告/清单/测试截图），不入库
 .tmp/

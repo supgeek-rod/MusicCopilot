@@ -5,10 +5,11 @@ description: MC_* 环境变量、运行时 config.json 与跨域（CORS）方案
 
 # 配置说明
 
-配置统一以 **`MC_` 前缀环境变量**提供（真实环境变量 > `.env` 文件，模板见仓库内 `.env.example`）：
+配置统一以 **`MC_` 前缀环境变量**提供（真实环境变量 > `.env` 文件）：Docker 部署变量模板在仓库根 `.env.example`，前端本地开发变量模板在 `web/.env.example`：
 
 ```bash
-cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
+cp .env.example .env       # 部署变量（compose 在仓库根读取）；按需修改，.env 已被 git 忽略
+cd web && cp .env.example .env   # 前端 dev 变量（Vite 在 web/ 内读取）
 ```
 
 ## 环境变量
@@ -37,8 +38,8 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 应用启动时始终 `fetch` 运行时配置 `config.json`，不同场景来源不同：
 
 - **开发 / 本地预览**：Vite 中间件从 `.env`（或真实环境变量）虚拟生成，无需任何文件
-- **静态部署**：`npm run build` 时若配置了后端地址或 fnOS 接入任一 `MC_*` 变量，会生成 `dist/config.json`；也可手动创建或修改该文件（运行时读取，改完刷新即生效，无需重新构建）
-- **Docker**：容器启动时由入口脚本 `docker/generate-config.sh` 从环境变量生成
+- **静态部署**：`web/` 内 `npm run build` 时若配置了后端地址或 fnOS 接入任一 `MC_*` 变量，会生成 `dist/config.json`；也可手动创建或修改该文件（运行时读取，改完刷新即生效，无需重新构建）
+- **Docker**：容器启动时由入口脚本 `web/docker/generate-config.sh` 从环境变量生成
 
 `config.json` 中的 `baseUrl` 恒为空串（同源访问）。个别需要浏览器直连后端的设备，可在应用「设置」面板按设备覆盖后端地址，仅存于该设备浏览器。
 

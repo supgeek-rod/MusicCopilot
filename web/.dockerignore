@@ -1,0 +1,7 @@
+node_modules
+dist
+
+# 本机环境配置不进镜像（运行时由 compose environment / docker run -e 注入）
+.env
+.env.*
+.env.example

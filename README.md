@@ -1,6 +1,6 @@
 # MusicCopilot
 
-基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载应用：前端 SPA + 自建后端（`server/`，对接酷我音源）同仓一体，Docker Compose 一键部署。v0.2.0 起由自建后端完全替代第三方后端，无需额外部署。
+基于 **Vue 3 + TypeScript + Vite + shadcn-vue** 的音乐搜索与下载应用：前端 SPA（`web/`）+ 自建后端（`server/`，对接酷我音源）同仓一体，Docker Compose 一键部署。v0.2.0 起由自建后端完全替代第三方后端，无需额外部署。
 
 [![Build & Publish Docker Image](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml)
 
@@ -8,9 +8,9 @@
 
 ## 仓库结构
 
-monorepo（2026-09-11 起）：根目录为 Web 前端（本 README 所述）；[`server/`](server/README.md) 为自建后端
-（**PHP / Laravel 13**，对接酷我音源，含 Scalar/Scramble 文档测试台）；
-[`packages/api-contract`](packages/api-contract/README.md) 为前后端契约类型（由 `server/openapi.json` 自动生成）。
+monorepo（2026-09-11 起；2026-09-26 前端移入 `web/`、文档站自带 package.json，根目录无 package.json）：[`web/`](web/README.md) 为 Web 前端（本 README 所述）；
+[`server/`](server/README.md) 为自建后端（**PHP / Laravel 13**，对接酷我音源，含 Scalar/Scramble 文档测试台）；
+[`docs/`](docs/) 为文档站（VitePress）；[`packages/api-contract`](packages/api-contract/README.md) 为前后端契约类型（由 `server/openapi.json` 自动生成）。
 
 ## 功能
 
@@ -40,6 +40,7 @@ php artisan serve --port=17017                     # 终端 1：HTTP API
 php artisan queue:work --tries=1 --timeout=3600    # 终端 2：下载队列 worker（serve 不带队列，缺它下载停在「等待中」）
 
 # 前端（新终端）
+cd web
 cp .env.example .env
 npm install
 
@@ -64,7 +65,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-- 前端镜像（`ghcr.io/supgeek-rod/music-copilot`）与自建后端镜像（`ghcr.io/supgeek-rod/music-copilot-server`，`amd64` + `arm64` 双架构）均由 CI 自动构建发布，Docker Hub 同步分发；容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS）
+- 前端镜像（`ghcr.io/supgeek-rod/music-copilot-web`）与自建后端镜像（`ghcr.io/supgeek-rod/music-copilot-server`，`amd64` + `arm64` 双架构）均由 CI 自动构建发布，Docker Hub 同步分发；容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS）
 - 下载完成后 worker 按路径模板（`MC_MUSIC_DOWNLOAD_PATH_TEMPLATE`，默认 `歌手/专辑/`）重排，飞牛音乐 / Navidrome 等媒体库可直接扫描入库
 
 仅前端单容器部署等更多方式见文档站[Docker 部署](docs/deployment.md)。
@@ -85,18 +86,19 @@ docker compose up -d
 ## 目录结构
 
 ```
-.env / .env.example    # 运行配置（后端地址等；.env 不入库，模板见 .env.example）
-Dockerfile             # 前端镜像（多阶段构建，nginx 托管 + /api 反代）
+.env / .env.example    # Docker 部署配置（.env 不入库，模板见 .env.example）
 docker-compose.yml     # 一键编排（默认拉取 CI 预构建镜像，容器变量显式声明）
-docker/                # nginx 反代模板 + 容器入口配置生成脚本
 .github/workflows/     # CI：Docker 镜像构建发布 + 文档站 Pages 部署
-docs/                  # 项目文档（VitePress 文档站，docs as code）
-src/api/               # 接口封装（axios + 统一响应解包）
-src/stores/            # Pinia：应用配置与连接状态 / 播放队列
-src/views/             # 搜索页、歌手页、专辑页、下载任务页
-src/components/        # 歌曲列表、下载音质菜单、播放条、歌词弹窗、歌手/专辑页组件
-src/components/ui/     # shadcn-vue 生成的本地 UI 组件
-src/lib/               # 工具：格式化、数据适配（adapter）、富文本净化（sanitize）
+web/                   # Web 前端（Vue 3 + Vite，自带 package.json / Dockerfile / .env.example）
+web/src/api/           # 接口封装（axios + 统一响应解包）
+web/src/stores/        # Pinia：应用配置与连接状态 / 播放队列
+web/src/views/         # 搜索页、歌手页、专辑页、下载任务页
+web/src/components/    # 歌曲列表、下载音质菜单、播放条、歌词弹窗、歌手/专辑页组件
+web/src/components/ui/ # shadcn-vue 生成的本地 UI 组件
+web/src/lib/           # 工具：格式化、数据适配（adapter）、富文本净化（sanitize）
+web/docker/            # nginx 反代模板 + 容器入口配置生成脚本
+docs/                  # 项目文档（VitePress 文档站，docs as code，自带 package.json）
+server/                # 自建后端（PHP / Laravel 13）
 ```
 
 ## 开发路线图
@@ -106,9 +108,10 @@ src/lib/               # 工具：格式化、数据适配（adapter）、富文
 ## 文档站开发
 
 ```bash
-npm run docs:dev      # 文档站本地开发，http://localhost:17015
-npm run docs:build    # 构建文档站（含死链检查）
-npm run docs:preview  # 本地预览文档站构建产物
+cd docs
+npm run dev      # 文档站本地开发，http://localhost:17015
+npm run build    # 构建文档站（含死链检查）
+npm run preview  # 本地预览文档站构建产物
 ```
 
 推送 `development` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。

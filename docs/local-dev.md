@@ -5,7 +5,7 @@ description: 本地启动后端 API、下载队列 worker 与前端开发服务�
 
 # 本地开发
 
-MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/server) 为自建后端（PHP / Laravel 13，酷我音源），自包含、无认证、连接即用。本地完整跑起来需要**三个进程**：后端 API、下载队列 worker、前端开发服务器；端口约定 **API `17017` / 前端 `17016`**。
+MusicCopilot 是前后端一体 monorepo：[`web/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/web) 为 Web 前端（Vue 3 SPA，自带 package.json），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/server) 为自建后端（PHP / Laravel 13，酷我音源），自包含、无认证、连接即用。本地完整跑起来需要**三个进程**：后端 API、下载队列 worker、前端开发服务器；端口约定 **API `17017` / 前端 `17016`**。
 
 ## 环境要求
 
@@ -35,6 +35,7 @@ php artisan queue:work --tries=1 --timeout=3600   # 终端 2：下载队列 work
 ## 前端（端口 17016）
 
 ```bash
+cd web                     # 前端是独立 npm 包，命令都在 web/ 内执行
 cp .env.example .env
 npm install
 
@@ -44,13 +45,13 @@ npm run dev                # http://localhost:17016，/api 由 Vite 代理转发
 ```
 
 - dev / preview 下 `MC_API_BASE_URL` **必填**，`npm run dev` 启动报「缺少 MC_API_BASE_URL」即为未配置
-- `MC_WEB_PORT`（`.env.example` 默认 `17016`）同时是 dev / preview 的服务器端口；端口被占用自动 +1
-- 飞牛音乐库联调：根 `.env` 配 `MC_FNOS_BASE_URL`（Vite 代理 `/fnos` 用），并把 `MC_FNOS_BASE_URL` / `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 同步配到 `server/.env`——登录由 server 代持凭据完成（见[配置说明](./configuration.md)）
+- `MC_WEB_PORT`（`web/.env.example` 模板默认 `17016`，未配置回退 `5173`）同时是 dev / preview 的服务器端口；端口被占用自动 +1
+- 飞牛音乐库联调：`web/.env` 配 `MC_FNOS_BASE_URL`（Vite 代理 `/fnos` 用），并把 `MC_FNOS_BASE_URL` / `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 同步配到 `server/.env`——登录由 server 代持凭据完成（见[配置说明](./configuration.md)）
 
 ## 构建与预览
 
 ```bash
-npm run build      # vue-tsc 类型检查 + Vite 构建，产物输出 dist/
+npm run build      # 生成构建信息 + vue-tsc 类型检查 + Vite 构建，产物输出 dist/
 npm run preview    # 本地预览构建产物（同样走 /api 代理，MC_API_BASE_URL 必填）
 ```
 
@@ -58,12 +59,13 @@ npm run preview    # 本地预览构建产物（同样走 /api 代理，MC_API_B
 
 ## 文档站
 
-项目文档基于 VitePress，源码即站点（docs as code），文档源文件在 `docs/`：
+项目文档基于 VitePress，源码即站点（docs as code），文档源文件在 `docs/`（文档站是独立 npm 包）：
 
 ```bash
-npm run docs:dev      # 文档站本地开发，http://localhost:17015
-npm run docs:build    # 构建到 docs/.vitepress/dist（含死链检查），改动 docs/ 后提交前应构建通过
-npm run docs:preview  # 本地预览文档站构建产物
+cd docs
+npm run dev      # 文档站本地开发，http://localhost:17015
+npm run build    # 构建到 docs/.vitepress/dist（含死链检查），改动 docs/ 后提交前应构建通过
+npm run preview  # 本地预览文档站构建产物
 ```
 
 推送 `development` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages：<https://supgeek-rod.github.io/MusicCopilot/>

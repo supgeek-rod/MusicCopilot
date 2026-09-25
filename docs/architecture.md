@@ -34,10 +34,14 @@ description: MusicCopilot 整体架构：演进总览、模块边界、关键决
 > 2026-09-11 monorepo 提前落地：前端保持在仓库根（工具链/部署零改动），自建后端并入 `server/`
 > （原独立仓库 MusicCopilotServer，git subtree 保留历史）。与原规划的两处差异：
 > server 技术栈为 **PHP / Laravel 13**（第 5 期研究后确定，替代 Node/Fastify 方案）；前端不再迁入 `apps/web`。
+> 2026-09-26 前端迁入 `web/`（自带 package.json / Dockerfile / .env.example），文档站独立为 `docs/` npm 包，根目录无 package.json。
 
 ```
 MusicCopilot/
-├─ src/ index.html vite.config.ts ...   # 前端 SPA（原单包结构不变）
+├─ web/                         # 前端 SPA（Vue 3 + Vite，独立 npm 包）
+│  ├─ src/ index.html vite.config.ts ...
+│  ├─ Dockerfile docker/        # 前端镜像（nginx 托管 + /api 反代 + 运行时 config.json）
+│  └─ .env.example              # 前端 dev 变量模板
 ├─ packages/
 │  └─ api-contract/             # 前后端共享契约类型（openapi-typescript 由 server/openapi.json 生成）
 ├─ server/                      # 自建后端（PHP / Laravel 13，应用根即本目录）
@@ -50,8 +54,7 @@ MusicCopilot/
 │  ├─ docs/kuwo-api-notes.md   # 酷我端点/加密/区域限制调研
 │  ├─ research/ scripts/       # 酷我调研资料与 curl 验证脚本
 │  └─ openapi.json             # OpenAPI 3.1 规范固化（scramble:export）
-├─ docker/                      # nginx 反代模板 + 容器入口配置生成脚本（前端镜像构建用根级 Dockerfile，server 镜像用 server/Dockerfile）
-└─ docs/                       # 文档（VitePress 文档站）
+└─ docs/                       # 文档（VitePress 文档站，独立 npm 包）
 ```
 
 ## 3. 服务与模块边界
@@ -112,10 +115,10 @@ MusicCopilot/
 
 ## 6. 前端适配层（现状：自建后端单后端）
 
-`src/api/http.ts` 集中处理 baseURL（服务端认证已于 2026-09-25 移除，无 token 头与重登逻辑；连通性探测用 `/api/healthcheck`），实际文件：
+`web/src/api/http.ts` 集中处理 baseURL（服务端认证已于 2026-09-25 移除，无 token 头与重登逻辑；连通性探测用 `/api/healthcheck`），实际文件：
 
 ```
-src/api/
+web/src/api/
 ├─ http.ts        # 请求实例：{code,msg,data} 解包 + 网络错误友好提示
 ├─ config.ts      # 探活（/api/healthcheck）与音源插件元信息（/api/config/*）
 ├─ music.ts       # 搜索/详情/歌词/直链（自建后端）

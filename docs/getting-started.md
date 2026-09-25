@@ -5,7 +5,7 @@ description: MusicCopilot 项目简介与最快上手路径：Docker 一键部�
 
 # 快速开始
 
-MusicCopilot 是**音乐搜索、试听与下载客户端**：根目录为 Web 前端（Vue 3 + TypeScript + shadcn-vue），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/server) 为自建后端（PHP / Laravel 13，酷我音源），前后端同仓一体。自建后端无认证、连接即用，v0.2.0 起无需任何第三方服务；下载完成后按「歌手/专辑/」自动重排目录，可被飞牛音乐 / Navidrome 等媒体库直接扫描入库；支持安装为 PWA。
+MusicCopilot 是**音乐搜索、试听与下载客户端**：[`web/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/web) 为 Web 前端（Vue 3 + TypeScript + shadcn-vue），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/server) 为自建后端（PHP / Laravel 13，酷我音源），前后端同仓一体。自建后端无认证、连接即用，v0.2.0 起无需任何第三方服务；下载完成后按「歌手/专辑/」自动重排目录，可被飞牛音乐 / Navidrome 等媒体库直接扫描入库；支持安装为 PWA。
 
 两条上手路径任选，端口约定 **API `17017` / 前端 `17016`**。
 
@@ -32,6 +32,7 @@ php artisan serve --port=17017                     # 终端 1：HTTP API
 php artisan queue:work --tries=1 --timeout=3600    # 终端 2：下载队列 worker
 
 # 前端（新终端；需 Node.js ≥ 20.19）
+cd web
 cp .env.example .env
 # ⚠️ 必做：编辑 .env 取消注释这行（dev/preview 必填，缺它 npm run dev 启动即失败）
 #   MC_API_BASE_URL=http://127.0.0.1:17017

@@ -2,8 +2,8 @@ name: music-copilot
 
 services:
   web:
-    build: .
-    image: ghcr.io/supgeek-rod/music-copilot:${MC_IMAGE_TAG:-latest}
+    build: ./web
+    image: ghcr.io/supgeek-rod/music-copilot-web:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot-web
     ports:
       - "${MC_WEB_PORT:-17016}:80"

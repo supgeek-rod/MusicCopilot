@@ -14,7 +14,7 @@ Vue 3（组合式 API，`<script setup lang="ts">`）+ TypeScript + Vite + shadc
 ## 目录结构
 
 ```
-src/
+web/src/
 ├─ api/                  # 后端调用唯一出口（组件内禁止直接 fetch/axios）
 │  ├─ http.ts            #   request()：统一解包 {code,msg,data}（code=200 才算成功）+ 网络错误提示
 │  ├─ music.ts           #   搜索 / 详情 / 歌词 / 直链
@@ -41,4 +41,4 @@ src/
 
 ## 与后端的边界
 
-组件 → store/页面 → `src/api/*` → 后端 `/api/*`；后端契约以 `server/openapi.json` 为准，契约类型包 `packages/api-contract` 由其生成。后端侧内部分层见 [server 架构](./server)。
+组件 → store/页面 → `web/src/api/*` → 后端 `/api/*`；后端契约以 `server/openapi.json` 为准，契约类型包 `packages/api-contract` 由其生成。后端侧内部分层见 [server 架构](./server)。

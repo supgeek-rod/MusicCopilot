@@ -5,8 +5,8 @@ on:
     branches: [development]
     paths:
       - 'docs/**'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'docs/package.json'
+      - 'docs/package-lock.json'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -32,10 +32,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: docs/package-lock.json
       - name: Install dependencies
+        working-directory: docs
         run: npm ci
       - name: Build docs
-        run: npm run docs:build
+        working-directory: docs
+        run: npm run build
       - uses: actions/configure-pages@v6
         with:
           # 仓库尚未启用 Pages 时自动开启，无需手动到 Settings → Pages 设置

@@ -102,7 +102,7 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 - **Pinia stores**：`app`（配置与连接状态、插件列表、音质枚举）、`player`（队列与播放状态）、`fnos`（飞牛音乐库会话）。
 - **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、统一解包 `{code, msg, data}`、网络错误友好提示。fnOS 走独立的 `api/fnos.ts`（同源 `/fnos` 反代、Cookie 鉴权、`code==0` 成功码与会话失效重登自成一体）。
 - **竞态防御**：页面组件的异步请求在卸载后丢弃响应（`disposed` 守卫），避免与路由切换竞态引发渲染崩溃。
-- **深色模式**：`useDark`（`vueuse-color-scheme` 持久化），主题变量见 `src/style.css`。
+- **深色模式**：`useDark`（`vueuse-color-scheme` 持久化），主题变量见 `web/src/style.css`。
 - **PWA（vite-plugin-pwa）**：`registerType: autoUpdate` 静默更新；构建产物全量预缓存 + SPA `navigateFallback`；`/api/*` 与 `config.json` 在 `navigateFallbackDenylist` 中永不缓存（后者容器内运行时生成）；封面等图片走 `StaleWhileRevalidate` 运行时缓存（限 200 条 / 14 天）。图标由 `public/favicon.svg` 经 sharp 一次性生成（192/512/maskable-512/apple-touch-180）。仅在构建产物（preview / Docker）生效，dev 模式默认无 SW。
 
 ## 运行配置（MC_* 环境变量）

@@ -11,7 +11,7 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 
 | 服务（容器名） | 镜像 | 端口（容器内 → 宿主） | 数据卷 |
 | --- | --- | --- | --- |
-| `web`（music-copilot-web） | `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布，或本地 `Dockerfile` 构建） | 80 → `MC_WEB_PORT`（默认 17016） | — |
+| `web`（music-copilot-web） | `ghcr.io/supgeek-rod/music-copilot-web`（Docker Hub 同步发布，或本地 `web/Dockerfile` 构建） | 80 → `MC_WEB_PORT`（默认 17016） | — |
 | `server`（music-copilot-server） | `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布，也可 `--build` 本地构建） | 17017 → 不发布宿主端口 | `data/` → `/data`（SQLite 库） |
 
 **web** —— nginx 托管前端静态文件，`/api` 反代到 server，启动时按环境变量生成 `config.json`。
@@ -77,7 +77,7 @@ server **无认证**（2026-09-25 起，任何客户端可直接访问 `/api`，
 
 ## Docker 部署（仅前端，对接外部后端）
 
-镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **GHCR 与 Docker Hub**（`linux/amd64` + `linux/arm64` 双架构，**默认使用 GHCR**：`ghcr.io/supgeek-rod/music-copilot`），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
+镜像由 [GitHub Actions](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml) 自动构建并发布到 **GHCR 与 Docker Hub**（`linux/amd64` + `linux/arm64` 双架构，**默认使用 GHCR**：`ghcr.io/supgeek-rod/music-copilot-web`），直接拉取即可，**无需克隆仓库、无需本地构建**。容器内置 nginx：托管前端静态文件，并把 `/api` 反代到后端（同源访问，无需后端开启 CORS），后端地址等配置全部通过环境变量注入，**改配置重启容器即可，无需重建镜像**。
 
 ### 方式一：Compose 拉取预构建镜像（推荐）
 
@@ -88,7 +88,7 @@ server **无认证**（2026-09-25 起，任何客户端可直接访问 `/api`，
 ```yaml
 services:
   web:
-    image: ghcr.io/supgeek-rod/music-copilot:latest   # Docker Hub 用户可用 supgeekrod/music-copilot:latest
+    image: ghcr.io/supgeek-rod/music-copilot-web:latest   # Docker Hub 用户可用 supgeekrod/music-copilot-web:latest
     container_name: music-copilot
     ports:
       - "17016:80"                # 对外端口，按需修改
@@ -127,13 +127,13 @@ docker compose up -d
 ```bash
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的后端地址>:17017 \
-  ghcr.io/supgeek-rod/music-copilot:latest
+  ghcr.io/supgeek-rod/music-copilot-web:latest
 ```
 
 ### 本地构建镜像
 
 ```bash
-docker build -t music-copilot .                       # 前端
+docker build -t music-copilot ./web                   # 前端
 docker build -t music-copilot-server ./server         # 自建后端（API 与 worker 同容器）
 docker run -d -p 17016:80 \
   -e MC_API_BASE_URL=http://<你的后端地址>:17017 \
@@ -168,7 +168,7 @@ MusicCopilot 是**内网自托管**设计，安全边界 = 局域网边界：
 
 ## 静态部署
 
-`npm run build` 产物为纯静态文件（`dist/`），可托管到任意静态服务器：
+`web/` 内 `npm run build` 产物为纯静态文件（`web/dist/`），可托管到任意静态服务器：
 
 - 需在同源服务上把 `/api` 反代到后端（自建 server，见[配置说明 · CORS](./configuration.md#跨域-cors)）
 - 运行时配置通过 `dist/config.json` 提供，改完刷新即生效、无需重新构建（见[配置说明](./configuration.md)）
@@ -179,8 +179,8 @@ MusicCopilot 是**内网自托管**设计，安全边界 = 局域网边界：
 
 | 文件 | 说明 |
 | --- | --- |
-| `Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
+| `web/Dockerfile` | 前端镜像（多阶段构建：node 构建 → nginx 托管 + `/api` 反代） |
 | `docker-compose.yml` | 一键编排两容器（默认 `latest`，可用 `MC_IMAGE_TAG` 覆盖；容器变量在 `environment` 中显式声明，`.env` 经插值传入） |
-| `docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
+| `web/docker/` | nginx 反代模板 + 容器入口配置生成脚本 |
 | `server/Dockerfile` | 自建后端镜像（php:8.4-cli-alpine 多阶段，vendor 分层；API 与 worker 同镜像） |
 | `.github/workflows/docker-publish.yml` | 前端镜像自动构建与发布（GHCR + Docker Hub） |
