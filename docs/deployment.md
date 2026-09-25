@@ -42,7 +42,7 @@ docker-compose.yml 本身保持无注释、可直接复制使用，非显性约�
 - **server 健康检查**：镜像基于 php:8.4-cli-alpine，没有 curl，故用 `php -r` 探测免鉴权端点 `/api/config/isLogin`。
 - **server 端口固定 `127.0.0.1:17017:17017`**：仅绑宿主 loopback，供本机直连 API、查看 OpenAPI 文档（本地 dev 直连本机 Docker 栈的后端即填 `http://127.0.0.1:17017`），不对局域网开放；所有前端访问（含局域网设备）统一走 web 的 `/api` 反代。
 - **`stop_grace_period: 10m`**：`docker compose stop` 发出 SIGTERM 后等队列 worker 收尾当前下载（`.part` → rename 落盘），不被默认 10s 的 SIGKILL 腰斩；兜底 10 分钟，小于单个下载任务本身的 1h 超时。
-- **卷映射**：SQLite 库在 `server-data` 命名卷（`/data`）；下载目录挂 `MC_MUSIC_HOST_DIR`（未配置时落到项目目录 `./data/downloads`）。容器内路径 `MC_DOWNLOAD_DIR=/downloads` 由 compose 固定，`.env` 无需配置。
+- **卷映射**：SQLite 库在 `server-data` 命名卷（`/data`）；下载目录挂 `MC_MUSIC_HOST_DIR`（未配置时落到项目目录 `./data/downloads`）。容器内路径 `DB_DATABASE=/data/database.sqlite`、`MC_DOWNLOAD_DIR=/downloads` 由镜像 ENV（`server/Dockerfile`）固定，`.env` 无需配置。
 
 ### 启用与配置
 

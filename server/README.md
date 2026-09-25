@@ -74,7 +74,7 @@ curl -s --noproxy '*' -X POST -H "sqmusic: $TOKEN" -H 'Content-Type: application
 ```
 
 - 状态机：waiting → loading（解析直链）→ downloading → success / error；失败经 `errorTaskRetry` 回 waiting
-- 落盘「歌手 - 标题.格式」，重名追加序号；目录 `MC_DOWNLOAD_DIR`（默认 `storage/app/downloads`）
+- 落盘「歌手 - 标题.格式」，重名追加序号；目录 `MC_DOWNLOAD_DIR`（默认 `storage/app/downloads`；容器内由镜像 ENV 指向 `/downloads` 音乐库挂载点）
 - 整张专辑同步展开（响应为任务数组，前端取长度计数）；歌手全部专辑队列异步展开、任务渐进出现
 - 删除任务记录不删已落盘文件；`delSuccessTask` 清空全部成功记录（契约保留，前端有确认弹窗）
 

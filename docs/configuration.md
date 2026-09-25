@@ -27,7 +27,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_MUSIC_HOST_DIR` | 自建后端下载落盘的音乐库目录（宿主机绝对路径，即 fnOS「音乐」应用扫描的目录）。未配置时落到项目目录 `data/downloads` |
 | `MC_DIR_TEMPLATE` | 下载完成后的目录布局模板（默认 `{albumArtist}/{album}/{title} - {albumArtist}.{ext}`）；可用变量 `{albumArtist} {album} {artist} {title} {year} {trackNo} {ext}`。模板不含目录部分即为平铺（如 `{title}.{ext}`），详见[下载与目录布局](./download) |
 
-> `MC_DOWNLOAD_DIR`（容器内下载目录）由 docker-compose.yml 固定为 `/downloads` 并指向挂载的音乐库目录，`.env` 无需配置。server API 的宿主端口亦固定为 `127.0.0.1:17017`（仅本机直连 API 与 OpenAPI 文档调试用，不对局域网开放），无需配置。
+> `MC_DOWNLOAD_DIR`（容器内下载目录）由镜像 ENV 固定为 `/downloads` 并指向挂载的音乐库目录，`.env` 无需配置。server API 的宿主端口亦固定为 `127.0.0.1:17017`（仅本机直连 API 与 OpenAPI 文档调试用，不对局域网开放），无需配置。
 
 > 注意：`.env` 以明文保存密码，请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。「登录框 + 记住 token」模式规划在[路线图](./roadmap.md)第 2 期。
 >

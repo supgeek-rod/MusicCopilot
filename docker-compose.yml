@@ -32,8 +32,6 @@ services:
       start_period: 15s
     stop_grace_period: 10m
     environment:
-      DB_DATABASE: /data/database.sqlite
-      MC_DOWNLOAD_DIR: /downloads
       MC_API_USERNAME: ${MC_API_USERNAME:-admin}
       MC_API_PASSWORD: ${MC_API_PASSWORD:-password}
       MC_DIR_TEMPLATE: ${MC_DIR_TEMPLATE:-{albumArtist}/{album}/{title} - {albumArtist}.{ext}}

@@ -20,8 +20,9 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.nju.edu.cn/g' /etc/apk/repositories
     && docker-php-ext-install pcntl \
     && apk del .build-deps
 RUN chmod +x docker/entrypoint.sh
-# 下载落盘目录（部署时挂卷指向 fnOS 音乐库目录）
-ENV MC_DOWNLOAD_DIR=/data/downloads
+# 容器内固定路径：SQLite 库落 /data 数据卷，下载落盘指向 /downloads 音乐库挂载点
+ENV DB_DATABASE=/data/database.sqlite
+ENV MC_DOWNLOAD_DIR=/downloads
 VOLUME ["/data"]
 EXPOSE 17017
 ENTRYPOINT ["docker/entrypoint.sh"]
