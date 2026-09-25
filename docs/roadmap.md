@@ -71,7 +71,7 @@ description: MusicCopilot 第 1-6 期演进计划
 - **前端镜像**：多阶段构建（node 构建 → nginx 托管静态文件），nginx 同时反代 `/api` 到后端，浏览器同源访问，不再依赖后端开启 CORS
 - **docker-compose.yml**：一条命令拉起容器，默认拉取 CI 预构建镜像（2026-09-25 起收敛为 web + server 两容器拓扑，容器变量显式声明、零必填配置）
 - **配置注入**：后端地址等配置经 `MC_*` 环境变量传入，容器入口脚本运行时生成 `config.json`，改配置无需重建镜像，重启容器生效
-- **镜像发布 CI**：GitHub Actions 自动构建并发布镜像到 GHCR / Docker Hub，tag 跟随分支（`latest` 绑定 main）
+- **镜像发布 CI**：GitHub Actions 自动构建并发布镜像到 GHCR / Docker Hub，tag 跟随构建触发源（`development` 分支发布 `development` tag；`v*` 版本 tag 发布语义化版本并发布 `latest`，即稳定线 = 版本发布）
 - 伴生服务镜像与 fnOS Docker 图形化部署模板（compose 导入即用）并入第 3 期，随 Companion 服务一并落地
 
 ## 前置建议 🔐 —— 已废止

@@ -5,7 +5,7 @@ description: MusicCopilot 的安装、开发、构建与文档站开发步骤
 
 # 快速开始
 
-MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/main/server) 为自建后端（PHP / Laravel 13，酷我音源），自包含、无认证、连接即用。后端地址通过环境变量注入，见[配置说明](./configuration.md)；完整部署见[部署指南](./deployment.md)。
+MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/server) 为自建后端（PHP / Laravel 13，酷我音源），自包含、无认证、连接即用。后端地址通过环境变量注入，见[配置说明](./configuration.md)；完整部署见[部署指南](./deployment.md)。
 
 ## 环境要求
 
@@ -43,7 +43,7 @@ npm run docs:build    # 构建到 docs/.vitepress/dist（含死链检查）
 npm run docs:preview  # 本地预览文档站构建产物
 ```
 
-推送 `main` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages：<https://supgeek-rod.github.io/MusicCopilot/>
+推送 `development` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages：<https://supgeek-rod.github.io/MusicCopilot/>
 
 ## 下一步
 
