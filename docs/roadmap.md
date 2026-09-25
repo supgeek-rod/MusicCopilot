@@ -66,7 +66,7 @@ description: MusicCopilot 第 1-6 期演进计划
 
 ## 第 6 期 —— 打包成 Docker 应用 ✅
 
-> 目标：一条命令部署前端容器，顺便根治 CORS 问题（见[部署指南](./deployment.md)）
+> 目标：一条命令部署前端容器，顺便根治 CORS 问题（见[Docker 部署](./deployment.md)）
 
 - **前端镜像**：多阶段构建（node 构建 → nginx 托管静态文件），nginx 同时反代 `/api` 到后端，浏览器同源访问，不再依赖后端开启 CORS
 - **docker-compose.yml**：一条命令拉起容器，默认拉取 CI 预构建镜像（2026-09-25 起收敛为 web + server 两容器拓扑，容器变量显式声明、零必填配置）

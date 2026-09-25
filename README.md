@@ -48,7 +48,7 @@ npm install
 npm run dev             # http://localhost:17016，/api 由 Vite 代理转发到后端
 ```
 
-后端地址等通过 `MC_*` 环境变量配置，详见文档站[配置说明](docs/configuration.md)；完整步骤（构建、预览、文档站开发）见[本地开发](docs/getting-started.md)。
+后端地址等通过 `MC_*` 环境变量配置，详见文档站[配置说明](docs/configuration.md)；完整步骤（构建、预览、文档站开发）见[本地开发](docs/local-dev.md)。
 
 ## Docker 部署
 
@@ -67,16 +67,17 @@ docker compose up -d
 - 前端镜像（`ghcr.io/supgeek-rod/music-copilot`）与自建后端镜像（`ghcr.io/supgeek-rod/music-copilot-server`，`amd64` + `arm64` 双架构）均由 CI 自动构建发布，Docker Hub 同步分发；容器内置 nginx（托管静态文件 + `/api` 反代，同源免 CORS）
 - 下载完成后 worker 按路径模板（`MC_MUSIC_DOWNLOAD_PATH_TEMPLATE`，默认 `歌手/专辑/`）重排，飞牛音乐 / Navidrome 等媒体库可直接扫描入库
 
-仅前端单容器部署等更多方式见文档站[部署指南](docs/deployment.md)。
+仅前端单容器部署等更多方式见文档站[Docker 部署](docs/deployment.md)。
 
 ## 文档
 
 | 文档 | 说明 |
 | --- | --- |
 | [在线文档站](https://supgeek-rod.github.io/MusicCopilot/) | 以下内容的发布版本 |
-| [docs/getting-started.md](docs/getting-started.md) | 本地开发（环境要求 / 后端与队列 / 前端 / 构建 / 文档站） |
+| [docs/getting-started.md](docs/getting-started.md) | 快速开始（项目简介 / 上手路径：Docker 部署与本地开发） |
+| [docs/local-dev.md](docs/local-dev.md) | 本地开发（后端与队列 / 前端 / 构建 / 文档站） |
 | [docs/configuration.md](docs/configuration.md) | 配置说明（MC_* 变量、config.json、CORS） |
-| [docs/deployment.md](docs/deployment.md) | 部署指南（Docker / 静态） |
+| [docs/deployment.md](docs/deployment.md) | Docker 部署（Compose / docker run / 静态） |
 | [docs/features.md](docs/features.md) | 功能说明（页面/交互/实现要点） |
 | [docs/architecture.md](docs/architecture.md) | 整体架构设计（按路线图演进） |
 | [docs/roadmap.md](docs/roadmap.md) | 开发路线图（第 1-6 期） |

@@ -15,7 +15,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 | 变量 | 说明 |
 | --- | --- |
-| `MC_API_BASE_URL` | 后端服务地址，**仅本地开发使用**：`npm run dev` / `preview` 的 Vite 代理目标，模板默认 `http://127.0.0.1:17017`。**Docker 部署忽略此变量**——compose 内固定反代到 server 容器（`http://server:17017`）；`docker run` 对接独立部署的后端时用 `-e` 传入。自建后端的下载相关变量见[部署指南](./deployment.md) |
+| `MC_API_BASE_URL` | 后端服务地址，**仅本地开发使用**：`npm run dev` / `preview` 的 Vite 代理目标，模板默认 `http://127.0.0.1:17017`。**Docker 部署忽略此变量**——compose 内固定反代到 server 容器（`http://server:17017`）；`docker run` 对接独立部署的后端时用 `-e` 传入。自建后端的下载相关变量见[Docker 部署](./deployment.md) |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
 | `MC_FNOS_BASE_URL` | 飞牛（fnOS）网关地址（如 `http://192.168.31.31:5666`）：Vite 代理与 Docker nginx 把 `/fnos` 反代到该地址；**不配置则「音乐库」入口不显示** |
 | `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号（token 失效也会用它静默重登；密码经 SHA-256 后提交） |

@@ -1,9 +1,9 @@
 ---
-title: 部署指南
+title: Docker 部署
 description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）与静态部署
 ---
 
-# 部署指南
+# Docker 部署
 
 ## 容器与拓扑（自建后端）
 
