@@ -12,7 +12,7 @@ description: Docker Compose 拉取预构建镜像部署（GHCR / Docker Hub）�
 | 服务（容器名） | 镜像来源 | 职责 | 容器内端口 | 宿主端口 | 数据卷 |
 | --- | --- | --- | --- | --- | --- |
 | `web`（music-copilot） | CI 构建 `ghcr.io/supgeek-rod/music-copilot`（Docker Hub 同步发布；或本地 `Dockerfile`） | nginx 托管前端静态文件；`/api` 反代到 server；启动时按环境变量生成 `config.json` | 80 | `MC_PORT`（如 12312） | — |
-| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与管理（SQMusic 对齐契约），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按目录模板重排 | 8097 | `MC_SERVER_PORT`（默认 8097） | `server-data` → `/data`（SQLite 库） |
+| `server`（music-copilot-server） | CI 构建 `ghcr.io/supgeek-rod/music-copilot-server`（Docker Hub 同步发布；也可 `--build` 本地构建 `server/Dockerfile`，php:8.4-cli-alpine 多阶段） | 自建后端：API 进程（`php artisan serve`）负责登录鉴权、搜索/详情/歌词/直链解析、下载任务创建与管理（SQMusic 对齐契约），附 OpenAPI 文档；entrypoint 同时拉起下载队列 worker（`queue:work`）：解析直链 → 流式下载落盘 → 状态回写 → 按目录模板重排 | 8097 | `MC_SERVER_PORT`（默认 17017，仅绑 127.0.0.1） | `server-data` → `/data`（SQLite 库） |
 
 server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`，即 fnOS「音乐」应用扫描的目录）。数据流：
 
@@ -31,15 +31,15 @@ server 的下载目录挂载的是宿主机音乐库目录（`MC_MUSIC_HOST_DIR`
 | --- | --- | --- |
 | web nginx | `http://server:8097`（`/api` 反代） | `MC_API_BASE_URL` |
 
-nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建换 IP 后 web 自动跟上，无需重启。这些服务名**只在容器网络内可解析**——局域网访问后端要走宿主发布的端口（`MC_SERVER_PORT`）。SQLite 库在 `server-data` 卷中跨容器重建保留；音乐库目录里的文件是最终产物，可随目录迁移。
+nginx 已配置按请求解析（`resolver 127.0.0.11`）：上游容器重建换 IP 后 web 自动跟上，无需重启。这些服务名**只在容器网络内可解析**——server 端口仅绑定宿主机 `127.0.0.1`（默认 `127.0.0.1:17017`，供本机调试），不对局域网开放，所有前端访问统一走 web 的 `/api` 反代。SQLite 库在 `server-data` 卷中跨容器重建保留；音乐库目录里的文件是最终产物，可随目录迁移。
 
 ### compose 机制说明
 
 docker-compose.yml 本身保持无注释、可直接复制使用，非显性约束记录在此：
 
-- **日志滚动**：两个服务共用 `x-logging` 锚点（json-file，单文件 10m × 3 个），防 NAS 长期运行日志占满磁盘。
 - **web 的 `environment` 与 `env_file` 同名声明**：`MC_API_BASE_URL` 两处都写是为了让宿主 shell 环境变量 / `docker compose` 的 `-e` 能覆盖 `.env` 里的值（`environment` 优先级高于 `env_file`）。
 - **server 健康检查**：镜像基于 php:8.4-cli-alpine，没有 curl，故用 `php -r` 探测免鉴权端点 `/api/config/isLogin`。
+- **server 端口仅绑本机**：宿主侧发布为 `127.0.0.1:${MC_SERVER_PORT:-17017}:8097`——只供本机直连 API / 查看 OpenAPI 文档调试，不对局域网开放；所有前端访问（含局域网设备）统一走 web 的 `/api` 反代。需要局域网直连 server 时自行改 `ports`（如 `":17017:8097"`）。
 - **`stop_grace_period: 10m`**：`docker compose stop` 发出 SIGTERM 后等队列 worker 收尾当前下载（`.part` → rename 落盘），不被默认 10s 的 SIGKILL 腰斩；兜底 10 分钟，小于单个下载任务本身的 1h 超时。
 - **卷映射**：SQLite 库在 `server-data` 命名卷（`/data`）；下载目录挂 `MC_MUSIC_HOST_DIR`（未配置时落到项目目录 `./data/downloads`）。容器内路径 `MC_DOWNLOAD_DIR=/downloads` 由 compose 固定，`.env` 无需配置。
 
@@ -96,7 +96,7 @@ docker compose pull && docker compose up -d
 ```bash
 git clone https://github.com/supgeek-rod/MusicCopilot.git
 cd MusicCopilot
-cp .env.example .env    # 填写后端地址与账号（.env 不入库）
+cp .env.example .env    # 默认值即可部署；仅本地开发需把后端地址改为 http://127.0.0.1:8097（.env 不入库）
 # 可选：MC_IMAGE_TAG=development 跟随开发分支预构建镜像
 docker compose up -d
 # 或跟当前代码：docker compose up -d --build
@@ -124,7 +124,7 @@ docker run -d -p 17016:80 \
 
 ### 部署注意事项
 
-- `MC_API_BASE_URL` 必填（nginx 反代目标）。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用 `http://host.docker.internal:8096`（自带 compose 已配好 host-gateway 映射）或宿主机局域网 IP。
+- `MC_API_BASE_URL`（nginx 反代目标）：仓库自带 compose 可省略，缺省 `http://server:8097` 指向 server 容器；对接外部后端 / docker run 时必填。注意 compose 变量替换优先读项目 `.env`——若 `.env` 里为本地开发改成了 `http://127.0.0.1:8097`，拿同一份 `.env` 部署会把该值原样注入容器（指向容器自身，反代失效），部署前请还原或删除该行走默认值。后端与容器同机时注意：容器内 `localhost` 指向容器自身，应使用宿主机局域网 IP；仓库自带 compose **不内置** `host.docker.internal` 映射（默认反代目标已是容器，用不上），确需该写法自行加 `extra_hosts: ["host.docker.internal:host-gateway"]`。
 - 密码避免包含 `"` 或 `\`。
 - 对外端口默认 `17016`；克隆仓库部署时可在 `.env` 里用 `MC_PORT` 覆盖。
 - 仓库自带 compose 的镜像 tag 默认 `latest`；在 `.env` 里用 `MC_IMAGE_TAG` 覆盖（如 `development`），不要按分支改 yaml。
