@@ -53,6 +53,9 @@ async function direct(brType: string) {
   busy.value = true
   try {
     const info = await musicApi.getDownloadUrl(props.song.plugName, props.song.id, brType, props.song.brTypes ?? [])
+    if (!/^https?:\/\//i.test(info.url)) {
+      throw new Error(`直链协议异常：${info.url.slice(0, 32)}`)
+    }
     const a = document.createElement('a')
     a.href = info.url
     a.download = `${fileBaseName()}.${info.format || 'mp3'}`
