@@ -7,14 +7,14 @@
 - 自建后端开发服务: `http://127.0.0.1:17017`（WSL 内 `php artisan serve`，见下方常用命令；无认证，无需账号密码；探活端点 `/api/healthcheck`）
 - fnOS 线上部署：两容器拓扑（web + server，server 内含下载队列 worker）；对外地址与端口由部署机 `.env` 的 `MC_WEB_PORT` 决定
 - 前端开发服务器: `npm run dev`（端口取 `.env` 的 `MC_WEB_PORT`，默认 5173；`/api` 由 Vite 代理转发到 `.env` 的 `MC_API_BASE_URL`）
-- 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 5174）
+- 文档站: https://supgeek-rod.github.io/MusicCopilot/ （VitePress，源码即 `docs/`；本地开发 `npm run docs:dev`，端口 17015）
 
 ## 常用命令
 
 - `npm run dev` —— Vite 开发服务器（端口取 `.env` 的 `MC_WEB_PORT`，默认 5173）
 - `npm run build` —— `vue-tsc -b && vite build`，**提交前必须通过**
 - `npx shadcn-vue@latest add <组件>` —— 添加 UI 组件到 `src/components/ui/`
-- `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 5174）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
+- `npm run docs:dev` / `docs:build` —— VitePress 文档站本地开发（端口 17015）/ 构建（含死链检查），改动 `docs/` 后提交前应构建通过
 - `wsl -e bash -lc "cd '<仓库路径>/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"`（`<仓库路径>` 按本机实际位置替换）—— 自建后端（server/）开发服务；PHP/Composer 仅存在于 WSL，Windows 侧无 PHP
 
 ## server/ 子目录（自建后端，Laravel 13）

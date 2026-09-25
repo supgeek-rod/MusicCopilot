@@ -26,8 +26,9 @@ export default defineConfig({
         text: '指南',
         items: [
           { text: '快速开始', link: '/getting-started' },
+          { text: '本地开发', link: '/local-dev' },
+          { text: 'Docker 部署', link: '/deployment' },
           { text: '配置说明', link: '/configuration' },
-          { text: '部署指南', link: '/deployment' },
         ],
       },
       {
@@ -37,9 +38,16 @@ export default defineConfig({
         ],
       },
       {
-        text: '深入',
+        text: '架构',
         items: [
           { text: '架构设计', link: '/architecture' },
+          { text: 'web', link: '/web' },
+          { text: 'server', link: '/server' },
+        ],
+      },
+      {
+        text: '深入',
+        items: [
           { text: '下载与目录布局', link: '/download' },
           { text: '开发路线图', link: '/roadmap' },
         ],

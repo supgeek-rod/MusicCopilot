@@ -1,53 +1,49 @@
 ---
 title: 快速开始
-description: MusicCopilot 的安装、开发、构建与文档站开发步骤
+description: MusicCopilot 项目简介与最快上手路径：Docker 一键部署或本地开发
 ---
 
 # 快速开始
 
-MusicCopilot 是前后端一体 monorepo：根目录为 Web 前端（Vue 3 SPA），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/main/server) 为自建后端（PHP / Laravel 13，酷我音源），自包含、无认证、连接即用。后端地址通过环境变量注入，见[配置说明](./configuration.md)；完整部署见[部署指南](./deployment.md)。
+MusicCopilot 是**音乐搜索、试听与下载客户端**：根目录为 Web 前端（Vue 3 + TypeScript + shadcn-vue），[`server/`](https://github.com/supgeek-rod/MusicCopilot/tree/development/server) 为自建后端（PHP / Laravel 13，酷我音源），前后端同仓一体。自建后端无认证、连接即用，v0.2.0 起无需任何第三方服务；下载完成后按「歌手/专辑/」自动重排目录，可被飞牛音乐 / Navidrome 等媒体库直接扫描入库；支持安装为 PWA。
 
-## 环境要求
+两条上手路径任选，端口约定 **API `17017` / 前端 `17016`**。
 
-- Node.js ≥ 20.19（推荐 22 LTS）
-- npm（仓库带 `package-lock.json`，建议直接使用 npm）
-- 后端任选其一：自建后端（`server/`，开发运行方式见 `server/README.md`）或可访问的既有后端实例
-
-## 开发
+## 路径一：Docker 部署（推荐，一条命令）
 
 ```bash
-git clone https://github.com/supgeek-rod/MusicCopilot.git
-cd MusicCopilot
-npm install
-
-cp .env.example .env    # 模板默认已指向本地后端 127.0.0.1:17017，可直接开发（.env 不入库）
-npm run dev             # http://localhost:<MC_WEB_PORT>（默认 5173），/api 由 Vite 代理转发到后端
+git clone https://github.com/supgeek-rod/MusicCopilot.git && cd MusicCopilot
+cp .env.example .env    # 默认值即可部署；下载目录按需改 MC_MUSIC_DOWNLOAD_DIR
+docker compose up -d    # 拉起 web + server 两容器
 ```
 
-## 构建
+访问 `http://localhost:17016` 即可使用（CI 预构建镜像，GHCR / Docker Hub 双发布）。变量说明、镜像 tag 选择、升级与迁移见 **[Docker 部署](./deployment.md)**。
+
+## 路径二：本地开发（三个进程）
+
+本地完整跑起来 = **后端 API（17017）+ 下载队列 worker + 前端 dev（17016）**：
 
 ```bash
-npm run build      # vue-tsc 类型检查 + Vite 构建，产物输出 dist/
-npm run preview    # 本地预览构建产物（含 /api 代理）
+# 后端（需 PHP ≥ 8.3 + Composer；SQLite，无需其它数据库）
+cd server
+composer install && cp .env.example .env
+php artisan key:generate && php artisan migrate    # 首次；migrate 按提示创建 SQLite 文件
+php artisan serve --port=17017                     # 终端 1：HTTP API
+php artisan queue:work --tries=1 --timeout=3600    # 终端 2：下载队列 worker
+
+# 前端（新终端；需 Node.js ≥ 20.19）
+cp .env.example .env
+# ⚠️ 必做：编辑 .env 取消注释这行（dev/preview 必填，缺它 npm run dev 启动即失败）
+#   MC_API_BASE_URL=http://127.0.0.1:17017
+npm install && npm run dev    # http://localhost:17016
 ```
 
-部署方式（Docker / 静态托管）见[部署指南](./deployment.md)。
-
-## 文档站开发
-
-项目文档基于 VitePress，源码即站点（docs as code），文档源文件在 `docs/`：
-
-```bash
-npm run docs:dev      # 文档站本地开发，http://localhost:5174
-npm run docs:build    # 构建到 docs/.vitepress/dist（含死链检查）
-npm run docs:preview  # 本地预览文档站构建产物
-```
-
-推送 `main` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages：<https://supgeek-rod.github.io/MusicCopilot/>
+环境要求、实操注记（探活、Scalar 文档台、下载落盘位置等）、构建与文档站开发见 **[本地开发](./local-dev.md)**。
 
 ## 下一步
 
+- [本地开发](./local-dev.md) —— 完整本地开发步骤
+- [Docker 部署](./deployment.md) —— Compose / docker run / 静态部署
 - [配置说明](./configuration.md) —— MC_* 环境变量、config.json 与 CORS 方案
-- [部署指南](./deployment.md) —— Docker 一键部署 / 静态部署
 - [功能说明](./features.md) —— 已实现功能与实现要点
 - [开发路线图](./roadmap.md) —— 项目演进计划

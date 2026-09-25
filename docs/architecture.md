@@ -5,7 +5,7 @@ description: MusicCopilot 整体架构：演进总览、模块边界、关键决
 
 # MusicCopilot 架构设计
 
-> 本文档按[开发路线图](./roadmap.md)梳理项目的整体架构：现状 → 目标形态 → 模块边界 → 关键决策 → 各期落地路径。
+> 本文档按[开发路线图](./roadmap.md)梳理项目的整体架构：现状 → 目标形态 → 模块边界 → 关键决策 → 各期落地路径。前端与后端的内部分层另见 [web 架构](./web) / [server 架构](./server)。
 
 ## 1. 架构演进总览
 
@@ -62,9 +62,9 @@ MusicCopilot/
 | `web` | 1 | SPA 全部界面与交互 | api-contract |
 | `web/api/fnos` | 2.5 | fnOS 音乐库前端接入：登录（SHA-256 + Cookie）、曲库/搜索/歌单/歌词封装、媒体直链；经同源 `/fnos` 反代直连 fnOS 网关 | — |
 | ~~`server/auth`~~ | 2（已移除） | 曾为 token 鉴权（`sqmusic` 头中间件 + token 落库，第 5 期 M1 落地）；**2026-09-25 认证整体移除，2026-09-26 端点删除**（探活改由 `/api/healthcheck` 承担） | infra |
-| `server/fnos` | 3 | fnOS 登录代理、曲库/歌单接口转发（社区逆向接口收敛在此），接管 `/fnos` 前缀 | infra |
-| `server/library` | 3 | 扫描音乐目录，产出歌曲清单（路径/标签/码率） | infra |
-| `server/playlist` | 3 | 歌单与本地库对比，缺失曲目调下载模块补全 | fnos/library/download |
+| `server/fnos` | 3（规划） | fnOS 登录代理、曲库/歌单接口转发（社区逆向接口收敛在此），接管 `/fnos` 前缀 | infra |
+| `server/library` | 3（规划） | 扫描音乐目录，产出歌曲清单（路径/标签/码率） | infra |
+| `server/playlist` | 3（规划） | 歌单与本地库对比，缺失曲目调下载模块补全 | fnos/library/download |
 | `scraper/scan` | 4（已移除） | 扫描音乐目录（music-metadata 读取标签入库），产出体检分类（缺封面/歌词/专辑/歌手、文件名混乱、疑似重复） | infra |
 | `scraper/match` | 4（已移除） | 文件名 + 现有标签调 server/ 搜索接口匹配，候选与置信度评分（**不自带音源解析**） | scan / server.music |
 | `scraper/writer` | 4（已移除） | 标签/封面/歌词写入（taglib-wasm，ffmpeg 兜底）：dry-run、写前备份、「歌手 - 标题」重命名（默认关） | scan |
@@ -83,7 +83,7 @@ MusicCopilot/
 | 3 | **音源插件化**：解析逻辑按平台隔离在 `plugins/sources` | 平台接口变动频繁，解析层独立可热更新，坏一个源不影响整体 |
 | ~~4~~ | **统一鉴权**（**2026-09-25 随 server 认证移除而失效，2026-09-26 清理完毕**：内网可信环境直连，无凭证概念）：原第 2 期登录框 + JWT 规划不再执行 | 部署收敛为内网零配置，凭证体系成为纯摩擦 |
 | 5 | **数据闭环**：下载目录 = fnOS 音乐目录（Docker 卷映射同一路径） | 新下载自动被 fnOS 扫描入库，歌单补全/音质升级无需搬运文件 |
-| 6 | **同源部署**：生产由 nginx 反代 `/api`、`/mc`，开发用 Vite proxy | 彻底规避 CORS；`config.json` 只需留空 baseUrl |
+| 6 | **同源部署**：生产由 nginx 反代 `/api` 与 `/fnos`，开发用 Vite proxy | 彻底规避 CORS；`config.json` 只需留空 baseUrl |
 | 7 | **技术栈**（2026-09 修订）：server 用 PHP / Laravel 13 + SQLite（队列 database driver + `queue:work`） | Laravel 生态完备（HTTP 客户端/队列/测试开箱即用）、插件化天然契合；原 Fastify+Node 方案作废 |
 | 8 | **fnOS 同源反代直连**：`/fnos` 前缀固定为「fnOS 音乐 API 同源代理」（dev 走 Vite proxy，生产走 nginx），前端登录后以 `document.cookie` 写入 `music-token`，封面/音频流用相对路径自动携带 Cookie；第 3 期由 Companion `server/fnos` 模块接管同一前缀 | fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行；前缀语义固定后伴生服务接管零改动 |
 | ~~9~~ | **`/mc` 前缀 = 伴生工具通道**（**已移除**）：曾指向 `scraper/` 刮削工具，随第 4 期移除；`/fnos` 前缀的同源反代先例仍有效 | 前缀语义稳定、nginx 反代目标可切换的实践已被 `/fnos` 验证 |
@@ -148,17 +148,7 @@ fnOS 接入配置（`MC_FNOS_*` 变量生成，`enabled` 控制音乐库入口�
 }
 ```
 
-刮削工具接入配置（`MC_SCRAPER_*` 变量生成，`enabled` 控制「音乐库体检」入口显隐）：
-
-```json
-{
-  "scraper": {
-    "enabled": true,
-    "token": "",                                 // 非空时前端带 x-mc-token 头
-    "proxyTarget": "http://192.168.1.100:8098"   // 信息性字段，供设置面板展示
-  }
-}
-```
+> 历史上的 `scraper` 配置块（`MC_SCRAPER_*` 变量、token 与 `/mc` 通道，端口 8098）已随第 4 期音乐库体检功能移除，`config.json` 不再包含该块。
 
 ## 7. 各期落地清单（与路线图对应）
 
