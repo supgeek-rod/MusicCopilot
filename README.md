@@ -4,7 +4,7 @@
 
 [![Build & Publish Docker Image](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/supgeek-rod/MusicCopilot/actions/workflows/docker-publish.yml)
 
-📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `main` 分支自动发布）
+📖 **在线文档站**：<https://supgeek-rod.github.io/MusicCopilot/>（源码在 [docs/](docs/)，VitePress 构建，推送 `development` 分支自动发布）
 
 ## 仓库结构
 
@@ -27,17 +27,25 @@ monorepo（2026-09-11 起）：根目录为 Web 前端（本 README 所述）；
 
 完整功能与实现要点见 [docs/features.md](docs/features.md)。
 
-## 快速开始
+## 本地开发
+
+前后端一体 monorepo，本地完整启动 = **后端 API（17017）+ 下载队列 worker + 前端 dev（17016）** 三个进程：
 
 ```bash
+# 后端（需 PHP ≥ 8.3 + Composer；SQLite，无需其它数据库）
+cd server
+composer install && cp .env.example .env
+php artisan key:generate && php artisan migrate    # 首次；migrate 按提示创建 SQLite 文件
+php artisan serve --port=17017                     # 终端 1：HTTP API
+php artisan queue:work --tries=1 --timeout=3600    # 终端 2：下载队列 worker（serve 不带队列，缺它下载停在「等待中」）
+
+# 前端（新终端）
+cp .env.example .env    # 并取消注释 MC_API_BASE_URL=http://127.0.0.1:17017（dev/preview 必填）
 npm install
-npm run dev        # 开发，默认 http://localhost:5173（先 cp .env.example .env 配置后端地址；
-                   #  自建后端开发服务见 server/README.md，如 http://127.0.0.1:17017）
-npm run build      # vue-tsc 类型检查 + Vite 构建，产物输出 dist/
-npm run preview    # 本地预览构建产物
+npm run dev             # http://localhost:17016，/api 由 Vite 代理转发到后端
 ```
 
-后端地址通过 `MC_*` 环境变量配置，详见文档站[配置说明](docs/configuration.md)。
+后端地址等通过 `MC_*` 环境变量配置，详见文档站[配置说明](docs/configuration.md)；完整步骤（构建、预览、文档站开发）见[本地开发](docs/getting-started.md)。
 
 ## Docker 部署
 
@@ -63,7 +71,7 @@ docker compose up -d
 | 文档 | 说明 |
 | --- | --- |
 | [在线文档站](https://supgeek-rod.github.io/MusicCopilot/) | 以下内容的发布版本 |
-| [docs/getting-started.md](docs/getting-started.md) | 快速开始（环境要求 / 开发 / 构建 / 文档站开发） |
+| [docs/getting-started.md](docs/getting-started.md) | 本地开发（环境要求 / 后端与队列 / 前端 / 构建 / 文档站） |
 | [docs/configuration.md](docs/configuration.md) | 配置说明（MC_* 变量、config.json、CORS） |
 | [docs/deployment.md](docs/deployment.md) | 部署指南（Docker / 静态） |
 | [docs/features.md](docs/features.md) | 功能说明（页面/交互/实现要点） |
@@ -99,4 +107,4 @@ npm run docs:build    # 构建文档站（含死链检查）
 npm run docs:preview  # 本地预览文档站构建产物
 ```
 
-推送 `main` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。
+推送 `development` 分支后由 [.github/workflows/deploy-docs.yml](.github/workflows/deploy-docs.yml) 自动发布到 GitHub Pages。
