@@ -1,16 +1,13 @@
 name: music-copilot
 
-# ── 公共片段（compose 侧展开，不影响运行时行为）──
-# NAS 长期运行：json-file 日志限体积滚动，防止无限膨胀占满磁盘
+# 日志限体积滚动，防 NAS 长期运行占满磁盘
 x-logging: &default-logging
   driver: json-file
   options:
     max-size: "10m"
     max-file: "3"
 
-# server / server-worker 共用定义；各服务差异（容器名/端口/进程命令）在自己条目里覆盖。
-# build 只声明在 server 服务上：两服务同 tag，--build 时构建一次即可，worker 直接
-# 复用刚构建出的本地镜像（纯拉取部署时两服务拉取的也是同一镜像）。
+# build 只声明在 server：两服务同 tag，--build 时构建一次即可，worker 复用刚构建出的本地镜像
 x-server-base: &server-base
   image: ghcr.io/supgeek-rod/music-copilot-server:${MC_IMAGE_TAG:-latest}
   profiles: [server]
@@ -28,38 +25,29 @@ x-server-base: &server-base
 services:
   web:
     build: .
-    # 默认 GHCR 稳定线 latest（CI：main）。.env 里 MC_IMAGE_TAG=development 可跟开发分支镜像；
-    # 加 --build 时用当前目录 Dockerfile 本地构建（打到同一 image 名）。也可换用 Docker Hub 仓库名（supgeekrod/music-copilot）。
     image: ghcr.io/supgeek-rod/music-copilot:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot
     ports:
-      # 对外端口默认 17016，可在 .env 里用 MC_PORT 覆盖
       - "${MC_PORT:-17016}:80"
-    # 后端地址（容器内 nginx 的反代目标）；与开发期共用同一份 .env，真实环境变量优先
+    # 与 env_file 同名重复声明，为支持宿主 shell / -e 覆盖 .env
     environment:
       MC_API_BASE_URL: ${MC_API_BASE_URL:-}
-    # 让容器内 host.docker.internal 指向宿主机（后端与 Docker 同机时可用该地址）
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # 与开发期同一套 .env（MC_ 前缀变量注入容器）
     env_file:
       - .env
     restart: unless-stopped
     logging: *default-logging
 
-  # ── 自建后端（第 5 期，profile: server；启用：在 .env 设 COMPOSE_PROFILES=server）──
-  # API 进程（php artisan serve，LAN 自用足够）与下载 worker 同镜像分进程；
-  # SQLite 库在 server-data 卷；下载目录挂音乐库目录（fnOS「音乐」应用扫描入库），
-  # NAS 端 .env 配 MC_MUSIC_HOST_DIR=音乐库绝对路径（未配则落到项目目录 data/downloads）。
-  # 下载完成后 worker 按目录模板（.env 的 MC_DIR_TEMPLATE，默认 歌手/专辑/）重排。
+  # ── 自建后端（第 5 期；启用：.env 设 COMPOSE_PROFILES=server）──
   server:
     <<: *server-base
     build: ./server
     container_name: music-copilot-server
     ports:
       - "${MC_SERVER_PORT:-8097}:8097"
-    # isLogin 免鉴权，适合做本地探活；serve 开始监听即代表 entrypoint 的 migrate
-    # 已完成 —— worker 以此为启动门槛，避免与首次建表竞态。无 curl 二进制，走 php 探测。
+    # 免鉴权端点探活（镜像无 curl，用 php 探测）；serve 监听即 migrate 完成，
+    # worker 以此为启动门槛，避免与首次建表竞态
     healthcheck:
       test: ["CMD-SHELL", "php -r 'exit((int)!@file_get_contents(\"http://127.0.0.1:8097/api/config/isLogin\"));'"]
       interval: 30s
@@ -74,8 +62,8 @@ services:
     depends_on:
       server:
         condition: service_healthy
-    # 收到 SIGTERM 后等当前下载任务收尾（.part → rename），避免默认 10s 即被
-    # SIGKILL 留下 .part 半截文件；极端卡死由 10 分钟兜底（任务本身 1h 超时）
+    # SIGTERM 后等当前下载收尾（.part → rename），不被默认 10s SIGKILL 腰斩；
+    # 兜底 10 分钟，小于任务本身的 1h 超时
     stop_grace_period: 10m
 
 volumes:
