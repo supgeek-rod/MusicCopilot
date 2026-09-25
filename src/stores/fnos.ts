@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
-import { clearFnosTokenCookie, fnosMe, fnosPasswordLogin, fnosRuntime } from '@/api/fnos'
+import { fnosMe, fnosRuntime, fnosServerLogin, fnosServerLogout } from '@/api/fnos'
 import type { FnosAppConfig } from '@/api/types'
 import { useAppStore } from './app'
 
 /**
- * fnOS 音乐库会话：token 经 document.cookie 写入（登录接口不返回 Set-Cookie），
+ * fnOS 音乐库会话：凭据由 server 代持（/api/fnos/login 换取 HttpOnly Cookie），
  * 同源 /fnos 请求由浏览器自动携带；会话失效由 fnos.ts 请求层触发 relogin 重登。
  */
 export const useFnosStore = defineStore('fnos', {
@@ -26,14 +26,10 @@ export const useFnosStore = defineStore('fnos', {
 
   actions: {
     bindRuntime() {
-      fnosRuntime.relogin = async () => {
-        const { username, password } = this.cfg
-        if (!username) return false
-        return this.login(username, password ?? '')
-      }
+      fnosRuntime.relogin = async () => this.login()
     },
 
-    /** 确保已登录：先探测现有 Cookie 会话，失效则按配置静默重登 */
+    /** 确保已登录：先探测现有 Cookie 会话，失效则静默重登（凭据在 server 侧） */
     async ensureLogin(): Promise<boolean> {
       if (!this.enabled) return false
       if (this.loggedIn) return true
@@ -44,16 +40,17 @@ export const useFnosStore = defineStore('fnos', {
         this.loggedIn = true
         return true
       } catch {
-        // 请求层已尝试过静默重登，走到这里说明凭据缺失或确实失败
+        // 请求层已尝试过静默重登，走到这里说明 server 未配置凭据或确实失败
         return false
       } finally {
         this.connecting = false
       }
     },
 
-    async login(username: string, password: string): Promise<boolean> {
+    /** 登录/重登：无需本地凭据，server 代持并下发 HttpOnly 会话 Cookie */
+    async login(): Promise<boolean> {
       try {
-        await fnosPasswordLogin(username, password)
+        await fnosServerLogin()
         this.loggedIn = true
         return true
       } catch {
@@ -61,8 +58,8 @@ export const useFnosStore = defineStore('fnos', {
       }
     },
 
-    logout() {
-      clearFnosTokenCookie()
+    async logout() {
+      await fnosServerLogout()
       this.loggedIn = false
     },
   },

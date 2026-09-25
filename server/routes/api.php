@@ -34,6 +34,12 @@ Route::prefix('download')->group(function () {
     Route::post('downloadArtistAlbum', [DownloadController::class, 'downloadArtistAlbum']);
 });
 
+// fnOS 音乐库代持登录：凭据仅存服务端，token 经 HttpOnly Cookie 下发（见 FnosAuthController）
+Route::prefix('fnos')->group(function () {
+    Route::post('login', [\App\Http\Controllers\FnosAuthController::class, 'login']);
+    Route::post('logout', [\App\Http\Controllers\FnosAuthController::class, 'logout']);
+});
+
 Route::prefix('task')->group(function () {
     Route::post('list', [TaskController::class, 'list']);
     Route::post('del', [TaskController::class, 'del']);

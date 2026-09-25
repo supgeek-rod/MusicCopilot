@@ -71,9 +71,9 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 ## 音乐库（fnOS 本地曲库）
 
-> 接入飞牛（fnOS）NAS 内置音乐应用，规划与进度看板见仓库内 `docs/FNOS_LIBRARY_PLAN.md`。API 经同源 `/fnos` 反代直连（dev 走 Vite 代理、生产走 nginx，见[架构设计](./architecture.md)决策 #8），登录态由前端 `document.cookie` 写入 `music-token`，会话失效自动重登。
+> 接入飞牛（fnOS）NAS 内置音乐应用，规划与进度看板见仓库内 `docs/FNOS_LIBRARY_PLAN.md`。API 经同源 `/fnos` 反代直连（dev 走 Vite 代理、生产走 nginx，见[架构设计](./architecture.md)决策 #8）；凭据由 server 代持（`/api/fnos/login` 服务端代登录，token 经 HttpOnly Cookie 下发，前端不接触密码与 token 值），会话失效自动重登。
 
-- **登录**：进入音乐库页时探测 `/user/me`（无 Cookie 或失效则用 `MC_FNOS_USERNAME/PASSWORD` 静默重登，密码 SHA-256 提交）；登录失败/未启用时展示对应空态提示。
+- **登录**：进入音乐库页时探测 `/user/me`（Cookie 缺失或失效则调 `/api/fnos/login` 由 server 代持凭据静默重登）；登录失败/未启用时展示对应空态提示。
 - **首页（快捷播放导向）**：居中 hero（曲库总数）+ 大搜索框 + 「随便听听」按钮（随机取样 30 首整组连播，小库整库洗牌、大库随机页采样）；下方「最近添加」（`track/list?sort=createdAt,desc` 取 12 张封面卡，点击即播）与「最近播放」（本地播放记录 `lib/recentPlays.ts`，player 切歌时写入、仅记 fnOS 曲目、上限 20 条，空则隐藏）；底部「浏览曲库」四个入口。
 - **库内搜索（回车即播）**：搜索框防抖 300ms，歌曲（前 50）+ 专辑 + 歌手并行检索；结果为歌曲列表 + 「相关专辑/相关歌手」横滑入口；**回车直接整组播放命中歌曲**；清空关键词恢复原视图。`/` 全局快捷键可聚焦搜索框（`data-search-input`）。
 - **浏览模式**：歌曲（复用 SongList）/ 专辑 / 歌手 / 流派 / 歌单五个 Tab，各 30 条/页，上一页/下一页分页；网格卡片封面加载失败回退图标；左上「返回」回首页。

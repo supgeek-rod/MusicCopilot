@@ -19,6 +19,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- 测试专用固定 key：welcome 页等 web 组路由依赖加密服务，缺 key 会 MissingAppKeyException -->
+        <env name="APP_KEY" value="base64:2fl+Ktv18ofQSDmxAmXRNiGdLjRrTBRqBNIbsT1sbdY="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

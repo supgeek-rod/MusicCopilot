@@ -85,7 +85,7 @@ MusicCopilot/
 | 5 | **数据闭环**：下载目录 = fnOS 音乐目录（Docker 卷映射同一路径） | 新下载自动被 fnOS 扫描入库，歌单补全/音质升级无需搬运文件 |
 | 6 | **同源部署**：生产由 nginx 反代 `/api` 与 `/fnos`，开发用 Vite proxy | 彻底规避 CORS；`config.json` 只需留空 baseUrl |
 | 7 | **技术栈**（2026-09 修订）：server 用 PHP / Laravel 13 + SQLite（队列 database driver + `queue:work`） | Laravel 生态完备（HTTP 客户端/队列/测试开箱即用）、插件化天然契合；原 Fastify+Node 方案作废 |
-| 8 | **fnOS 同源反代直连**：`/fnos` 前缀固定为「fnOS 音乐 API 同源代理」（dev 走 Vite proxy，生产走 nginx），前端登录后以 `document.cookie` 写入 `music-token`，封面/音频流用相对路径自动携带 Cookie；第 3 期由 Companion `server/fnos` 模块接管同一前缀 | fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行；前缀语义固定后伴生服务接管零改动 |
+| 8 | **fnOS 同源反代直连 + 凭据代持**（2026-09-26 修订）：`/fnos` 前缀固定为「fnOS 音乐 API 同源代理」（dev 走 Vite proxy，生产走 nginx）；登录改为 server 代持凭据——`/api/fnos/login` 在服务端代调 fnOS 登录，token 经 HttpOnly Cookie 下发，前端 JS 不接触密码与 token 值，封面/音频流用相对路径自动携带 Cookie | fnOS 媒体接口强制 Cookie 鉴权，跨域直连不可行；凭据代持消除「config.json 明文密码可被任意访问者读取」的暴露面，HttpOnly 同时封死 XSS 窃取 token |
 | ~~9~~ | **`/mc` 前缀 = 伴生工具通道**（**已移除**）：曾指向 `scraper/` 刮削工具，随第 4 期移除；`/fnos` 前缀的同源反代先例仍有效 | 前缀语义稳定、nginx 反代目标可切换的实践已被 `/fnos` 验证 |
 | ~~10~~ | **刮削工具技术栈**（**随第 4 期移除失效**，源码存档见 `scraper/`）：Node.js 24 + Fastify + node:sqlite + taglib-wasm | 保留作恢复参考 |
 

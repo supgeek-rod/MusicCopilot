@@ -18,7 +18,7 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 | `MC_API_BASE_URL` | 后端服务地址，**仅本地开发使用**：`npm run dev` / `preview` 的 Vite 代理目标，模板默认 `http://127.0.0.1:17017`。**Docker 部署忽略此变量**——compose 内固定反代到 server 容器（`http://server:17017`）；`docker run` 对接独立部署的后端时用 `-e` 传入。自建后端的下载相关变量见[Docker 部署](./deployment.md) |
 | `MC_ALLOWED_HOSTS` | 域名/反向代理访问 dev、preview 时放行的 Host（逗号分隔；Vite 默认仅放行 localhost） |
 | `MC_FNOS_BASE_URL` | 飞牛（fnOS）网关地址（如 `http://192.168.1.100:5666`）：Vite 代理与 Docker nginx 把 `/fnos` 反代到该地址；**不配置则「音乐库」入口不显示** |
-| `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号（token 失效也会用它静默重登；密码经 SHA-256 后提交） |
+| `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` | 飞牛音乐登录账号，**由 server 容器代持**（`/api/fnos/login` 服务端代调登录，token 经 HttpOnly Cookie 下发浏览器，**不写入 config.json**）。本地 dev 需将三项同步配到 `server/.env`（server 直连 fnOS 网关） |
 | `MC_FNOS_AUTO_LOGIN` | 是否自动登录飞牛音乐（`true` / `false`，默认 `true`） |
 | `MC_WEB_PORT` | 端口：docker-compose.yml 的 web 对外端口，同时是本地 `npm run dev` / `npm run preview` 的服务器端口（默认 `17016`；本地未配置或非法值回退 `5173`，端口被占用自动 +1） |
 | `MC_IMAGE_TAG` | 仓库自带 compose 拉取的镜像 tag（仅 docker-compose.yml 读取，默认 `latest`）。跟 `development` 分支预构建镜像时设为 `development`；本地构建用 `docker compose up -d --build` |
@@ -28,9 +28,9 @@ cp .env.example .env   # 然后按需修改（.env 已被 git 忽略）
 
 > 容器内的下载路径由镜像 ENV 固化为 `MC_MUSIC_DOWNLOAD_DIR=/downloads`（即上表宿主机目录的容器挂载点，同一目录的两层表述），`.env` 无需配置。server **不向宿主机发布任何端口**（仅容器网络内可达，web 的 `/api` 反代是唯一入口）；临时调试用 `docker compose exec server wget -qO- http://127.0.0.1:17017/api/healthcheck` 或临时加回 `ports`。
 
-> 注意：`.env` 以明文保存密码（飞牛音乐库账号），请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（会破坏生成的 config.json / JSON 转义）。
+> 注意：`.env` 以明文保存密码（飞牛音乐库账号），请仅在内网可信环境使用；密码避免包含 `"` 或 `\`（破坏 JSON 转义）。
 >
-> ⚠️ **已知安全取舍**：后端 API 无认证（2026-09-25 起，任何能访问 `/api` 的客户端都可搜索与发起下载）；`MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 也会随 `config.json` 下发给**任何能打开页面的访问者**。请勿将部署暴露到公网。
+> ⚠️ **已知安全取舍**：后端 API 无认证（2026-09-25 起，任何能访问 `/api` 的客户端都可搜索与发起下载）。fnOS 凭据（2026-09-26 起）由 server 代持、不再经 `config.json` 下发浏览器，但部署本身仍**请勿暴露到公网**；详见[部署指南 · 安全边界](./deployment.md#安全边界务必阅读)。
 
 ## 运行时配置 config.json
 

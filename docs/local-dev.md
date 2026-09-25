@@ -45,7 +45,7 @@ npm run dev                # http://localhost:17016，/api 由 Vite 代理转发
 
 - dev / preview 下 `MC_API_BASE_URL` **必填**，`npm run dev` 启动报「缺少 MC_API_BASE_URL」即为未配置
 - `MC_WEB_PORT`（`.env.example` 默认 `17016`）同时是 dev / preview 的服务器端口；端口被占用自动 +1
-- 飞牛音乐库联调另配 `MC_FNOS_*`（见[配置说明](./configuration.md)），`/fnos` 同样由 Vite 代理
+- 飞牛音乐库联调：根 `.env` 配 `MC_FNOS_BASE_URL`（Vite 代理 `/fnos` 用），并把 `MC_FNOS_BASE_URL` / `MC_FNOS_USERNAME` / `MC_FNOS_PASSWORD` 同步配到 `server/.env`——登录由 server 代持凭据完成（见[配置说明](./configuration.md)）
 
 ## 构建与预览
 

@@ -87,6 +87,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fnos/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 代登录：无入参凭据（凭据在服务端），仅接收浏览器设备 ID（fnOS 会话区分用） */
+        post: operations["fnosAuth.login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fnos/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 代登出：仅清浏览器侧会话 Cookie（fnOS 侧 token 自然过期） */
+        post: operations["fnosAuth.logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthcheck": {
         parameters: {
             query?: never;
@@ -597,6 +631,81 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "fnosAuth.login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 浏览器生成的 32 位 hex 设备 ID（原前端 getDeviceId 同口径） */
+                    deviceId: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: {
+                            user: string | null;
+                        };
+                    } | {
+                        /** @constant */
+                        code: 500;
+                        msg: string;
+                        data: null;
+                    } | {
+                        /** @constant */
+                        code: 500;
+                        /** @constant */
+                        msg: "fnOS 登录接口返回非 JSON 数据";
+                        data: null;
+                    } | {
+                        /** @constant */
+                        code: 500;
+                        /** @constant */
+                        msg: "fnOS 音乐库未配置（需 MC_FNOS_BASE_URL / MC_FNOS_USERNAME / MC_FNOS_PASSWORD）";
+                        data: null;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "fnosAuth.logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        code: 200;
+                        msg: null;
+                        data: null;
+                    };
+                };
+            };
+        };
+    };
     healthcheck: {
         parameters: {
             query?: never;
@@ -955,7 +1064,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    id: string;
+                    id: number;
                 };
             };
         };
@@ -986,7 +1095,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    id: string;
+                    id: number;
                 };
             };
         };
@@ -1035,7 +1144,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    id: string;
+                    id: number;
                 };
             };
         };
