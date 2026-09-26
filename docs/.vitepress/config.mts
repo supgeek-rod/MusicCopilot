@@ -18,6 +18,7 @@ export default defineConfig({
       { text: '指南', link: '/getting-started' },
       { text: '功能', link: '/features' },
       { text: '架构', link: '/architecture' },
+      { text: '版本', link: '/releases' },
       { text: '路线图', link: '/roadmap' },
     ],
 
@@ -44,6 +45,10 @@ export default defineConfig({
           { text: 'web', link: '/web' },
           { text: 'server', link: '/server' },
         ],
+      },
+      {
+        text: '版本',
+        items: [{ text: '版本功能清单', link: '/releases' }],
       },
       {
         text: '深入',
