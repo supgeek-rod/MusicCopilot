@@ -31,10 +31,12 @@ jobs:
       matrix:
         include:
           # 前端镜像：nginx 托管 SPA + /api 反代（web/Dockerfile），镜像名带 -web 后缀；
-          # 契约类型在 web/ 上下文外，以命名上下文 contract 注入（与 compose additional_contexts 同款）
+          # 契约类型在 web/ 上下文外，以命名上下文 contract 注入（compose 侧为 additional_contexts）。
+          # CI 里只存上下文名，路径在 with 处用 workspace 绝对路径拼接——buildx 对
+          # build-push-action 传入的相对路径解析不可靠（会被当镜像引用拉取而失败）
           - name: web
             context: ./web
-            additional_contexts: contract=./packages/api-contract
+            additional_contexts: contract
             suffix: '-web'
             gen-build-info: true
           # 自建后端镜像：Laravel API + queue worker 同镜像分进程（server/Dockerfile）
@@ -108,7 +110,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
-          additional-contexts: ${{ matrix.additional_contexts }}
+          additional-contexts: ${{ matrix.additional_contexts && format('{0}={1}/packages/api-contract', matrix.additional_contexts, github.workspace) || '' }}
           platforms: linux/amd64,linux/arm64
           push: true
           # meta-hub 被跳过时其 outputs 为空，空行会被 build-push-action 过滤
