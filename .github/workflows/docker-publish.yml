@@ -110,7 +110,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
-          additional-contexts: ${{ matrix.additional_contexts && format('{0}={1}/packages/api-contract', matrix.additional_contexts, github.workspace) || '' }}
+          # 输入名是 build-contexts（对应 buildx --build-context）；相对路径解析不可靠，用绝对路径
+          build-contexts: ${{ matrix.additional_contexts && format('{0}={1}/packages/api-contract', matrix.additional_contexts, github.workspace) || '' }}
           platforms: linux/amd64,linux/arm64
           push: true
           # meta-hub 被跳过时其 outputs 为空，空行会被 build-push-action 过滤
