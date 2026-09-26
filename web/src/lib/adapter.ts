@@ -20,5 +20,7 @@ export function fnosTrackToRecord(t: FnosTrack): SongRecord {
     plugName: 'fnos',
     duration: t.duration ?? null,
     brTypes: [],
+    // fnOS 本地曲目无上游原始条目（在线下载链路不适用）
+    dataInfo: null,
   }
 }

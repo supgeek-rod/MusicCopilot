@@ -71,7 +71,12 @@ class SearchTest extends TestCase
         $this->assertSame(['KW_FLAC_2000', 'KW_MP3_128'], $song['brTypes']);
         $this->assertSame('kw', $song['plugName']);
         $this->assertStringContainsString('/albumcover/500/', (string) $song['pic']);
-        $this->assertArrayNotHasKey('dataInfo', $song, '上游原始条目不应进入 V2 契约');
+        // dataInfo 透传上游原始条目（含 N_MINFO）：下载创建的 music_info 与
+        // 前端大小估算依赖它，裁剪会导致新任务大小列恒为空（D6 回归）
+        $this->assertSame(
+            'level:ff,bitrate:2000,format:flac,size:52.83Mb;level:h,bitrate:128,format:mp3,size:4.12Mb',
+            $song['dataInfo']['N_MINFO'] ?? null,
+        );
 
         // 多歌手拆分 + 零时长
         $second = $res->json('items.1');

@@ -153,7 +153,8 @@ class DetailTest extends TestCase
         $this->assertSame(1, $songs[0]['trackNo']);
         $this->assertSame(1293, $songs[0]['albumId']);
         $this->assertSame(['KW_FLAC_2000', 'KW_MP3_128'], $songs[0]['brTypes']);
-        $this->assertArrayNotHasKey('dataInfo', $songs[0]);
+        // dataInfo 随统一 Song 形态透传（下载创建的 music_info 依赖，见 SongResource）
+        $this->assertArrayHasKey('dataInfo', $songs[0]);
 
         // 大写键 + MUSIC_ 前缀兜底
         $this->assertSame(228908, $songs[1]['id']);

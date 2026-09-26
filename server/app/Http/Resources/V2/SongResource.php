@@ -10,6 +10,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * 专辑曲目条目（musicName/musicArtists/musicDuration 秒 int）归一化为同一结构。
  * 替代旧契约的 SongRecord/AlbumSong 双形态，前端 adapter 可整体移除。
  *
+ * dataInfo 透传上游原始条目：下载创建（POST /v2/downloads/songs）以此作为
+ * music_info 落库，前端按入队音质从 MINFO/N_MINFO 估算大小——不可裁剪，
+ * 否则新任务大小列恒为空（D6）。
+ *
  * @property array<string, mixed> $resource
  */
 class SongResource extends JsonResource
@@ -32,8 +36,15 @@ class SongResource extends JsonResource
             'duration' => self::durationMs($r),
             'brTypes' => self::strings($r['brTypes'] ?? $r['bits'] ?? []),
             'plugName' => (string) ($r['plugName'] ?? ''),
+            'dataInfo' => self::dataInfoOf($r['dataInfo'] ?? null),
             'playcnt' => self::intOrNull($dataInfo['playcnt'] ?? null),
             'trackNo' => self::intOrNull($dataInfo['track'] ?? null),
         ];
+    }
+
+    /** 上游原始条目（顶层含 MINFO/N_MINFO/playcnt 等，空则 null） */
+    private static function dataInfoOf(mixed $value): ?array
+    {
+        return is_array($value) && $value !== [] ? $value : null;
     }
 }
