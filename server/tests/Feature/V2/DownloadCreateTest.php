@@ -63,6 +63,40 @@ class DownloadCreateTest extends TestCase
         Queue::assertPushed(DownloadSongJob::class, fn (DownloadSongJob $job) => $job->taskId === $task->id);
     }
 
+    public function test_search_result_feeds_download_create_with_music_info(): void
+    {
+        // D6 回归：UI 链路 = 搜索响应条目原样作为创建入参。SongResource 必须透传
+        // dataInfo，否则该链路创建的任务 music_info 落库为 null、大小列恒空。
+        Http::fake([
+            'search.kuwo.cn/*' => Http::response([
+                'TOTAL' => '1',
+                'abslist' => [[
+                    'MUSICRID' => 'MUSIC_228908',
+                    'NAME' => '晴天',
+                    'ARTIST' => '周杰伦',
+                    'allartistid' => '336',
+                    'ALBUM' => '叶惠美',
+                    'ALBUMID' => '1293',
+                    'DURATION' => '269',
+                    'N_MINFO' => 'level:ff,bitrate:2000,format:flac,size:52.83Mb;level:h,bitrate:128,format:mp3,size:4.12Mb',
+                ]],
+            ]),
+        ]);
+        Queue::fake();
+
+        $song = $this->getJson('/api/v2/search/songs?keyword='.urlencode('晴天').'&page=1&pageSize=30')
+            ->assertOk()
+            ->json('items.0');
+
+        $this->postJson('/api/v2/downloads/songs', $song)->assertOk();
+
+        $info = json_decode((string) DownloadTask::query()->sole()->music_info, true);
+        $this->assertSame(
+            'level:ff,bitrate:2000,format:flac,size:52.83Mb;level:h,bitrate:128,format:mp3,size:4.12Mb',
+            $info['N_MINFO'],
+        );
+    }
+
     public function test_store_song_missing_name_returns_422(): void
     {
         $this->postJson('/api/v2/downloads/songs', ['id' => 228908, 'plugName' => 'kw'])

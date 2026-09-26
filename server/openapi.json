@@ -1374,6 +1374,13 @@
                     "plugName": {
                         "type": "string"
                     },
+                    "dataInfo": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {}
+                    },
                     "playcnt": {
                         "type": [
                             "integer",
@@ -1398,6 +1405,7 @@
                     "duration",
                     "brTypes",
                     "plugName",
+                    "dataInfo",
                     "playcnt",
                     "trackNo"
                 ],
