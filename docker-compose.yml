@@ -2,7 +2,12 @@ name: music-copilot
 
 services:
   web:
-    build: ./web
+    build:
+      context: ./web
+      # 前端 tsconfig 引用 web/ 构建上下文外的契约类型（../packages/api-contract），
+      # 以命名上下文注入，Dockerfile 内 COPY --from=contract
+      additional_contexts:
+        - contract=./packages/api-contract
     image: ghcr.io/supgeek-rod/music-copilot-web:${MC_IMAGE_TAG:-latest}
     container_name: music-copilot-web
     ports:

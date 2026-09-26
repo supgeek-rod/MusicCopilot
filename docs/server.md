@@ -20,8 +20,9 @@ PHP（≥ 8.3，Docker 镜像 8.4）/ Laravel 13 + SQLite（数据库队列驱�
 
 ```
 server/
-├─ app/Http/Controllers/   # 五个 API 控制器（统一 {code,msg,data} 信封）
-│                          #   Config（探活/插件元信息）Healthcheck MusicSearch Download Task
+├─ app/Http/Controllers/   # Healthcheck（历史信封探活端点）
+│  └─ V2/                  # API V2 控制器（REST）：Config / Search / Song / Download / FnosSession
+├─ app/Http/Resources/V2/  # V2 响应资源（插件数据 → 契约形态：类型转换与字段收敛，Scramble 精确推断源）
 ├─ app/Plugins/Sources/    # 音源插件：SourcePlugin 接口 + SourceManager 注册表
 │  └─ Kuwo/                #   酷我实现：搜索/详情/歌词/直链解析（KW_* ↔ br 双向映射）
 ├─ app/Jobs/               # DownloadSongJob（下载状态机与目录重排）、ExpandArtistAlbumJob（歌手专辑异步展开）
@@ -44,4 +45,4 @@ server/
 
 ## API 文档与契约
 
-Scramble 从控制器注解自动生成 OpenAPI 3.1：运行时 `http://127.0.0.1:17017/docs/api.json`，固化产物即本目录 `openapi.json`（`php artisan scramble:export`）；Scalar 交互测试台在 `/api-docs.html`。前端契约类型包 `packages/api-contract` 由该规范经 openapi-typescript 生成——规范是唯一契约源。
+Scramble 从控制器与资源类自动生成 OpenAPI 3.1：运行时 `http://127.0.0.1:17017/docs/api.json`，固化产物即本目录 `openapi.json`（`php artisan scramble:export --path=openapi.json`）；Scalar 交互测试台在 `/api-docs.html`。前端契约类型包 `packages/api-contract` 由该规范经 openapi-typescript 生成——规范是唯一契约源。API V2 错误契约（真状态码 + `{error, message}`）渲染在 `bootstrap/app.php`。

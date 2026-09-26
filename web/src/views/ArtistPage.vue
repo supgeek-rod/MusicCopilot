@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
-import type { AlbumDetailRecord, ArtistInfo, SongRecord } from '@/api/types'
+import type { AlbumRecord, ArtistInfo, SongRecord } from '@/api/types'
 import SongList from '@/components/SongList.vue'
 import {
   AlertDialog,
@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { albumDetailToSearchRecord, albumSongToRecord } from '@/lib/adapter'
 import { decodeHtmlEntities } from '@/lib/format'
 import { useSanitizedHtml } from '@/lib/sanitize'
 import { usePlayerStore } from '@/stores/player'
@@ -35,7 +34,7 @@ const plug = computed(() => String(route.params.plug))
 const artistId = computed(() => String(route.params.id))
 
 const info = ref<ArtistInfo | null>(null)
-const albums = ref<AlbumDetailRecord[]>([])
+const albums = ref<AlbumRecord[]>([])
 const infoLoading = ref(false)
 const infoError = ref('')
 
@@ -45,7 +44,7 @@ const songsLoading = ref(false)
 const albumCursor = ref(0)
 
 const expanded = ref(false)
-const describe = useSanitizedHtml(() => info.value?.musicArtistsDescribe)
+const describe = useSanitizedHtml(() => info.value?.description)
 
 // 专辑书架：默认一行 10 个（窄屏 5 列时为两行、数量一致），可展开全部
 const ALBUM_COLLAPSE_COUNT = 10
@@ -82,15 +81,13 @@ async function loadAll() {
   infoError.value = ''
   infoLoading.value = true
   try {
-    const data = await musicApi.artistAlbumById(plug.value, artistId.value)
+    const data = await musicApi.artistAlbums(plug.value, artistId.value)
     if (disposed || seq !== artistSeq) return
     // 酷我把外文歌手名/专辑名的空格存成 &nbsp; 实体，按纯文本展示前先解码
     info.value = {
       ...data,
-      musicArtistsName: decodeHtmlEntities(data.musicArtistsName),
-      albums: data.albums?.map((a) =>
-        a.albumName ? { ...a, albumName: decodeHtmlEntities(a.albumName) } : a,
-      ),
+      name: decodeHtmlEntities(data.name),
+      albums: data.albums?.map((a) => (a.name ? { ...a, name: decodeHtmlEntities(a.name) } : a)),
     }
     albums.value = info.value.albums ?? []
     await collectSongs()
@@ -102,10 +99,9 @@ async function loadAll() {
   }
 }
 
-/** 热度排序键：dataInfo.playcnt（酷我播放次数，字符串；缺失或其他音源按 0，排序退化为稳定原序） */
+/** 热度排序键：playcnt（酷我播放次数，V2 已整数化；缺失或其他音源按 0，排序退化为稳定原序） */
 function playCount(rec: SongRecord): number {
-  const v = Number((rec.dataInfo as Record<string, unknown> | undefined)?.playcnt)
-  return Number.isFinite(v) ? v : 0
+  return rec.playcnt ?? 0
 }
 
 /** 聚合下一批专辑的曲目：专辑属于该歌手，从源头保证歌曲归属正确；按 (plugName,id) 去重 */
@@ -116,7 +112,7 @@ async function collectSongs() {
   songsLoading.value = true
   try {
     const results = await Promise.allSettled(
-      batch.map((a) => musicApi.albumInfoById(plug.value, String(a.albumId))),
+      batch.map((a) => musicApi.albumShow(plug.value, a.id)),
     )
     // 歌手已切换（artistSeq 变化）时丢弃本次结果
     if (disposed || seqAtStart !== artistSeq) return
@@ -126,8 +122,7 @@ async function collectSongs() {
     const fresh: SongRecord[] = []
     for (const r of results) {
       if (r.status !== 'fulfilled') continue
-      for (const m of r.value.musics ?? []) {
-        const rec = albumSongToRecord(m)
+      for (const rec of r.value.songs ?? []) {
         const key = `${rec.plugName}:${rec.id}`
         if (seen.has(key)) continue
         seen.add(key)
@@ -170,14 +165,14 @@ async function runConfirm() {
   }
 }
 
-function queueAlbum(a: AlbumDetailRecord) {
+function queueAlbum(a: AlbumRecord) {
   askConfirm(
     '下载整张专辑',
-    `将把「${a.albumName}」的全部歌曲加入服务器下载队列（默认音质）。`,
+    `将把「${a.name}」的全部歌曲加入服务器下载队列（默认音质）。`,
     async () => {
       try {
-        await musicApi.downloadAlbum(albumDetailToSearchRecord(a, plug.value))
-        toast.success('专辑已加入下载队列', { description: a.albumName })
+        await musicApi.downloadAlbum(a)
+        toast.success('专辑已加入下载队列', { description: a.name })
       } catch (e) {
         toast.error('加入下载队列失败', { description: e instanceof Error ? e.message : String(e) })
       }
@@ -189,15 +184,10 @@ function queueAllAlbums() {
   if (!info.value) return
   askConfirm(
     '下载全部专辑',
-    `将下载 ${info.value.musicArtistsName} 的全部 ${albums.value.length} 张专辑，任务数量可能非常大，确定继续吗？`,
+    `将下载 ${info.value.name} 的全部 ${albums.value.length} 张专辑，任务数量可能非常大，确定继续吗？`,
     async () => {
       try {
-        await musicApi.downloadArtistAlbum({
-          artistName: info.value!.musicArtistsName,
-          artistid: artistId.value,
-          pic: info.value!.musicArtistsPhoto ?? undefined,
-          plugName: plug.value,
-        })
+        await musicApi.downloadArtistAlbums(plug.value, artistId.value)
         toast.success('全部专辑已加入下载队列')
       } catch (e) {
         toast.error('加入下载队列失败', { description: e instanceof Error ? e.message : String(e) })
@@ -237,9 +227,9 @@ function queueAllAlbums() {
     <div v-else-if="info" class="flex items-center gap-5">
       <div class="relative size-28 shrink-0 overflow-hidden rounded-full bg-muted sm:size-32">
         <img
-          v-if="info.musicArtistsPhoto"
-          :src="info.musicArtistsPhoto"
-          :alt="info.musicArtistsName"
+          v-if="info.photo"
+          :src="info.photo"
+          :alt="info.name"
           class="size-full object-cover"
           @error="hideImg"
         />
@@ -248,7 +238,7 @@ function queueAllAlbums() {
         </div>
       </div>
       <div class="min-w-0 flex-1">
-        <h1 class="truncate text-2xl font-semibold">{{ info.musicArtistsName }}</h1>
+        <h1 class="truncate text-2xl font-semibold">{{ info.name }}</h1>
         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
           <Badge variant="secondary">{{ albums.length }} 张专辑</Badge>
           <Badge v-if="songs.length" variant="secondary">{{ songs.length }} 首歌曲</Badge>
@@ -277,15 +267,15 @@ function queueAllAlbums() {
       <div class="grid grid-cols-5 gap-4 md:grid-cols-10">
         <div
           v-for="a in visibleAlbums"
-          :key="a.albumId"
+          :key="a.id"
           class="group relative cursor-pointer"
-          @click="router.push(`/album/${plug}/${a.albumId}`)"
+          @click="router.push(`/album/${plug}/${a.id}`)"
         >
           <div class="relative overflow-hidden rounded-lg bg-muted">
             <img
-              v-if="a.albumImg"
-              :src="a.albumImg"
-              :alt="a.albumName"
+              v-if="a.pic"
+              :src="a.pic"
+              :alt="a.name"
               class="aspect-square w-full object-cover transition-transform group-hover:scale-105"
               loading="lazy"
               @error="hideImg"
@@ -303,10 +293,10 @@ function queueAllAlbums() {
               <DownloadIcon class="size-4" />
             </Button>
           </div>
-          <div class="mt-2 truncate text-sm font-medium" :title="a.albumName">{{ a.albumName }}</div>
+          <div class="mt-2 truncate text-sm font-medium" :title="a.name">{{ a.name }}</div>
           <div class="text-xs text-muted-foreground">
-            {{ a.albumTime?.slice(0, 4) || '未知年份' }}
-            <template v-if="a.dataInfo?.musiccnt"> · {{ a.dataInfo.musiccnt }} 首</template>
+            {{ a.publishTime?.slice(0, 4) || '未知年份' }}
+            <template v-if="a.trackCount"> · {{ a.trackCount }} 首</template>
           </div>
         </div>
       </div>

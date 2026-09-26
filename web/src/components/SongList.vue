@@ -27,11 +27,11 @@ const player = usePlayerStore()
 const downloadBusy = ref(false)
 
 function artists(song: SongRecord): string {
-  return song.artistName?.join(' / ') || '未知歌手'
+  return song.artists?.join(' / ') || '未知歌手'
 }
 
-function artistIdOf(song: SongRecord): string | null {
-  return song.artistids?.[0] ?? null
+function artistIdOf(song: SongRecord): string | number | null {
+  return song.artistIds?.[0] ?? null
 }
 
 /** fnOS 本地曲目不可下载，隐藏下载/音质入口 */
@@ -47,7 +47,7 @@ function artistHref(song: SongRecord): string | null {
 }
 
 function albumHref(song: SongRecord): string | null {
-  const id = song.albumid ?? null
+  const id = song.albumId ?? null
   if (!id) return null
   return isFnos(song) ? `/library/collection/album/${id}` : `/album/${song.plugName}/${id}`
 }

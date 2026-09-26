@@ -25,7 +25,7 @@ description: MusicCopilot 整体架构：演进总览、模块边界、关键决
 ```
 
 - **第 1-2 期**：SPA 直连第三方 SQMusic 后端，专注把前端能力做完。
-- **当前（第 5 期已完成，SQMusic 退役）**：自建后端 `server/`（PHP / Laravel 13）接管全部 `/api` 流量，fnOS 音乐库仍以 `/fnos` 同源反代直连网关；scraper 与 `/mc` 通道已随第 4 期架构调整移除（源码存档在 `scraper/`，不构建不运行）。**2026-09-25 认证移除、2026-09-26 契约清理**：SqMusic 对齐残留（鉴权端点、`sqmusic` 头）删除，连接即用。
+- **当前（第 5 期已完成，SQMusic 退役）**：自建后端 `server/`（PHP / Laravel 13）接管全部 `/api` 流量，fnOS 音乐库仍以 `/fnos` 同源反代直连网关；scraper 与 `/mc` 通道已随第 4 期架构调整移除（源码存档在 `scraper/`，不构建不运行）。**2026-09-25 认证移除、2026-09-26 契约清理**：SqMusic 对齐残留（鉴权端点、`sqmusic` 头）删除，连接即用。**2026-09-26 API V2**：`/api/v2/*` 清理版契约上线（REST 化、真 HTTP 状态码、整数类型），旧信封端点整体删除（探活 `/api/healthcheck` 除外）。
 - **第 3 期（进行中）**：fnOS 侧能力（曲库扫描、歌单补全）规划收敛到 server/ 内模块，`/fnos` 前缀语义不变。
 - **第 5-6 期（已完成）**：自建 **MusicCopilot Server** 替换第三方后端，Docker 一键交付。
 
@@ -46,9 +46,10 @@ MusicCopilot/
 │  └─ api-contract/             # 前后端共享契约类型（openapi-typescript 由 server/openapi.json 生成）
 ├─ server/                      # 自建后端（PHP / Laravel 13，应用根即本目录）
 │  ├─ app/
-│  │  ├─ Http/Controllers/     # API 控制器（统一信封 {code,msg,data}）
+│  │  ├─ Http/Controllers/V2/  # API V2 控制器（REST 语义 + 真 HTTP 状态码）
+│  │  ├─ Http/Resources/V2/    # V2 响应资源（插件数据 → 契约形态：类型转换与字段收敛）
 │  │  └─ Plugins/Sources/      # 音源插件（SourcePlugin 接口 + KuwoPlugin，待增 netease/mg/tidal）
-│  ├─ routes/api.php           # /api/music/* 等路由
+│  ├─ routes/api.php           # /api/v2/* 路由（旧 /api/music/* 等信封端点已删除）
 │  ├─ public/api-docs.html     # Scalar 文档测试台（资产本地化 public/vendor/scalar/）
 │  ├─ lang/zh_CN/              # 最小化中文验证消息
 │  ├─ docs/kuwo-api-notes.md   # 酷我端点/加密/区域限制调研
@@ -80,7 +81,7 @@ MusicCopilot/
 
 | # | 决策 | 理由 |
 | --- | --- | --- |
-| 1 | **接口契约先行**：前后端共享类型放 `packages/api-contract` | 第 5 期替换后端时前端零改动；统一 `{code,msg,data}` 包裹与错误语义 |
+| 1 | **接口契约先行**：前后端共享类型放 `packages/api-contract`。**2026-09-26 V2 修订**：弃 `{code,msg,data}` 信封，`/api/v2/*` 采用 REST 语义——真 HTTP 状态码（422 验证 / 404 不存在 / 502 音源上游失败）、错误体 `{error, message}`、整数类型、camelCase 统一；搜索与任务列表分页统一 `{items, total, page, pageSize}` | 过渡期信封与字符串数字为 SQMusic 对齐残留；V2 契约可被 openapi-typescript 机械生成，前端 `types.ts` 直接派生 |
 | 2 | **单服务渐进生长**：Companion 与自建后端是同一个 `apps/server`，按模块启用。**2026-09-11 修订**：文件级写操作（元数据刮削）独立为 `scraper/` 工具容器——直接写 NAS 文件的风险隔离、可独立授权/重启，音源解析仍收敛在 server/。**2026-09 再修订**：第 4 期移除后 `scraper/` 下线（源码存档，不构建不运行），回到单服务形态 | 避免维护两套进程/镜像；第 3 期骨架直接长成第 5 期形态 |
 | 3 | **音源插件化**：解析逻辑按平台隔离在 `plugins/sources` | 平台接口变动频繁，解析层独立可热更新，坏一个源不影响整体 |
 | ~~4~~ | **统一鉴权**（**2026-09-25 随 server 认证移除而失效，2026-09-26 清理完毕**：内网可信环境直连，无凭证概念）：原第 2 期登录框 + JWT 规划不再执行 | 部署收敛为内网零配置，凭证体系成为纯摩擦 |
@@ -119,12 +120,12 @@ MusicCopilot/
 
 ```
 web/src/api/
-├─ http.ts        # 请求实例：{code,msg,data} 解包 + 网络错误友好提示
-├─ config.ts      # 探活（/api/healthcheck）与音源插件元信息（/api/config/*）
-├─ music.ts       # 搜索/详情/歌词/直链（自建后端）
-├─ task.ts        # 下载任务管理
-├─ fnos.ts        # fnOS 音乐库（/fnos 反代直连，code==0 信封 + Cookie 鉴权）
-└─ types.ts       # 接口类型（契约类型源在 packages/api-contract）
+├─ http.ts        # 请求实例：REST 直读（V2 无信封解包）+ 网络错误友好提示
+├─ config.ts      # 探活（/api/healthcheck，历史信封形态）与音源插件元信息（/api/v2/config/*）
+├─ music.ts       # 搜索/详情/歌词/直链/下载创建（/api/v2）
+├─ task.ts        # 下载任务管理（/api/v2/downloads）
+├─ fnos.ts        # fnOS 音乐库（/fnos 反代直连，code==0 信封 + Cookie 鉴权；会话登录走 /api/v2/fnos/session）
+└─ types.ts       # 接口类型（由 packages/api-contract 生成类型派生）
 ```
 
 `config.json`（`baseUrl` 留空即同源，`proxyTarget` 为信息性字段；Docker 由容器入口脚本生成）：
@@ -158,3 +159,4 @@ fnOS 接入配置（`MC_FNOS_*` 变量生成，`enabled` 控制音乐库入口�
 | 第 4 期 | 独立 `scraper/` 刮削工具容器（Fastify + taglib-wasm，`/mc/api`）；前端「音乐库体检」页（见 `docs/META_SCRAPER_PLAN.md`） |
 | 第 5 期 | server 增加 music/download/tasks 与音源插件；前端切换到自建后端；SQMusic 下线（2026-09-26 契约残留清理） |
 | 第 6 期 | compose 收口：web + server 两容器 + 卷挂载；fnOS 图形化部署模板 |
+| 2026-09-26 | API V2：`/api/v2/*` 清理版契约（REST 化、真状态码、整数类型、分页统一 `{items,total,page,pageSize}`），旧信封端点删除，前端整体切换并接入 packages/api-contract 生成类型 |

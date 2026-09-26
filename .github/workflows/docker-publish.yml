@@ -30,9 +30,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 前端镜像：nginx 托管 SPA + /api 反代（web/Dockerfile），镜像名带 -web 后缀
+          # 前端镜像：nginx 托管 SPA + /api 反代（web/Dockerfile），镜像名带 -web 后缀；
+          # 契约类型在 web/ 上下文外，以命名上下文 contract 注入（与 compose additional_contexts 同款）
           - name: web
             context: ./web
+            additional_contexts: contract=./packages/api-contract
             suffix: '-web'
             gen-build-info: true
           # 自建后端镜像：Laravel API + queue worker 同镜像分进程（server/Dockerfile）
@@ -106,6 +108,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
+          additional-contexts: ${{ matrix.additional_contexts }}
           platforms: linux/amd64,linux/arm64
           push: true
           # meta-hub 被跳过时其 outputs 为空，空行会被 build-push-action 过滤

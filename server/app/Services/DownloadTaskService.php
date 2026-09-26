@@ -15,7 +15,7 @@ class DownloadTaskService
     {
     }
 
-    /** 整张专辑展开（downloadAlbum 同步调用）：建单曲任务并入队，返回契约记录数组 */
+    /** 整张专辑展开（V2 storeAlbum 同步调用）：建单曲任务并入队，返回任务模型数组 */
     public function expandAlbum(string $plugName, string $albumId, string $brType): array
     {
         $plugin = $this->sources->get($plugName);
@@ -28,7 +28,7 @@ class DownloadTaskService
                 continue;
             }
             DownloadSongJob::dispatch($task->id);
-            $created[] = $task->toContract();
+            $created[] = $task;
         }
 
         return $created;
@@ -72,7 +72,7 @@ class DownloadTaskService
             return null;
         }
 
-        $artists = $song['artistName'] ?? $song['musicArtists'] ?? [];
+        $artists = $song['artistName'] ?? $song['musicArtists'] ?? $song['artists'] ?? [];
         $artists = is_array($artists)
             ? array_values(array_filter(array_map(fn ($v) => trim((string) $v), $artists), fn ($v) => $v !== ''))
             : [];

@@ -14,12 +14,12 @@ let started = false
 const statusMap = new Map<string, TaskStatus>()
 
 function taskLabel(t: TaskInfo): string {
-  const name = t.downloadMusicname || t.downloadFile || String(t.id)
-  return t.downloadArtistname ? `${name} - ${t.downloadArtistname}` : name
+  const name = t.name || t.file || String(t.id)
+  return t.artist ? `${name} - ${t.artist}` : name
 }
 
 function errDesc(t: TaskInfo): string {
-  const msg = (t.downloadMsg ?? '').trim()
+  const msg = (t.error ?? '').trim()
   const short = msg.length > 60 ? `${msg.slice(0, 60)}…` : msg
   return short ? `${taskLabel(t)}：${short}` : taskLabel(t)
 }
@@ -42,11 +42,11 @@ function check(list: TaskInfo[]) {
     const id = String(t.id)
     seen.add(id)
     const prev = statusMap.get(id)
-    statusMap.set(id, t.downloadStatus)
+    statusMap.set(id, t.status)
     // 首次见到（prev 为空）只建档不通知，避免应用启动时对历史已完成任务刷屏
-    if (!prev || prev === t.downloadStatus) continue
-    if (ACTIVE_STATUSES.includes(prev) && t.downloadStatus === 'success') done.push(t)
-    if (ACTIVE_STATUSES.includes(prev) && t.downloadStatus === 'error') failed.push(t)
+    if (!prev || prev === t.status) continue
+    if (ACTIVE_STATUSES.includes(prev) && t.status === 'success') done.push(t)
+    if (ACTIVE_STATUSES.includes(prev) && t.status === 'error') failed.push(t)
   }
   if (statusMap.size > MAX_TRACKED) {
     let excess = statusMap.size - MAX_TRACKED
@@ -79,8 +79,8 @@ export function startTaskToasts() {
   started = true
   const poll = async () => {
     try {
-      const data = await taskApi.list({ pageSize: PAGE_SIZE, pageIndex: 1 })
-      check(data.records ?? [])
+      const data = await taskApi.list({ pageSize: PAGE_SIZE, page: 1 })
+      check(data.items ?? [])
     } catch {
       // 静默：连接异常已有全局横幅提示，此处不重复打扰
     }

@@ -1,13 +1,13 @@
 export interface paths {
-    "/config/getOption": {
+    "/v2/config/options": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 已注册音源插件清单（前端仅消费 value=kw 的项） */
-        get: operations["config.getOption"];
+        /** 已注册音源插件清单（value 即 plugName） */
+        get: operations["config.options"];
         put?: never;
         post?: never;
         delete?: never;
@@ -16,15 +16,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/config/getPlugBrTypeList": {
+    "/v2/config/br-types": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 各插件可用音质枚举（前端用 id 作 brType 键、type+bit 拼展示标签） */
-        get: operations["config.getPlugBrTypeList"];
+        /** 各插件可用音质枚举（id 即 brType 键） */
+        get: operations["config.brTypes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -33,7 +33,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/download/downloadSong": {
+    "/v2/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 任务列表（分页 + 可选状态筛选） */
+        get: operations["download.index"];
+        put?: never;
+        post?: never;
+        /** 批量删除某状态的全部任务记录（status=success ⚠️ 清空全部成功记录） */
+        delete: operations["download.destroyByStatus"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/downloads/songs": {
         parameters: {
             query?: never;
             header?: never;
@@ -42,15 +60,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 单曲下载：body 为搜索返回的完整歌曲记录，brType 省略时 worker 自动选最高音质 */
-        post: operations["download.downloadSong"];
+        /** 单曲下载创建：body 为 V2 统一 Song 对象，brType 省略时 worker 自动选最高音质 */
+        post: operations["download.storeSong"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/download/downloadAlbum": {
+    "/v2/downloads/albums": {
         parameters: {
             query?: never;
             header?: never;
@@ -59,18 +77,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * 整张专辑下载：body 为专辑记录 + 可选 bit（整数码率，省略=自动最高）。
-         *     同步展开曲目（一次上游请求）并返回任务数组，前端取数组长度做计数提示
-         */
-        post: operations["download.downloadAlbum"];
+        /** 整张专辑下载创建：同步展开曲目（一次上游请求），返回任务数组 */
+        post: operations["download.storeAlbum"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/download/downloadArtistAlbum": {
+    "/v2/downloads/artists/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -79,15 +94,83 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 歌手全部专辑下载：专辑多（每张一次上游请求），入队异步展开，任务在 task/list 中渐进出现 */
-        post: operations["download.downloadArtistAlbum"];
+        /** 歌手全部专辑下载创建：专辑多（每张一次上游请求），入队异步展开（202） */
+        post: operations["download.storeArtist"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/fnos/login": {
+    "/v2/downloads/retries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 全部失败任务重试 */
+        post: operations["download.retryAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/downloads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除单个任务记录（不删已落盘文件；幂等） */
+        delete: operations["download.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/downloads/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 重新入队：等待/解析/传输中卡住的任务重新排队（成功/失败走专门动作） */
+        post: operations["download.refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/downloads/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 重试失败任务 */
+        post: operations["download.retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/fnos/session": {
         parameters: {
             query?: never;
             header?: never;
@@ -97,25 +180,9 @@ export interface paths {
         get?: never;
         put?: never;
         /** 代登录：无入参凭据（凭据在服务端），仅接收浏览器设备 ID（fnOS 会话区分用） */
-        post: operations["fnosAuth.login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/fnos/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
+        post: operations["fnosSession.store"];
         /** 代登出：仅清浏览器侧会话 Cookie（fnOS 侧 token 自然过期） */
-        post: operations["fnosAuth.logout"];
-        delete?: never;
+        delete: operations["fnosSession.destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -137,15 +204,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/searchSong": {
+    "/v2/search/songs": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 搜索单曲（酷我：search.kuwo.cn/r.s ft=music） */
-        get: operations["musicSearch.searchSong"];
+        /** 搜索单曲 */
+        get: operations["search.songs"];
         put?: never;
         post?: never;
         delete?: never;
@@ -154,15 +221,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/searchArtist": {
+    "/v2/search/artists": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 搜索歌手（酷我：r.s ft=artist） */
-        get: operations["musicSearch.searchArtist"];
+        /** 搜索歌手 */
+        get: operations["search.artists"];
         put?: never;
         post?: never;
         delete?: never;
@@ -171,15 +238,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/searchAlbum": {
+    "/v2/search/albums": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 搜索专辑（酷我：r.s ft=album） */
-        get: operations["musicSearch.searchAlbum"];
+        /** 搜索专辑 */
+        get: operations["search.albums"];
         put?: never;
         post?: never;
         delete?: never;
@@ -188,15 +255,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/searchTips": {
+    "/v2/search/tips": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 搜索联想词（酷我 openapi searchKey，RELWORD 提取） */
-        get: operations["musicSearch.searchTips"];
+        /** 搜索联想词 */
+        get: operations["search.tips"];
         put?: never;
         post?: never;
         delete?: never;
@@ -205,15 +272,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/artistAlbumById": {
+    "/v2/artists/{id}/albums": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 歌手详情 + 全部专辑（酷我 r.s artistinfo + albumlist 聚合） */
-        get: operations["musicSearch.artistAlbumById"];
+        /** 歌手详情 + 全部专辑 */
+        get: operations["search.artistAlbums"];
         put?: never;
         post?: never;
         delete?: never;
@@ -222,15 +289,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/albumInfoById": {
+    "/v2/albums/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 专辑详情 + 曲目列表（酷我 r.s albuminfo） */
-        get: operations["musicSearch.albumInfoById"];
+        /** 专辑详情 + 曲目列表 */
+        get: operations["search.albumShow"];
         put?: never;
         post?: never;
         delete?: never;
@@ -239,171 +306,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/music/getLyric": {
+    "/v2/songs/{id}/lyric": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** 歌词（LRC 文本） */
+        get: operations["song.lyric"];
         put?: never;
-        /** 歌词（酷我加密歌词接口 newlyric）；LRC 文本放 data 字段 */
-        post: operations["musicSearch.getLyric"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/music/getDownloadUrl": {
+    "/v2/songs/{id}/download-url": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** 下载/试听直链解析（⚠️ 酷我直链有大陆 IP 区域限制） */
+        get: operations["song.downloadUrl"];
         put?: never;
-        /**
-         * 获取下载/试听直链（酷我 mobi convert_url_with_sign，⚠️ 大陆 IP 区域限制）
-         *     POST，body 带 plugName/id/brType；brTypes（完整歌曲对象）兼容接收但不参与解析
-         */
-        post: operations["musicSearch.getDownloadUrl"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/list": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 任务列表（分页 + 状态筛选；其余历史筛选字段仅实现状态筛选） */
-        post: operations["task.list"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/del": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除单个任务记录（不删已落盘文件） */
-        post: operations["task.del"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/refreshTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 重新入队：等待/解析/传输中卡住的任务重新排队（成功/失败走专门端点） */
-        post: operations["task.refreshTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/errorTaskRetry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 重试失败任务 */
-        post: operations["task.errorTaskRetry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/againTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 全部失败任务重试 */
-        post: operations["task.againTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/delErrorTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["task.delErrorTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/delSuccessTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** ⚠️ 清空全部成功任务记录（不删落盘文件；前端有确认弹窗） */
-        post: operations["task.delSuccessTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/task/delWaitingTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["task.delWaitingTask"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -413,7 +343,141 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /** AlbumDetailResource */
+        AlbumDetailResource: {
+            id: number;
+            name: string;
+            artist: string | null;
+            artistId: number | null;
+            pic: string | null;
+            /** @description 搜索条目带 total；歌手详情条目（mapAlbumDetail 不映射 total）从上游原始行 musiccnt 兜底 */
+            trackCount: number | null;
+            publishTime: string | null;
+            description: string | null;
+            plugName: string;
+            songs: components["schemas"]["SongResource"][];
+        };
+        /** AlbumPageResource */
+        AlbumPageResource: {
+            items: components["schemas"]["AlbumResource"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        /** AlbumResource */
+        AlbumResource: {
+            id: number;
+            name: string;
+            artist: string | null;
+            artistId: number | null;
+            pic: string | null;
+            /** @description 搜索条目带 total；歌手详情条目（mapAlbumDetail 不映射 total）从上游原始行 musiccnt 兜底 */
+            trackCount: number | null;
+            publishTime: string | null;
+            description: string | null;
+            plugName: string;
+        };
+        /** ArtistDetailResource */
+        ArtistDetailResource: {
+            id: number;
+            name: string;
+            alias: string | null;
+            photo: string | null;
+            description: string | null;
+            albums: components["schemas"]["AlbumResource"][];
+        };
+        /** ArtistPageResource */
+        ArtistPageResource: {
+            items: components["schemas"]["ArtistResource"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        /** ArtistResource */
+        ArtistResource: {
+            id: number;
+            name: string;
+            pic: string | null;
+            albumCount: number | null;
+            plugName: string;
+        };
+        /** BrTypeResource */
+        BrTypeResource: {
+            id: string;
+            type: string;
+            bit: number;
+            plugName: string;
+        };
+        /** DownloadUrlResource */
+        DownloadUrlResource: {
+            url: string;
+            brType: string;
+            duration: number | null;
+            format: string | null;
+        };
+        /** LyricResource */
+        LyricResource: {
+            lyric: string;
+        };
+        /** PlugOptionResource */
+        PlugOptionResource: {
+            label: string;
+            value: string;
+        };
+        /** SongPageResource */
+        SongPageResource: {
+            items: components["schemas"]["SongResource"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        /** SongResource */
+        SongResource: {
+            id: number;
+            name: string;
+            artists: string[];
+            artistIds: number[];
+            albumId: number | null;
+            albumName: string | null;
+            pic: string | null;
+            duration: number | null;
+            brTypes: string[];
+            plugName: string;
+            playcnt: number | null;
+            trackNo: number | null;
+        };
+        /** TaskListResource */
+        TaskListResource: {
+            tasks: components["schemas"]["TaskResource"][];
+        };
+        /** TaskPageResource */
+        TaskPageResource: {
+            items: components["schemas"]["TaskResource"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        /** TaskResource */
+        TaskResource: {
+            id: number;
+            musicId: number | null;
+            plugName: string;
+            name: string;
+            artist: string | null;
+            album: string | null;
+            albumId: number | null;
+            pic: string | null;
+            brType: string | null;
+            brTypes: string;
+            status: string;
+            error: string | null;
+            file: string | null;
+            musicInfo: string | null;
+            downloadedAt: string | null;
+            updatedAt: string | null;
+        };
+    };
     responses: {
         /** @description Validation error */
         ValidationException: {
@@ -439,9 +503,77 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    "config.getOption": {
+    "config.options": {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `PlugOptionResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlugOptionResource"][];
+                };
+            };
+        };
+    };
+    "config.brTypes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Array of `BrTypeResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrTypeResource"][];
+                };
+            };
+        };
+    };
+    "download.index": {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                status?: "waiting" | "loading" | "downloading" | "success" | "error" | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `TaskPageResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPageResource"];
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "download.destroyByStatus": {
+        parameters: {
+            query: {
+                /** @description 字面量内联（勿与常量拼接）：Scramble 静态求值才能把枚举带进 OpenAPI 规范 */
+                status: "waiting" | "success" | "error";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -454,43 +586,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            label: string;
-                            value: string;
-                        }[];
+                        deleted: number;
                     };
                 };
             };
+            422: components["responses"]["ValidationException"];
         };
     };
-    "config.getPlugBrTypeList": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: string[];
-                    };
-                };
-            };
-        };
-    };
-    "download.downloadSong": {
+    "download.storeSong": {
         parameters: {
             query?: never;
             header?: never;
@@ -500,7 +603,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    id: string;
+                    id: number;
                     name: string;
                     plugName: string;
                     brType?: string | null;
@@ -508,34 +611,19 @@ export interface operations {
             };
         };
         responses: {
+            /** @description `TaskListResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "歌曲记录缺少 id/name";
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
-                    };
+                    "application/json": components["schemas"]["TaskListResource"];
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "download.downloadAlbum": {
+    "download.storeAlbum": {
         parameters: {
             query?: never;
             header?: never;
@@ -545,70 +633,64 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    albumid: string;
+                    id: number;
                     plugName: string;
                     bit?: number | null;
                 };
             };
         };
         responses: {
+            /** @description `TaskListResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["TaskListResource"];
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "download.storeArtist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plugName: string;
+                    bit?: number | null;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            id: number;
-                            downloadGid: string | null;
-                            downloadTime: string | null;
-                            downloadFile: string | null;
-                            downloadMusicId: string;
-                            downloadPlugName: string;
-                            downloadBrType: string;
-                            downloadMusicname: string;
-                            downloadArtistname: string | null;
-                            downloadAlbumname: string | null;
-                            downloadMsg: string | null;
-                            downloadMusicInfo: string | null;
-                            downloadStatus: string;
-                            springName: null;
-                            audioBook: null;
-                            downloadUpdateTime: string | null;
-                            rewriteMp3tag: null;
-                            downloadBits: null;
-                            downloadBrTypes: unknown[] | null;
-                        }[];
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
+                        queued: boolean;
                     };
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "download.downloadArtistAlbum": {
+    "download.retryAll": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    artistid: string;
-                    plugName: string;
-                    bit?: number | null;
-                };
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -616,22 +698,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
+                        retried: number;
                     };
                 };
             };
-            422: components["responses"]["ValidationException"];
         };
     };
-    "fnosAuth.login": {
+    "download.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "download.refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `TaskResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskResource"];
+                };
+            };
+        };
+    };
+    "download.retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `TaskResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskResource"];
+                };
+            };
+        };
+    };
+    "fnosSession.store": {
         parameters: {
             query?: never;
             header?: never;
@@ -653,36 +790,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            user: string | null;
-                        };
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "fnOS 登录接口返回非 JSON 数据";
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "fnOS 音乐库未配置（需 MC_FNOS_BASE_URL / MC_FNOS_USERNAME / MC_FNOS_PASSWORD）";
-                        data: null;
+                        user: string | null;
                     };
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "fnosAuth.logout": {
+    "fnosSession.destroy": {
         parameters: {
             query?: never;
             header?: never;
@@ -691,18 +806,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            /** @description No content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    };
-                };
+                content?: never;
             };
         };
     };
@@ -730,12 +839,12 @@ export interface operations {
             };
         };
     };
-    "musicSearch.searchSong": {
+    "search.songs": {
         parameters: {
             query: {
                 keyword: string;
                 plugName?: string;
-                pageIndex?: number;
+                page?: number;
                 pageSize?: number;
             };
             header?: never;
@@ -744,46 +853,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description `SongPageResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            records: string;
-                            searchTotal: string;
-                            searchIndex: string | 1;
-                            searchSize: string | 30;
-                            searchKeyWork: string;
-                            plugName: string | "kw";
-                        };
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "keyword 不能为空";
-                        data: null;
-                    };
+                    "application/json": components["schemas"]["SongPageResource"];
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "musicSearch.searchArtist": {
+    "search.artists": {
         parameters: {
             query: {
                 keyword: string;
                 plugName?: string;
-                pageIndex?: number;
+                page?: number;
                 pageSize?: number;
             };
             header?: never;
@@ -792,46 +879,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description `ArtistPageResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            records: string;
-                            searchTotal: string;
-                            searchIndex: string | 1;
-                            searchSize: string | 30;
-                            searchKeyWork: string;
-                            plugName: string | "kw";
-                        };
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "keyword 不能为空";
-                        data: null;
-                    };
+                    "application/json": components["schemas"]["ArtistPageResource"];
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "musicSearch.searchAlbum": {
+    "search.albums": {
         parameters: {
             query: {
                 keyword: string;
                 plugName?: string;
-                pageIndex?: number;
+                page?: number;
                 pageSize?: number;
             };
             header?: never;
@@ -840,41 +905,19 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description `AlbumPageResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            records: string;
-                            searchTotal: string;
-                            searchIndex: string | 1;
-                            searchSize: string | 30;
-                            searchKeyWork: string;
-                            plugName: string | "kw";
-                        };
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "keyword 不能为空";
-                        data: null;
-                    };
+                    "application/json": components["schemas"]["AlbumPageResource"];
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "musicSearch.searchTips": {
+    "search.tips": {
         parameters: {
             query: {
                 keyword: string;
@@ -891,392 +934,111 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": unknown;
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "musicSearch.artistAlbumById": {
+    "search.artistAlbums": {
         parameters: {
-            query: {
+            query?: {
+                plugName?: string;
+            };
+            header?: never;
+            path: {
                 id: string;
-                plugName?: string;
             };
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description `ArtistDetailResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ArtistDetailResource"];
                 };
             };
             422: components["responses"]["ValidationException"];
         };
     };
-    "musicSearch.albumInfoById": {
+    "search.albumShow": {
+        parameters: {
+            query?: {
+                plugName?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `AlbumDetailResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlbumDetailResource"];
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "song.lyric": {
+        parameters: {
+            query?: {
+                plugName?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description `LyricResource` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LyricResource"];
+                };
+            };
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "song.downloadUrl": {
         parameters: {
             query: {
-                id: string;
+                brType: string;
                 plugName?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description `DownloadUrlResource` */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["DownloadUrlResource"];
                 };
             };
             422: components["responses"]["ValidationException"];
-        };
-    };
-    "musicSearch.getLyric": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    id: string;
-                    plugName?: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: string;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "未找到歌词";
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        msg: string;
-                        data: null;
-                    };
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "musicSearch.getDownloadUrl": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    id: string;
-                    brType: string;
-                    plugName?: string;
-                    brTypes?: string[];
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "task.list": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    pageIndex?: number;
-                    pageSize?: number;
-                    downloadStatus?: string | null;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            records: string;
-                            total: number;
-                            size: number;
-                            current: number;
-                            pages: number;
-                        };
-                    };
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "task.del": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    };
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "task.refreshTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "失败任务请使用重试";
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "已完成的任务无需重新入队";
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "任务不存在";
-                        data: null;
-                    };
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "task.errorTaskRetry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "仅失败任务可重试";
-                        data: null;
-                    } | {
-                        /** @constant */
-                        code: 500;
-                        /** @constant */
-                        msg: "任务不存在";
-                        data: null;
-                    };
-                };
-            };
-            422: components["responses"]["ValidationException"];
-        };
-    };
-    "task.againTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: null;
-                    };
-                };
-            };
-        };
-    };
-    "task.delErrorTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            count: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    "task.delSuccessTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            count: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    "task.delWaitingTask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        code: 200;
-                        msg: null;
-                        data: {
-                            count: unknown;
-                        };
-                    };
-                };
-            };
         };
     };
 }

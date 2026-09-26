@@ -116,11 +116,11 @@ export const usePlayerStore = defineStore('player', {
         if (song.plugName === 'fnos') {
           // fnOS 本地曲目：直链经同源 /fnos 反代，浏览器自动携带 music-token Cookie
           if (this.queueIndex !== index) return
-          this.url = fnosStreamUrl(song.id)
+          this.url = fnosStreamUrl(String(song.id))
           this.brType = ''
         } else {
           const brType = sortBrTypes(song.brTypes ?? [])[0] ?? ''
-          const info = await musicApi.getDownloadUrl(song.plugName, song.id, brType, song.brTypes ?? [])
+          const info = await musicApi.getDownloadUrl(song.plugName, song.id, brType)
           // 若等待期间用户又切了歌，丢弃过期结果
           if (this.queueIndex !== index) return
           this.url = info.url
