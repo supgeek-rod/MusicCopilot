@@ -28,18 +28,18 @@
 
 ## server/ 子目录（自建后端，Laravel 13）
 
-- 定位：自建音源后端，音源插件化（`app/Plugins/Sources/`），已实现酷我搜索三端点与 config 端点（无认证；探活 `/api/healthcheck`）；进度与用法见 `server/README.md`
-- 文档与测试台：`http://127.0.0.1:17017/api-docs.html`（Scalar）、`/docs/api`（Stoplight Elements）、`/docs/api.json` 与 `server/openapi.json`（规范固化，契约类型源）
-- 契约策略：SqMusic 对齐残留已清理；现存契约仍有历史瑕疵（`{code,msg,data}` 信封、字符串数字），清理版契约规划见 `packages/api-contract/README.md`
+- 定位：自建音源后端，音源插件化（`app/Plugins/Sources/`），无认证、连接即用（探活 `/api/healthcheck`）；进度与用法见 `server/README.md`
+- 文档与测试台：`http://127.0.0.1:17017/api-docs.html`（Scalar）、`/docs/api`（Stoplight Elements）、`/docs/api.json` 与 `server/openapi.json`（规范固化：`php artisan scramble:export --path=openapi.json`，契约类型源）
+- 契约：**API V2（2026-09-26）**——`/api/v2/*` REST 语义（真状态码、裸 JSON、错误体 `{error,message}`、整数、分页 `{items,total,page,pageSize}`），旧信封端点已删除（healthcheck 保留信封）；响应结构定义在 `app/Http/Resources/V2/`，改字段先改资源层再 `npm run gen`
 - 酷我直链解析有**大陆 IP 区域限制**（海外 407），本地测酷我 curl 一律 `--noproxy '*'`；Windows mingw curl 的 argv 中文会转 GBK（先经 node `encodeURIComponent` 编码）——详见 `server/docs/kuwo-api-notes.md`
-- ⚠️ `GET /api/task/delSuccessTask` 会清空全部成功任务记录（不删文件），**禁止随意调用**；`downloadSong`、`downloadAlbum` 等会产生真实下载任务/文件，测试后需用 `POST /api/task/del` 清理
+- ⚠️ `DELETE /api/v2/downloads?status=success` 会清空全部成功任务记录（不删文件），**禁止随意调用**；`POST /api/v2/downloads/{songs,albums}` 等会产生真实下载任务/文件，测试后需用 `DELETE /api/v2/downloads/{id}` 清理
 
 ## 代码约定
 
 - Vue 3 组合式 API，`<script setup lang="ts">`；组件名多词
 - **后端调用一律收敛在 `web/src/api/`**，组件内禁止直接 `fetch`/axios：
-  - 统一走 `web/src/api/http.ts` 的 `request()`：解包 `{code, msg, data}`（`code=200` 才算成功）；后端无认证，无 token/重登逻辑，连通性探测用 `web/src/api/config.ts` 的 `configApi.healthcheck()`（`/api/healthcheck`）
-  - 接口类型统一放 `web/src/api/types.ts`；搜索记录与详情记录字段不一致时用 `web/src/lib/adapter.ts` 适配（参考 `albumSongToRecord`）
+  - 统一走 `web/src/api/http.ts` 的 `request()`：直返响应体（V2 无信封，错误靠 HTTP 状态码 + `{error,message}`）；后端无认证，连通性探测用 `web/src/api/config.ts` 的 `configApi.healthcheck()`（`/api/healthcheck`，唯一保留信封的端点）
+  - 接口类型统一放 `web/src/api/types.ts`（由 `packages/api-contract` 生成类型派生）；仅 fnOS 曲目经 `web/src/lib/adapter.ts` 适配（`fnosTrackToRecord`）
 - UI 组件只用 `web/src/components/ui/`（shadcn-vue 生成），缺什么用 CLI 加，不要手写复刻；主题色与深色模式变量在 `web/src/style.css`
 - 路由组件使用**静态 import**（`web/src/router/index.ts`），曾排查过懒加载相关渲染异常，保持现状
 - 组件内异步请求必须在卸载后丢弃响应（`disposed` 守卫写法，参考 `DownloadsView.vue` / `SearchView.vue`），否则会与路由切换竞态导致 `parentNode null` 渲染崩溃

@@ -36,13 +36,13 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 - **搜索**：`searchSong`，每页 30 条；回车（`keydown.enter.prevent`）或点搜索按钮触发；切换音源后自动以已提交关键词重搜。
 - **结果列表**：封面（Avatar，加载失败回退图标）、歌名、歌手/专辑、音质徽标（取前 3 个，按码率降序）、时长。
 - **音质徽标**：`brType` 字符串本地解析（如 `KW_FLAC_2000` → `FLAC 2000K`），音质枚举表能命中时优先用其 `type`/`bit`；按 `parseBrType` 解析的码率降序排序；无损（FLAC/APE/HI-RES…）紫色、≥320K 蓝色、其余灰色。
-- **分页**：`searchTotal` 计算总页数，上一页/下一页。
-- 歌手名、专辑名是链接，分别跳转歌手页（`artistids[0]`）与专辑页（`albumid`）。
+- **分页**：`total` 计算总页数（V2 统一分页 `{items, total, page, pageSize}`），上一页/下一页。
+- 歌手名、专辑名是链接，分别跳转歌手页（`artistIds[0]`）与专辑页（`albumId`）。
 
 ## 播放器（stores/player.ts + PlayerBar.vue）
 
 - **播放队列**：`queue[]` + `queueIndex`；`play(song)` 等价单元素队列；`playAll(songs, startIndex)` 供专辑页/歌手页整组连播。
-- **直链懒加载**：切到哪首才调 `getDownloadUrl`（最高音质 + 必传 `brTypes` 数组），避免直链过期；响应返回时若用户已切歌则丢弃。fnOS 本地曲目（`plugName='fnos'`）跳过取链，直接使用同源 `/fnos` 流地址。
+- **直链懒加载**：切到哪首才调 `getDownloadUrl`（按队列音质解析，最高音质优先），避免直链过期；响应返回时若用户已切歌则丢弃。fnOS 本地曲目（`plugName='fnos'`）跳过取链，直接使用同源 `/fnos` 流地址。
 - **自动切歌**：`ended` 事件自动 `next()`，队尾停止；上一首/下一首按钮仅在队列长度 > 1 时显示。
 - **播放条**：封面、歌名/歌手、播放暂停、进度条拖拽、时间、音量（静音切换）、队列位置（如 `2/11`）、关闭。
 - 播放失败（链接失效）toast 提示；audio 元素操作放在 `flush: 'post'` 的 watcher 中（首次挂载时 DOM 才存在）。
@@ -50,30 +50,30 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 ## 歌词（LyricDialog）
 
-- `getLyric` 响应不遵循统一包裹，歌词文本在 `msg` 字段（兼容 `data` 字符串与纯文本三种形态）。
+- V2 起歌词回归标准 JSON 体 `{lyric}`（旧契约把 LRC 文本放 `msg` 字段的特例已废除）。
 - 解析：按行去除 `[...]` 时间轴标签，过滤空行；无内容时显示「无歌词或纯音乐」。
 
 ## 歌手页（ArtistPage）
 
-- **头部**：`artistAlbumById` 返回的歌手照片（圆形）、名称、「N 张专辑 / N 首歌曲」徽标、播放全部 / 下载全部专辑按钮。
-- **全部歌曲**：以歌手名调 `searchSong`（50 条/页）+「加载更多」追加（按歌曲 id 去重；整页重复时停止显示按钮）。
+- **头部**：`artistAlbums` 返回的歌手照片（圆形）、名称、「N 张专辑 / N 首歌曲」徽标、播放全部 / 下载全部专辑按钮。
+- **全部歌曲**：按歌手专辑逐批聚合专辑详情曲目（每批 5 张并行，`albumShow`），按歌曲 id 去重后追加；已加载全集按热度（`playcnt`）降序重排，「加载更多」继续。
 - **全部专辑网格**：详情响应自带 `albums[]`；卡片为封面 + 名称 + 年份 + 曲目数，点击进专辑页，悬浮「下载整张」按钮（`downloadAlbum` 默认音质，带确认框）。
-- **下载全部专辑**：`downloadArtistAlbum`，确认框提示任务量大。
+- **下载全部专辑**：`downloadArtistAlbums`（`POST /v2/downloads/artists/{id}`，异步展开），确认框提示任务量大。
 - **歌手简介**：HTML 内容经净化（去 `<script>` 与 `on*` 事件属性）后折叠展示（限高 + 渐隐 + 展开全文）。
 
 ## 专辑页（AlbumPage）
 
-- **头部**：大封面、名称、歌手（链接到歌手页）、发行时间/唱片公司/曲目数、简介折叠。
-- **曲目列表**：详情响应自带 `musics[]`，经 `albumSongToRecord` 适配为统一 `SongRecord`（`musicName→name`、`musicArtists→artistName`、`musicImage→pic`、秒→毫秒、`bits→brTypes`），按 `dataInfo.track` 排序后复用 SongList。
+- **头部**：大封面、名称、歌手（链接到歌手页）、发行时间/曲目数、简介折叠。
+- **曲目列表**：详情响应自带 `songs[]`（V2 与搜索同形态 `SongRecord`，duration 统一毫秒），按 `trackNo` 排序后复用 SongList。
 - **播放整张**：全部曲目入队，从第 1 首连播。
-- **下载整张**：音质下拉（默认音质 + 从全部曲目 `bits` 汇总去重的码率选项，映射为整数 `bit`）→ 确认框 → `downloadAlbum`，成功 toast 显示任务数。
+- **下载整张**：音质下拉（默认音质 + 从全部曲目 `brTypes` 汇总去重的码率选项，映射为整数 `bit`）→ 确认框 → `downloadAlbum`，成功 toast 显示任务数（响应 `tasks` 数组长度）。
 - 当前队列正在播放本专辑歌曲时显示「♪ 正在播放本专辑」。
 
 ## 音乐库（fnOS 本地曲库）
 
-> 接入飞牛（fnOS）NAS 内置音乐应用，规划与进度看板见仓库内 `docs/FNOS_LIBRARY_PLAN.md`。API 经同源 `/fnos` 反代直连（dev 走 Vite 代理、生产走 nginx，见[架构设计](./architecture.md)决策 #8）；凭据由 server 代持（`/api/fnos/login` 服务端代登录，token 经 HttpOnly Cookie 下发，前端不接触密码与 token 值），会话失效自动重登。
+> 接入飞牛（fnOS）NAS 内置音乐应用，规划与进度看板见仓库内 `docs/FNOS_LIBRARY_PLAN.md`。API 经同源 `/fnos` 反代直连（dev 走 Vite 代理、生产走 nginx，见[架构设计](./architecture.md)决策 #8）；凭据由 server 代持（`/api/v2/fnos/session` 服务端代登录，token 经 HttpOnly Cookie 下发，前端不接触密码与 token 值），会话失效自动重登。
 
-- **登录**：进入音乐库页时探测 `/user/me`（Cookie 缺失或失效则调 `/api/fnos/login` 由 server 代持凭据静默重登）；登录失败/未启用时展示对应空态提示。
+- **登录**：进入音乐库页时探测 `/user/me`（Cookie 缺失或失效则调 `/api/v2/fnos/session` 由 server 代持凭据静默重登）；登录失败/未启用时展示对应空态提示。
 - **首页（快捷播放导向）**：居中 hero（曲库总数）+ 大搜索框 + 「随便听听」按钮（随机取样 30 首整组连播，小库整库洗牌、大库随机页采样）；下方「最近添加」（`track/list?sort=createdAt,desc` 取 12 张封面卡，点击即播）与「最近播放」（本地播放记录 `lib/recentPlays.ts`，player 切歌时写入、仅记 fnOS 曲目、上限 20 条，空则隐藏）；底部「浏览曲库」四个入口。
 - **库内搜索（回车即播）**：搜索框防抖 300ms，歌曲（前 50）+ 专辑 + 歌手并行检索；结果为歌曲列表 + 「相关专辑/相关歌手」横滑入口；**回车直接整组播放命中歌曲**；清空关键词恢复原视图。`/` 全局快捷键可聚焦搜索框（`data-search-input`）。
 - **浏览模式**：歌曲（复用 SongList）/ 专辑 / 歌手 / 流派 / 歌单五个 Tab，各 30 条/页，上一页/下一页分页；网格卡片封面加载失败回退图标；左上「返回」回首页。
@@ -84,23 +84,23 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 ## 下载
 
-- **服务器下载队列**：`downloadSong`（完整歌曲记录 + 可选 `brType`，省略时后端选最高音质）、`downloadAlbum`（专辑记录 + 整数 `bit`）、`downloadArtistAlbum`（歌手记录）。操作结果均以 toast 反馈。
+- **服务器下载队列**：`downloadSong`（V2 统一 Song 对象 + 可选 `brType`，省略时后端选最高音质）、`downloadAlbum`（专辑对象 + 整数 `bit`）、`downloadArtistAlbums`（`POST /v2/downloads/artists/{id}`，异步展开）。操作结果均以 toast 反馈。
 - **浏览器直链下载**：`getDownloadUrl` 取直链后创建 `<a download>`（`target="_blank"`）触发保存，文件名 `歌手 - 歌名.格式`。
 - 每首歌曲的下载菜单分两组：加入服务器下载队列 / 浏览器直链下载，音质项来自该歌 `brTypes`。
 
 ## 下载任务页（DownloadsView）
 
-- `task/list` 5 秒轮询 + 手动刷新；按状态筛选（`all` 哨兵值，非空才传 `downloadStatus`）。
+- `GET /v2/downloads` 5 秒轮询 + 手动刷新；按状态筛选（`all` 哨兵值，非空才传 `status`）。
 - **状态徽标**：waiting 等待中 / downloading 下载中 / loading 解析中（闪烁）/ success 成功 / error 失败。
-- **单条操作**：失败→重试（`errorTaskRetry`）；等待/解析中→重新入队（`refreshTask`）；删除（`del`，确认框）。
-- **批量操作**（确认框）：重试全部失败（`againTask`）、删除失败/成功/等待中任务。
-- 分页：`total/pages`，页大小 20。
+- **单条操作**：失败→重试（`/v2/downloads/{id}/retry`）；等待/解析中→重新入队（`{id}/refresh`）；删除（`DELETE /v2/downloads/{id}`，确认框）。
+- **批量操作**（确认框）：重试全部失败（`POST /v2/downloads/retries`）、删除失败/成功/等待中任务（`DELETE /v2/downloads?status=...`）。
+- 分页：`total` 计算总页数（统一分页形态），页大小 20。
 - **完成通知（全局）**：`lib/taskToaster.ts` 连接成功后随 App 启动，15 秒轮询最近 50 条任务，检测「进行中 → 成功/失败」迁移后弹 toast（任意页面可见）；首次建档不通知（避免启动刷屏），同轮多条自动聚合成摘要（成功/失败各一条，描述取前 3 个歌名），失败描述附带后端消息（截断 60 字）。
 
 ## 基础设施
 
 - **Pinia stores**：`app`（配置与连接状态、插件列表、音质枚举）、`player`（队列与播放状态）、`fnos`（飞牛音乐库会话）。
-- **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、统一解包 `{code, msg, data}`、网络错误友好提示。fnOS 走独立的 `api/fnos.ts`（同源 `/fnos` 反代、Cookie 鉴权、`code==0` 成功码与会话失效重登自成一体）。
+- **axios 封装（api/http.ts）**：动态 `baseURL`（config.json 的 `baseUrl`，留空同源走 Vite 代理）、直返响应体（V2 无信封，错误读 `{error, message}`）、网络错误友好提示。fnOS 走独立的 `api/fnos.ts`（同源 `/fnos` 反代、Cookie 鉴权、`code==0` 成功码与会话失效重登自成一体）。
 - **竞态防御**：页面组件的异步请求在卸载后丢弃响应（`disposed` 守卫），避免与路由切换竞态引发渲染崩溃。
 - **深色模式**：`useDark`（`vueuse-color-scheme` 持久化），主题变量见 `web/src/style.css`。
 - **PWA（vite-plugin-pwa）**：`registerType: autoUpdate` 静默更新；构建产物全量预缓存 + SPA `navigateFallback`；`/api/*` 与 `config.json` 在 `navigateFallbackDenylist` 中永不缓存（后者容器内运行时生成）；封面等图片走 `StaleWhileRevalidate` 运行时缓存（限 200 条 / 14 天）。图标由 `public/favicon.svg` 经 sharp 一次性生成（192/512/maskable-512/apple-touch-180）。仅在构建产物（preview / Docker）生效，dev 模式默认无 SW。
@@ -113,6 +113,6 @@ description: MusicCopilot 前端已实现的全部功能与实现要点
 
 ## 已知注意事项
 
-- `GET /api/task/delSuccessTask` 会清空全部成功任务记录（不删落盘文件），前端已加确认弹窗，脚本调用务必谨慎。
+- `DELETE /api/v2/downloads?status=success` 会清空全部成功任务记录（不删落盘文件），前端已加确认弹窗，脚本调用务必谨慎。
 - 搜索联想面板遮挡结果首行属于正常交互（失焦即关闭）；自动化测试点击列表操作前需先让输入框失焦。
 - 直链有时效，试听/下载均实时获取，不做缓存。

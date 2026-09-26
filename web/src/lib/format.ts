@@ -12,10 +12,9 @@ export function decodeHtmlEntities(text: string): string {
 }
 
 /** 毫秒时长 → m:ss */
-export function formatDuration(ms?: string | number | null): string {
-  const n = Number(ms)
-  if (!Number.isFinite(n) || n <= 0) return '--:--'
-  return formatSeconds(Math.round(n / 1000))
+export function formatDuration(ms?: number | null): string {
+  if (!ms || ms <= 0) return '--:--'
+  return formatSeconds(Math.round(ms / 1000))
 }
 
 /** 秒 → m:ss */
@@ -150,7 +149,7 @@ export function brTypeLabel(brType: string, list?: BrTypeInfo[]): string {
   )
   const { codec, bit } = parseBrType(brType)
   if (hit?.type) {
-    const bitNum = Number(hit.bit ?? bit)
+    const bitNum = hit.bit ?? bit
     return bitNum ? `${hit.type} ${bitNum}K` : hit.type
   }
   return bit ? `${codec} ${bit}K` : codec

@@ -15,7 +15,7 @@ import { request, ApiError } from './http'
 /**
  * fnOS 音乐 API 客户端：经同源 /fnos 反代直连 fnOS 网关（dev 走 Vite proxy，
  * 生产走 nginx），与主后端 http.ts 互相独立 —— 鉴权方式
- * （Cookie music-token，HttpOnly 由 /api/fnos/login 下发）与成功码（code==0）
+ * （Cookie music-token，HttpOnly 由 /api/v2/fnos/session 下发）与成功码（code==0）
  * 均不同，见 docs/architecture.md 决策 #8。
  */
 const FNAS_BASE = '/fnos/music/api/v1'
@@ -96,16 +96,16 @@ function getDeviceId(): string {
 }
 
 /**
- * 登录（走主后端 /api/fnos/login）：server 用 MC_FNOS_* 配置代调 fnOS 登录，
+ * 登录（走主后端 /api/v2/fnos/session）：server 用 MC_FNOS_* 配置代调 fnOS 登录，
  * 成功后经 Set-Cookie 下发 HttpOnly music-token；后续 /fnos 请求浏览器自动携带。
  */
 export async function fnosServerLogin(): Promise<void> {
-  await request<unknown>({ url: '/api/fnos/login', method: 'POST', data: { deviceId: getDeviceId() } })
+  await request<unknown>({ url: '/api/v2/fnos/session', method: 'POST', data: { deviceId: getDeviceId() } })
 }
 
 /** 登出：server 置空 HttpOnly Cookie（JS 无法清除 HttpOnly Cookie） */
 export async function fnosServerLogout(): Promise<void> {
-  await request<unknown>({ url: '/api/fnos/logout', method: 'POST' })
+  await request<unknown>({ url: '/api/v2/fnos/session', method: 'DELETE' })
 }
 
 /** 校验当前 Cookie 会话是否有效（轻量探测） */

@@ -137,12 +137,12 @@
 - **音乐库目录迁移（2026-09-12）**：NAS 端 MC_MUSIC_HOST_DIR 改为 fnOS 音乐库新位置（用户自建目录），server/worker/scraper 三容器挂载已切换并全链路验收通过（下载一生有你 → 落盘新目录 → 刮削 written）。顺带修复 `/api` 反代静态解析问题（与 /mc 同款，server 重建换 IP 不再需要重启 web）。注意：酷我部分歌曲 128k 实际返回 AAC 流，worker 按直链实际 format 落盘为 .aac（scraper taglib-wasm 可写标签）
 - 并行分支合并：`fix/remove-source-dropdown` 的 11 项前端修复（含版本检测）已并入本分支一并部署（8e35c6b）
 
-**`/v2` 清理版契约规划**（SQMusic 退役后作为独立小迭代，不阻塞本期）：
+**`/v2` 清理版契约规划**（SQMusic 退役后作为独立小迭代，**2026-09-26 已落地**，见 `packages/api-contract/README.md`）：
 
-1. **信封与状态码**：弃 `{code,msg,data}`（code=200 成功）→ 标准 HTTP 状态码 + 裸 JSON，错误体 `{error, message}`
-2. **类型规范化**：消除字符串数字（duration 毫秒字符串→int、total/total 专辑数→int）与冗余字段（downloadGid / downloadBits / springName / audioBook / rewriteMp3tag / 双写 albumid/albumId）
-3. **端点收敛（REST 化）**：`/api/v2/auth/*`、`/api/v2/search/{songs,artists,albums,tips}`、`/api/v2/{songs,albums,artists}/{id}`、`/api/v2/songs/{id}/download-url`、`POST /api/v2/downloads` + `GET|DELETE /api/v2/downloads/{id}`、`POST /api/v2/downloads/{id}/retry`；插件层（SourcePlugin/KuwoPlugin）不动，仅外壳清理
-4. **落地方式**：契约先进 `packages/api-contract`（openapi-typescript），前端 `src/api/*` 基于生成类型机械化重写；scraper 的 server 客户端同步迁移
+1. **信封与状态码**：弃 `{code,msg,data}`（code=200 成功）→ 标准 HTTP 状态码 + 裸 JSON，错误体 `{error, message}` ✅
+2. **类型规范化**：消除字符串数字（duration 毫秒字符串→int、total 专辑数→int）与冗余字段（downloadGid / downloadBits / springName / audioBook / rewriteMp3tag / 双写 albumid/albumId）✅
+3. **端点收敛（REST 化）**：`/api/v2/search/{songs,artists,albums,tips}`、`/api/v2/{albums/{id},artists/{id}/albums}`、`/api/v2/songs/{id}/{lyric,download-url}`、`POST /api/v2/downloads/{songs,albums}` + `POST /api/v2/downloads/artists/{id}` + `GET|DELETE /api/v2/downloads/{id}`、`{id}/{refresh,retry}`、批量 `retries` 与 `?status=` 删除、`fnos/session` ✅（`auth/*` 与 scraper 迁移两项随认证移除/scraper 下线取消）；插件层（SourcePlugin/KuwoPlugin）不动，类型转换收敛在 Resources/V2 ✅
+4. **落地方式**：契约先进 `packages/api-contract`（openapi-typescript），前端 `src/api/*` 基于生成类型机械化重写 ✅
 
 ## 5. 风险与备选
 

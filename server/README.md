@@ -11,15 +11,14 @@ MusicCopilot 仓库 `packages/api-contract` 自动生成）。
 
 - [x] 酷我接口调研：搜索 / 详情 / 歌词 / 直链解析 全链路 curl 实测通过（2026-09-10）
 - [x] Laravel 13 应用（WSL PHP 8.4 运行，`php artisan serve --port=17017`）
-- [x] 搜索 API：`/api/music/searchSong|searchArtist|searchAlbum`（kw 插件，统一 `{code,msg,data}` 信封，
-      字段对齐 MusicCopilot 前端 `SongRecord/ArtistRecord/AlbumRecord`）
+- [x] 搜索 API：kw 插件，曾统一 `{code,msg,data}` 信封（**2026-09-26 API V2 起改 REST 裸 JSON**，见下）
 - [x] API 文档 + 在线测试台：Scalar（本地化）+ Scramble 自动生成 OpenAPI 3.1 规范（2026-09-11）
-- [x] ~~鉴权~~：`POST /api/config/login|logout`、`GET|POST /api/config/isLogin`（2026-09-11 第 5 期 M1 落地；**2026-09-25 认证移除、2026-09-26 端点删除**，探活由 `/api/healthcheck` 承担，见下节）；`GET /api/config/getOption|getPlugBrTypeList` 保留
-- [x] 歌词：`POST /api/music/getLyric`（酷我 newlyric 代理，2026-09-11 随第 4 期 M1 落地）
-- [x] 歌曲详情 / 直链解析：`GET searchTips|artistAlbumById|albumInfoById` + `POST getDownloadUrl`
-      （2026-09-12 第 5 期 M2；⚠️ 直链有大陆 IP 区域限制，海外出口 code:407）
-- [x] 下载任务：`POST /api/download/downloadSong|downloadAlbum|downloadArtistAlbum` +
-      `POST /api/task/*` 8 端点（2026-09-12 第 5 期 M3，SQLite 队列 + queue:work worker）
+- [x] ~~鉴权~~：**2026-09-25 认证移除、2026-09-26 端点删除**，探活由 `/api/healthcheck` 承担
+- [x] 歌词 / 歌曲详情 / 直链解析：2026-09-12 第 5 期 M2 落地（⚠️ 直链有大陆 IP 区域限制，海外出口 code:407）
+- [x] 下载任务：三创建端点 + 任务管理（2026-09-12 第 5 期 M3，SQLite 队列 + queue:work worker）
+- [x] **API V2（2026-09-26）**：`/api/v2/*` 清理版契约——REST 语义、真 HTTP 状态码、整数类型、
+      统一分页 `{items,total,page,pageSize}`、错误体 `{error,message}`；旧信封端点整体删除
+      （探活 `/api/healthcheck` 保留历史信封形态）
 - [ ] Dockerfile / docker-compose（Dockerfile 与 compose 编排已就位，镜像构建随 CI 验证）
 
 ## 开发
@@ -29,28 +28,28 @@ MusicCopilot 仓库 `packages/api-contract` 自动生成）。
 wsl -e bash -lc "cd '<仓库路径>/MusicCopilot/server' && php artisan serve --host=0.0.0.0 --port=17017"   # <仓库路径> 按本机实际位置替换
 ```
 
-### 搜索 API 用法
+### API V2 契约（2026-09-26，现行）
+
+REST 语义：真 HTTP 状态码 + 裸 JSON，无 `{code,msg,data}` 信封；错误体 `{error: <机器码>, message: <中文文案>}`
+（422 验证 / 400 语义错 / 404 不存在 / 502 音源上游失败 / 429 限流）。分页统一 `{items, total, page, pageSize}`。
 
 ```bash
-curl 'http://127.0.0.1:17017/api/music/searchSong?plugName=kw&keyword=晴天&pageIndex=1&pageSize=3'
-curl 'http://127.0.0.1:17017/api/music/searchArtist?plugName=kw&keyword=周杰伦'
-curl 'http://127.0.0.1:17017/api/music/searchAlbum?plugName=kw&keyword=叶惠美'
+curl 'http://127.0.0.1:17017/api/v2/search/songs?plugName=kw&keyword=晴天&page=1&pageSize=3'
+curl 'http://127.0.0.1:17017/api/v2/search/artists?plugName=kw&keyword=周杰伦'
+curl 'http://127.0.0.1:17017/api/v2/search/albums?plugName=kw&keyword=叶惠美'
+curl 'http://127.0.0.1:17017/api/v2/config/options'
 ```
 
-`pageIndex` 从 1 开始（内部转酷我 pn=pageIndex-1）；`pageSize` 上限 100。
-错误统一 `{code:500, msg, data:null}`：keyword 缺失、plugName 未注册、上游请求失败。
+`page` 从 1 开始（内部转酷我 pn=page-1）；`pageSize` 上限 100。端点全表见 `openapi.json`
+（搜索/详情/歌词/直链在 `search|artists|albums|songs` 资源下，下载任务统一 `downloads` 资源，
+fnOS 代持会话在 `fnos/session`）。
 
-### 认证（2026-09-25 移除，2026-09-26 端点删除）
+### 认证（2026-09-25 移除）
 
 所有 `/api/*` 端点**公开可访问，无需任何凭证或请求头**。原鉴权体系（`sqmusic` 请求头 +
-登录 token 落库 + 403 拦截）整体删除，`login` / `isLogin` / `logout` 端点不复存在，
-`MC_API_USERNAME` / `MC_API_PASSWORD` / `MC_AUTH_TTL` 配置废弃：
+登录 token 落库 + 403 拦截）整体删除，`MC_API_USERNAME` / `MC_API_PASSWORD` / `MC_AUTH_TTL` 配置废弃：
 
-```bash
-curl -s --noproxy '*' 'http://127.0.0.1:17017/api/config/getOption'
-```
-
-- 探活统一走 **`GET /api/healthcheck`**（恒 200 + 统一信封；Docker healthcheck、运维探测与前端连接探测共用）
+- 探活统一走 **`GET /api/healthcheck`**（恒 200 + 历史信封；Docker healthcheck、运维探测与前端连接探测共用）
 - 已有部署升级后无需任何迁移：旧 token 记录（`auth_tokens` 表）留存库中但不再被读取，可无视
 
 ### 下载与任务队列（第 5 期 M3）
@@ -59,19 +58,18 @@ curl -s --noproxy '*' 'http://127.0.0.1:17017/api/config/getOption'
 # 启动 worker（开发期；Docker 部署时由 server 容器 entrypoint 自动拉起，与 API 同容器）
 php artisan queue:work --tries=1 --timeout=3600
 
-# 创建单曲任务（body 为搜索返回的完整歌曲记录；brType 省略自动选最高可用音质）
+# 创建单曲任务（body 为 V2 统一 Song 对象；brType 省略自动选最高可用音质）
 curl -s --noproxy '*' -X POST -H 'Content-Type: application/json' \
-  --data-binary @song.json 'http://127.0.0.1:17017/api/download/downloadSong'
+  --data-binary @song.json 'http://127.0.0.1:17017/api/v2/downloads/songs'
 
-# 任务列表（分页 + downloadStatus 筛选：waiting/downloading/loading/success/error）
-curl -s --noproxy '*' -X POST -H 'Content-Type: application/json' \
-  -d '{"pageIndex":1,"pageSize":20}' 'http://127.0.0.1:17017/api/task/list'
+# 任务列表（分页 + status 筛选：waiting/downloading/loading/success/error）
+curl -s --noproxy '*' 'http://127.0.0.1:17017/api/v2/downloads?page=1&pageSize=20&status=error'
 ```
 
-- 状态机：waiting → loading（解析直链）→ downloading → success / error；失败经 `errorTaskRetry` 回 waiting
+- 状态机：waiting → loading（解析直链）→ downloading → success / error；失败经 `POST /v2/downloads/{id}/retry` 回 waiting
 - 落盘「歌手 - 标题.格式」，重名追加序号；目录 `MC_MUSIC_DOWNLOAD_DIR`（默认 `storage/app/downloads`；容器内由镜像 ENV 固定为 `/downloads`，即音乐库挂载点）
-- 整张专辑同步展开（响应为任务数组，前端取长度计数）；歌手全部专辑队列异步展开、任务渐进出现
-- 删除任务记录不删已落盘文件；`delSuccessTask` 清空全部成功记录（前端有确认弹窗，脚本调用务必谨慎）
+- 整张专辑同步展开（响应 `{tasks: [...]}`，前端取长度计数）；歌手全部专辑队列异步展开（202 `{queued}`）、任务渐进出现
+- 删除任务记录不删已落盘文件；`DELETE /v2/downloads?status=success` 清空全部成功记录（前端有确认弹窗，脚本调用务必谨慎）
 
 ### API 文档与在线测试（Scalar + Scramble）
 
@@ -79,11 +77,11 @@ curl -s --noproxy '*' -X POST -H 'Content-Type: application/json' \
   （资产已本地化到 `public/vendor/scalar/`，离线 NAS 可用；CDN 产物有坏包问题勿换回，见 git 历史）
 - `http://127.0.0.1:17017/docs/api` —— Scramble 自带文档页（Stoplight Elements，控制台经实测可发真实请求）
 - `http://127.0.0.1:17017/docs/api.json` —— OpenAPI 3.1 规范（Scramble 从控制器自动生成，可喂 openapi-typescript 生成前端契约类型）
-- 本目录 `openapi.json` —— 规范固化产物（`php artisan scramble:export`），
+- 本目录 `openapi.json` —— 规范固化产物（`php artisan scramble:export --path=openapi.json`），
   契约类型单一来源：前端仓库 `packages/api-contract`（`npm run gen`）
 
-已知限制：规范中 `records` 的内部结构是宽松推断（`array<string,mixed>`），信封与分页字段精确；
-后续可用 Scramble 扩展或响应类进一步收紧。
+V2 响应结构由 `app/Http/Resources/V2/` 资源类精确推断（components.schemas），无宽松推断残留；
+新增字段时在该层调整类型转换即可。
 
 ## 目录结构
 

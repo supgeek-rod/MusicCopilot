@@ -103,8 +103,8 @@ async function remove(index: number) {
           </Avatar>
           <div class="min-w-0 flex-1">
             <div class="truncate text-sm" :title="song.name">{{ song.name }}</div>
-            <div class="truncate text-xs text-muted-foreground" :title="song.artistName?.join(' / ')">
-              {{ song.artistName?.join(' / ') || '未知歌手' }}
+            <div class="truncate text-xs text-muted-foreground" :title="song.artists?.join(' / ')">
+              {{ song.artists?.join(' / ') || '未知歌手' }}
             </div>
           </div>
           <span class="hidden w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block">

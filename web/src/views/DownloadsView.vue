@@ -84,9 +84,9 @@ function statusView(s: TaskStatus): { label: string; class: string } {
   }
 }
 
-// 大小为按入队音质的本地估算值（downloadMusicInfo），不产生额外请求
+// 大小为按入队音质的本地估算值（musicInfo），不产生额外请求
 function sizeText(t: TaskInfo): string {
-  return formatSize(taskSizeBytes(t.downloadBrType, t.downloadMusicInfo)) || '—'
+  return formatSize(taskSizeBytes(t.brType, t.musicInfo)) || '—'
 }
 
 // 组件卸载后丢弃迟到的响应，避免对已卸载实例的状态写入与路由切换竞态
@@ -98,13 +98,13 @@ async function fetchTasks(silent = false) {
   try {
     const data = await taskApi.list({
       pageSize: PAGE_SIZE,
-      pageIndex: pageIndex.value,
-      downloadStatus: status.value === 'all' ? undefined : status.value,
+      page: pageIndex.value,
+      status: status.value === 'all' ? undefined : status.value,
     })
     if (disposed) return
-    tasks.value = data.records ?? []
+    tasks.value = data.items ?? []
     total.value = data.total ?? tasks.value.length
-    pages.value = Math.max(1, data.pages ?? Math.ceil(total.value / PAGE_SIZE))
+    pages.value = Math.max(1, Math.ceil(total.value / PAGE_SIZE))
     if (pageIndex.value > pages.value) pageIndex.value = pages.value
   } catch (e) {
     if (!silent && !disposed)
@@ -181,7 +181,7 @@ function refreshTask(t: TaskInfo) {
 }
 
 function delTask(t: TaskInfo) {
-  askConfirm('删除下载任务', `确定删除「${t.downloadMusicname ?? t.id}」的任务记录吗？`, async () => {
+  askConfirm('删除下载任务', `确定删除「${t.name ?? t.id}」的任务记录吗？`, async () => {
     await withToast('任务已删除', () => taskApi.del(t.id))
   })
 }
@@ -302,15 +302,15 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
           </TableRow>
           <TableRow v-else v-for="t in tasks" :key="String(t.id)">
             <TableCell>
-              <div class="max-w-[280px] truncate text-sm font-medium" :title="t.downloadFile ?? ''">
-                {{ t.downloadMusicname || t.downloadFile || t.id }}
+              <div class="max-w-[280px] truncate text-sm font-medium" :title="t.file ?? ''">
+                {{ t.name || t.file || t.id }}
               </div>
               <div class="max-w-[280px] truncate text-xs text-muted-foreground">
-                {{ [t.downloadArtistname, t.downloadAlbumname].filter(Boolean).join(' · ') || '—' }}
+                {{ [t.artist, t.album].filter(Boolean).join(' · ') || '—' }}
               </div>
             </TableCell>
             <TableCell>
-              <QualityBadge v-if="t.downloadBrType" :br-type="t.downloadBrType" />
+              <QualityBadge v-if="t.brType" :br-type="t.brType" />
               <span v-else class="text-xs text-muted-foreground">—</span>
             </TableCell>
             <TableCell class="hidden text-xs text-muted-foreground md:table-cell">
@@ -319,18 +319,18 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
             <TableCell>
               <span
                 class="inline-flex h-5 items-center rounded-2xl px-2 text-xs font-medium"
-                :class="statusView(t.downloadStatus).class"
+                :class="statusView(t.status).class"
               >
-                {{ statusView(t.downloadStatus).label }}
+                {{ statusView(t.status).label }}
               </span>
             </TableCell>
             <TableCell class="hidden text-xs text-muted-foreground lg:table-cell">
-              {{ formatUtcDateTime(t.downloadUpdateTime) || '—' }}
+              {{ formatUtcDateTime(t.updatedAt) || '—' }}
             </TableCell>
             <TableCell class="text-right">
               <div class="flex justify-end gap-0.5">
                 <Button
-                  v-if="t.downloadStatus === 'error'"
+                  v-if="t.status === 'error'"
                   variant="ghost"
                   size="icon-sm"
                   title="重试"
@@ -340,7 +340,7 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
                   <RotateCcwIcon class="size-4" />
                 </Button>
                 <Button
-                  v-else-if="t.downloadStatus === 'waiting' || t.downloadStatus === 'loading'"
+                  v-else-if="t.status === 'waiting' || t.status === 'loading'"
                   variant="ghost"
                   size="icon-sm"
                   title="重新入队"

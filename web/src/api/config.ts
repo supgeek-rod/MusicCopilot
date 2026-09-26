@@ -1,13 +1,12 @@
 import { request } from './http'
-import type { BrTypeInfo, PlugOption } from './types'
+import type { BrTypeInfo, HealthcheckBody, PlugOption } from './types'
 
-/** 后端探活与配置接口（/api/healthcheck、/api/config/*） */
+/** 后端探活与音源配置接口（/api/healthcheck 历史信封、/api/v2/config/*） */
 export const configApi = {
-  /** 连接探活：恒 200 + 统一信封，不承载业务语义（compose 健康检查共用） */
-  healthcheck: () => request<null>({ url: '/api/healthcheck', method: 'GET' }),
+  /** 连接探活：恒 200 + 历史信封（compose 健康检查共用），不承载业务语义 */
+  healthcheck: () => request<HealthcheckBody>({ url: '/api/healthcheck', method: 'GET' }),
 
-  getOption: () => request<PlugOption[]>({ url: '/api/config/getOption', method: 'GET' }),
+  options: () => request<PlugOption[]>({ url: '/api/v2/config/options', method: 'GET' }),
 
-  getPlugBrTypeList: () =>
-    request<BrTypeInfo[]>({ url: '/api/config/getPlugBrTypeList', method: 'GET' }),
+  brTypes: () => request<BrTypeInfo[]>({ url: '/api/v2/config/br-types', method: 'GET' }),
 }

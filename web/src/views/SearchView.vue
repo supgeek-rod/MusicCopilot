@@ -138,8 +138,8 @@ async function doSearch(page = 1) {
   try {
     const data = await musicApi.searchSong(plug.value, kw, page, PAGE_SIZE)
     if (disposed || seq !== searchSeq) return
-    results.value = data.records ?? []
-    total.value = data.searchTotal ?? results.value.length
+    results.value = data.items ?? []
+    total.value = data.total ?? results.value.length
     pageIndex.value = page
     submitted.value = { kw }
     history.value = recordSearchHistory(kw)

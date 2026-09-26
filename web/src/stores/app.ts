@@ -45,7 +45,7 @@ export const useAppStore = defineStore('app', {
 
     loadMeta() {
       configApi
-        .getOption()
+        .options()
         .then((v) => {
           // 仅保留酷我音源（kw 为搜索默认值，前端不暴露其余插件）；后端标签将「酷我」打码为「某我」，展示时还原
           this.plugOptions = (v ?? [])
@@ -54,7 +54,7 @@ export const useAppStore = defineStore('app', {
         })
         .catch(() => {})
       configApi
-        .getPlugBrTypeList()
+        .brTypes()
         .then((v) => (this.brTypeList = v ?? []))
         .catch(() => {})
     },

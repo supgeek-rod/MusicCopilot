@@ -49,7 +49,7 @@ waiting → loading（解析直链）→ downloading（传输中）→ success
                               ↘ 任一步失败 → error（手动重试回 waiting）
 ```
 
-`$tries = 1`：不做自动重试，失败即落 `error` 并写明原因，由用户在任务页手动重试（`errorTaskRetry` / `againTask`），避免坏任务无限循环打上游。任务管理共 8 个端点：`list`（分页 + 状态筛选）、`del`、`refreshTask`、`errorTaskRetry`、`againTask`、`delErrorTask`、`delWaitingTask`、`delSuccessTask`（⚠️ 清空全部成功记录、只删记录不删文件，前端有确认弹窗）。
+`$tries = 1`：不做自动重试，失败即落 `error` 并写明原因，由用户在任务页手动重试（`POST /v2/downloads/{id}/retry` 或批量 `POST /v2/downloads/retries`），避免坏任务无限循环打上游。任务管理（V2 REST）：`GET /v2/downloads`（分页 + `status` 筛选）、`DELETE /v2/downloads/{id}`、`{id}/refresh`（重新入队）、`{id}/retry`（失败重试）、`retries`（全部失败重试）、`DELETE /v2/downloads?status=...` 批量删除（⚠️ `status=success` 清空全部成功记录、只删记录不删文件，前端有确认弹窗）。
 
 ### 直链解析
 
@@ -80,7 +80,7 @@ worker 在 `loading` 阶段调用音源插件的直链解析：酷我走 `mobi.k
 
 - **AAC 情形**：酷我部分歌曲的「128k mp3」实际返回 AAC 编码流，worker 按直链实际 `format` 落盘为 `.aac`（fnOS 对 `.aac` 的支持以实际版本为准）
 - **上游一致性**：基础标签（标题/歌手/专辑）与真值一致时，job 变更集只剩 albumArtist/cover/lyrics 三项——无变化跳过的守卫在起作用
-- **直链时效**：签名直链过期后下载会失败，此时重试任务会重新解析新直链（`refreshTask` / `errorTaskRetry` 均可）
+- **直链时效**：签名直链过期后下载会失败，此时重试任务会重新解析新直链（`{id}/refresh` / `{id}/retry` 均可）
 
 ## 参考实现
 
