@@ -2,7 +2,7 @@
 // 规范来源优先级：
 //   1. 环境变量 MC_API_SPEC（文件路径或 http(s) URL）
 //   2. 同级目录的 MusicCopilotServer/openapi.json（后端仓库根，scramble:export 产物）
-//   3. 本地运行中的后端 http://127.0.0.1:8097/docs/api.json
+//   3. 本地运行中的后端 http://127.0.0.1:17017/docs/api.json
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve, dirname } from 'node:path'
@@ -12,7 +12,7 @@ import openapiTS, { astToString } from 'openapi-typescript'
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = resolve(pkgDir, '../..')
 const siblingSpec = resolve(repoRoot, 'server/openapi.json')
-const fallbackUrl = 'http://127.0.0.1:8097/docs/api.json'
+const fallbackUrl = 'http://127.0.0.1:17017/docs/api.json'
 
 async function loadSpec() {
   const source = process.env.MC_API_SPEC

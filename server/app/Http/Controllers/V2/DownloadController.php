@@ -149,7 +149,8 @@ class DownloadController extends Controller
     public function destroyByStatus(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'required|string|in:'.implode(',', self::BATCH_DELETABLE_STATUSES),
+            // 字面量内联（勿与常量拼接）：Scramble 静态求值才能把枚举带进 OpenAPI 规范
+            'status' => 'required|string|in:waiting,success,error',
         ]);
 
         $count = DownloadTask::query()->where('status', $validated['status'])->delete();
