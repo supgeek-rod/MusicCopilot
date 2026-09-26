@@ -5,7 +5,7 @@ import { toast } from 'vue-sonner'
 import { taskApi } from '@/api/task'
 import type { TaskInfo, TaskStatus } from '@/api/types'
 import QualityBadge from '@/components/QualityBadge.vue'
-import { formatSize, taskSizeBytes } from '@/lib/format'
+import { formatSize, formatUtcDateTime, taskSizeBytes } from '@/lib/format'
 import { usePlayerStore } from '@/stores/player'
 import {
   AlertDialog,
@@ -325,7 +325,7 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
               </span>
             </TableCell>
             <TableCell class="hidden text-xs text-muted-foreground lg:table-cell">
-              {{ t.downloadUpdateTime || '—' }}
+              {{ formatUtcDateTime(t.downloadUpdateTime) || '—' }}
             </TableCell>
             <TableCell class="text-right">
               <div class="flex justify-end gap-0.5">

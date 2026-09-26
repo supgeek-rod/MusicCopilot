@@ -27,6 +27,21 @@ export function formatSeconds(sec?: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+/**
+ * 后端任务时间序列化为 UTC（Laravel toContract 输出 "Y-m-d H:i:s"，无时区后缀），
+ * 直接展示会比本地时间偏移（如 UTC+8 差 8 小时）。无时区后缀的输入按 UTC 解析，
+ * 带时区后缀（Z / ±hh:mm）的按原样解析，统一转为浏览器本地时区展示。
+ * 解析失败时回退原值。
+ */
+export function formatUtcDateTime(value?: string | null): string {
+  if (!value) return ''
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)
+  const date = new Date(hasZone ? value.replace(' ', 'T') : `${value.replace(' ', 'T')}Z`)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 export function formatSize(bytes?: number | null): string {
   const n = Number(bytes)
   if (!Number.isFinite(n) || n <= 0) return ''
