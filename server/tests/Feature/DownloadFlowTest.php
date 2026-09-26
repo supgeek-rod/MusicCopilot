@@ -3,15 +3,16 @@
 namespace Tests\Feature;
 
 use App\Jobs\DownloadSongJob;
-use App\Jobs\ExpandArtistAlbumJob;
 use App\Models\DownloadTask;
 use App\Plugins\Sources\SourceManager;
-use App\Services\DownloadTaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
+/**
+ * 下载 worker（DownloadSongJob）行为测试：落盘、音质选择、区域限制、
+ * 文件名清洗、路径模板。HTTP 契约层见 Tests\Feature\V2\*。
+ */
 class DownloadFlowTest extends TestCase
 {
     use RefreshDatabase;
@@ -33,121 +34,6 @@ class DownloadFlowTest extends TestCase
         }
         @rmdir($this->downloadDir);
         parent::tearDown();
-    }
-
-    private function songPayload(): array
-    {
-        // 对齐前端 QualityMenu queue()：完整 SongRecord + 可选 brType
-        return [
-            'id' => '228908',
-            'name' => '晴天',
-            'artistName' => ['周杰伦'],
-            'albumName' => '叶惠美',
-            'albumid' => '1293',
-            'plugName' => 'kw',
-            'duration' => '269000',
-            'brTypes' => ['KW_FLAC_2000', 'KW_MP3_320', 'KW_MP3_128'],
-            'dataInfo' => ['MINFO' => 'level:h,bitrate:128,format:mp3,size:4.12Mb', 'N_MINFO' => 'level:ff,bitrate:2000,format:flac,size:52.83Mb'],
-        ];
-    }
-
-    public function test_download_song_creates_task_and_dispatches_job(): void
-    {
-        Queue::fake();
-
-        $this
-            ->postJson('/api/download/downloadSong', $this->songPayload())
-            ->assertOk()
-            ->assertJsonPath('code', 200);
-
-        $task = DownloadTask::query()->sole();
-        $this->assertSame('waiting', $task->status);
-        $this->assertSame('228908', $task->music_id);
-        $this->assertSame('晴天', $task->music_name);
-        $this->assertSame('周杰伦', $task->artist_name);
-        // musicInfo 为上游原始条目（顶层含 MINFO/N_MINFO，前端估算大小用）
-        $info = json_decode((string) $task->music_info, true);
-        $this->assertSame('level:h,bitrate:128,format:mp3,size:4.12Mb', $info['MINFO']);
-
-        Queue::assertPushed(DownloadSongJob::class, fn (DownloadSongJob $job) => $job->taskId === $task->id);
-    }
-
-    public function test_download_song_rejects_missing_name(): void
-    {
-        $this
-            ->postJson('/api/download/downloadSong', ['id' => '228908', 'plugName' => 'kw'])
-            ->assertOk()
-            ->assertJsonPath('code', 500);
-    }
-
-    public function test_download_album_expands_tracks_and_returns_contract_array(): void
-    {
-        Queue::fake();
-        Http::fake([
-            '*stype=albuminfo*' => Http::response($this->fakeAlbumInfo()),
-        ]);
-
-        $response = $this
-            ->postJson('/api/download/downloadAlbum', [
-                'albumName' => '叶惠美',
-                'albumid' => '1293',
-                'artistName' => '周杰伦',
-                'plugName' => 'kw',
-                'bit' => 2000,
-            ]);
-
-        $response->assertOk()->assertJsonPath('code', 200);
-        $created = $response->json('data');
-        $this->assertIsArray($created);
-        $this->assertCount(2, $created);
-        $this->assertSame('晴天', $created[0]['downloadMusicname']);
-        $this->assertSame('waiting', $created[0]['downloadStatus']);
-        $this->assertSame('KW_FLAC_2000', $created[0]['downloadBrType']);
-
-        // bit=2000 → KW_FLAC_2000
-        $this->assertSame('KW_FLAC_2000', DownloadTask::query()->first()->br_type);
-        Queue::assertPushed(DownloadSongJob::class, 2);
-    }
-
-    public function test_download_album_rejects_unknown_bit(): void
-    {
-        $this
-            ->postJson('/api/download/downloadAlbum', ['albumid' => '1293', 'plugName' => 'kw', 'bit' => 999])
-            ->assertOk()
-            ->assertJsonPath('code', 500);
-    }
-
-    public function test_download_artist_album_expands_async(): void
-    {
-        Queue::fake();
-
-        $this
-            ->postJson('/api/download/downloadArtistAlbum', [
-                'artistName' => '周杰伦',
-                'artistid' => '336',
-                'plugName' => 'kw',
-            ])
-            ->assertOk()
-            ->assertJsonPath('code', 200);
-
-        Queue::assertPushed(ExpandArtistAlbumJob::class);
-        $this->assertSame(0, DownloadTask::query()->count());
-
-        // 异步执行展开：2 张专辑（2 首 + 1 首）→ 3 个任务
-        Http::fake([
-            '*stype=artistinfo*' => Http::response(['name' => '周杰伦', 'albumnum' => '2']),
-            '*stype=albumlist*' => Http::response(['albumlist' => [
-                ['albumid' => '9001', 'name' => '专辑A'],
-                ['albumid' => '9002', 'name' => '专辑B'],
-            ]]),
-            '*albumid=9001*' => Http::response($this->fakeAlbumInfo('9001', '专辑A')),
-            '*albumid=9002*' => Http::response($this->fakeAlbumInfo('9002', '专辑B')),
-        ]);
-        (new ExpandArtistAlbumJob('kw', '336', 'KW_MP3_320'))
-            ->handle(app(SourceManager::class), app(DownloadTaskService::class));
-
-        $this->assertSame(4, DownloadTask::query()->count());
-        Queue::assertPushed(DownloadSongJob::class, 4);
     }
 
     public function test_job_downloads_file_and_succeeds(): void
@@ -264,7 +150,6 @@ class DownloadFlowTest extends TestCase
     {
         config(['mc.download.path_template' => '{albumArtist}/{album}/{title} - {albumArtist}.{ext}']);
         Http::fake([
-            '*stype=albuminfo*' => Http::response($this->fakeAlbumInfo()),
             'mobi.kuwo.cn/*' => Http::response([
                 'code' => 200,
                 'data' => ['bitrate' => 128, 'duration' => 269, 'format' => 'mp3', 'url' => 'http://kw-er.kuwo.cn/x/M500.mp3'],
@@ -317,20 +202,5 @@ class DownloadFlowTest extends TestCase
             'status' => DownloadTask::STATUS_WAITING,
             'update_time' => now(),
         ], $overrides);
-    }
-
-    private function fakeAlbumInfo(string $albumId = '1293', string $albumName = '叶惠美'): array
-    {
-        return [
-            'albumid' => $albumId,
-            'name' => $albumName,
-            'artist' => '周杰伦',
-            'artistid' => '336',
-            'pub' => '2003-07-31',
-            'musiclist' => [
-                ['musicrid' => '228908', 'name' => '晴天', 'artist' => '周杰伦', 'album' => $albumName, 'albumId' => (int) $albumId, 'duration' => '269', 'N_MINFO' => 'level:ff,bitrate:2000,format:flac,size:52.83Mb;level:h,bitrate:128,format:mp3,size:4.12Mb'],
-                ['musicrid' => '79476', 'name' => '懦夫', 'artist' => '周杰伦', 'album' => $albumName, 'albumId' => (int) $albumId, 'duration' => '269', 'MINFO' => 'level:p,bitrate:320,format:mp3,size:8.32Mb'],
-            ],
-        ];
     }
 }
