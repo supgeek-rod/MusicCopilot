@@ -166,22 +166,24 @@ async function enqueue(song: SongRecord) {
           <Button
             variant="ghost"
             size="icon-sm"
+            class="max-sm:size-9"
             title="播放"
             :disabled="player.loading"
             @click="playNow(song)"
           >
             <PlayIcon class="size-4" />
           </Button>
-          <Button variant="ghost" size="icon-sm" title="加入播放队列" @click="enqueue(song)">
+          <Button variant="ghost" size="icon-sm" class="max-sm:size-9" title="加入播放队列" @click="enqueue(song)">
             <ListPlusIcon class="size-4" />
           </Button>
-          <Button variant="ghost" size="icon-sm" title="歌词" @click="emit('lyrics', song)">
+          <Button variant="ghost" size="icon-sm" class="max-sm:size-9" title="歌词" @click="emit('lyrics', song)">
             <FileTextIcon class="size-4" />
           </Button>
           <Button
             v-if="!isFnos(song)"
             variant="ghost"
             size="icon-sm"
+            class="max-sm:size-9"
             title="下载到服务器"
             :disabled="downloadBusy"
             @click="quickDownload(song)"
