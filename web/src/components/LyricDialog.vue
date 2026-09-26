@@ -69,7 +69,7 @@ watch(
       // fnOS 本地曲目走音乐库歌词接口（/lyric/list 取 preferred），在线源走后端 getLyric
       const text =
         props.song.plugName === 'fnos'
-          ? await getFnosLyric(props.song.id)
+          ? await getFnosLyric(String(props.song.id))
           : await musicApi.getLyric(props.song.plugName, props.song.id)
       if (disposed || seq !== reqSeq) return
       const raw = String(text ?? '')
@@ -148,7 +148,7 @@ onBeforeUnmount(() => {
       <DialogHeader>
         <DialogTitle class="truncate">{{ song?.name || '歌词' }}</DialogTitle>
         <DialogDescription class="truncate">
-          {{ song?.artistName?.join(' / ') }}<template v-if="song?.albumName"> · {{ song.albumName }}</template>
+          {{ song?.artists?.join(' / ') }}<template v-if="song?.albumName"> · {{ song.albumName }}</template>
         </DialogDescription>
       </DialogHeader>
 

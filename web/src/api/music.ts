@@ -1,110 +1,104 @@
-import { http, request } from './http'
+import { request } from './http'
 import type {
   AlbumInfo,
   AlbumRecord,
   AlbumSearchPage,
-  AlbumSong,
   ArtistInfo,
   ArtistRecord,
   ArtistSearchPage,
   DownloadUrlInfo,
+  LyricData,
   SongRecord,
   SongSearchPage,
+  TaskList,
 } from './types'
 
 export const musicApi = {
   /** 搜索联想词 */
   searchTips: (plugName: string, keyword: string) =>
     request<string[]>({
-      url: '/api/music/searchTips',
+      url: '/api/v2/search/tips',
       method: 'GET',
       params: { plugName, keyword, _t: Date.now() },
     }),
 
-  /** 搜索单曲（分页） */
-  searchSong: (plugName: string, keyword: string, pageIndex = 1, pageSize = 30) =>
+  /** 搜索单曲（统一分页 {items,total,page,pageSize}） */
+  searchSong: (plugName: string, keyword: string, page = 1, pageSize = 30) =>
     request<SongSearchPage>({
-      url: '/api/music/searchSong',
+      url: '/api/v2/search/songs',
       method: 'GET',
-      params: { plugName, keyword, pageIndex, pageSize },
+      params: { plugName, keyword, page, pageSize },
     }),
 
-  /** 搜索歌手（分页） */
-  searchArtist: (plugName: string, keyword: string, pageIndex = 1, pageSize = 20) =>
+  /** 搜索歌手 */
+  searchArtist: (plugName: string, keyword: string, page = 1, pageSize = 20) =>
     request<ArtistSearchPage>({
-      url: '/api/music/searchArtist',
+      url: '/api/v2/search/artists',
       method: 'GET',
-      params: { plugName, keyword, pageIndex, pageSize },
+      params: { plugName, keyword, page, pageSize },
     }),
 
-  /** 搜索专辑（分页） */
-  searchAlbum: (plugName: string, keyword: string, pageIndex = 1, pageSize = 20) =>
+  /** 搜索专辑 */
+  searchAlbum: (plugName: string, keyword: string, page = 1, pageSize = 20) =>
     request<AlbumSearchPage>({
-      url: '/api/music/searchAlbum',
+      url: '/api/v2/search/albums',
       method: 'GET',
-      params: { plugName, keyword, pageIndex, pageSize },
+      params: { plugName, keyword, page, pageSize },
     }),
 
   /** 歌手详情（响应自带该歌手全部专辑 albums） */
-  artistAlbumById: (plugName: string, id: string) =>
+  artistAlbums: (plugName: string, id: number | string) =>
     request<ArtistInfo>({
-      url: '/api/music/artistAlbumById',
+      url: `/api/v2/artists/${id}/albums`,
       method: 'GET',
-      params: { plugName, id },
+      params: { plugName },
     }),
 
-  /** 专辑详情（响应自带曲目列表 musics） */
-  albumInfoById: (plugName: string, id: string) =>
+  /** 专辑详情（响应自带曲目列表 songs，条目与搜索记录同为 SongRecord） */
+  albumShow: (plugName: string, id: number | string) =>
     request<AlbumInfo>({
-      url: '/api/music/albumInfoById',
+      url: `/api/v2/albums/${id}`,
       method: 'GET',
-      params: { plugName, id },
+      params: { plugName },
     }),
 
-  /**
-   * LRC 歌词。该接口不遵循统一包裹：文本在 msg 字段返回，这里做兼容处理。
-   */
-  getLyric: async (plugName: string, id: string) => {
-    const res = await http.request<unknown>({
-      url: '/api/music/getLyric',
-      method: 'POST',
-      data: { plugName, id },
+  /** LRC 歌词（V2 回归标准 JSON 体 {lyric}） */
+  getLyric: async (plugName: string, id: number | string): Promise<string> => {
+    const data = await request<LyricData>({
+      url: `/api/v2/songs/${id}/lyric`,
+      method: 'GET',
+      params: { plugName },
     })
-    // http.request 返回 AxiosResponse，真正的响应体在 data 上；体为 null/空时直接按无歌词处理
-    const body = (res as { data?: unknown }).data
-    if (typeof body === 'string') return body
-    const obj = body as { code?: number; msg?: unknown; data?: unknown }
-    if (typeof obj?.data === 'string') return obj.data
-    if (typeof obj?.msg === 'string') return obj.msg
-    return ''
+    return data?.lyric ?? ''
   },
 
-  /** 获取下载/试听直链；brTypes 必传歌曲记录里的音质列表，否则后端解析码率失败 */
-  getDownloadUrl: (plugName: string, id: string, brType: string, brTypes: string[] = []) =>
+  /** 获取下载/试听直链（⚠️ 酷我直链有大陆 IP 区域限制） */
+  getDownloadUrl: (plugName: string, id: number | string, brType: string) =>
     request<DownloadUrlInfo>({
-      url: '/api/music/getDownloadUrl',
-      method: 'POST',
-      data: { plugName, id, brType, brTypes },
+      url: `/api/v2/songs/${id}/download-url`,
+      method: 'GET',
+      params: { plugName, brType },
     }),
 
-  /** 创建服务端下载任务：传搜索返回的完整歌曲记录，brType 省略时后端自动选最高音质 */
+  /** 创建单曲下载任务：body 为统一 SongRecord，brType 省略时后端自动选最高音质 */
   downloadSong: (song: SongRecord, brType?: string) => {
     const data: Record<string, unknown> = { ...song }
     if (brType) data.brType = brType
-    return request<unknown>({ url: '/api/download/downloadSong', method: 'POST', data })
+    return request<TaskList>({ url: '/api/v2/downloads/songs', method: 'POST', data })
   },
 
-  /** 整张专辑批量下载：传专辑记录，bit 为整数码率（如 2000），省略用默认音质 */
+  /** 整张专辑批量下载：bit 为整数码率（如 2000），省略用默认音质；返回创建的任务数组 */
   downloadAlbum: (album: AlbumRecord, bit?: number) => {
     const data: Record<string, unknown> = { ...album }
     if (bit) data.bit = bit
-    return request<unknown>({ url: '/api/download/downloadAlbum', method: 'POST', data })
+    return request<TaskList>({ url: '/api/v2/downloads/albums', method: 'POST', data })
   },
 
-  /** 下载歌手全部专辑 */
-  downloadArtistAlbum: (artist: ArtistRecord, bit?: number) => {
-    const data: Record<string, unknown> = { ...artist }
-    if (bit) data.bit = bit
-    return request<unknown>({ url: '/api/download/downloadArtistAlbum', method: 'POST', data })
-  },
+  /** 下载歌手全部专辑：专辑多，入队异步展开（202），任务在列表中渐进出现 */
+  downloadArtistAlbums: (plugName: string, artistId: number | string, bit?: number) =>
+    request<{ queued: boolean }>({
+      url: `/api/v2/downloads/artists/${artistId}`,
+      method: 'POST',
+      params: { plugName, ...(bit ? { bit } : {}) },
+    }),
 }

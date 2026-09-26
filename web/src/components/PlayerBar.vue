@@ -180,7 +180,7 @@ function close() {
         <div class="min-w-0 flex-1 sm:w-40 sm:shrink-0 sm:flex-none">
           <div class="truncate text-sm font-medium" :title="player.song?.name">{{ player.song?.name }}</div>
           <div class="truncate text-xs text-muted-foreground">
-            {{ player.song?.artistName?.join(' / ') || '未知歌手' }}
+            {{ player.song?.artists?.join(' / ') || '未知歌手' }}
             <span v-if="player.queuePosition" class="ml-1 tabular-nums">{{ player.queuePosition }}</span>
           </div>
         </div>

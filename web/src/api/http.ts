@@ -1,5 +1,4 @@
 import axios, { AxiosError } from 'axios'
-import type { ApiResponse } from './types'
 
 /**
  * http 层与 Pinia store 解耦：store 在启动时把运行时信息绑进来，
@@ -42,22 +41,16 @@ http.interceptors.response.use(
     if (!error.response) {
       return Promise.reject(new ApiError('无法连接后端服务，请检查 .env / config.json 的 baseUrl 与网络'))
     }
+    // V2 错误体为 {error, message}；healthcheck 等历史端点的 {msg} 一并兼容
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = error.response.data as any
-    const msg: string = body?.msg || `请求失败（HTTP ${error.response.status}）`
+    const msg: string = body?.message || body?.msg || `请求失败（HTTP ${error.response.status}）`
     return Promise.reject(new ApiError(msg, error.response.status))
   },
 )
 
-/** 发起请求并解包统一响应 {code,msg,data} */
+/** 发起请求并直接返回响应体（API V2 无信封：裸 JSON + 真 HTTP 状态码） */
 export async function request<T>(config: Parameters<typeof http.request>[0]): Promise<T> {
-  const res = await http.request<ApiResponse<T>>(config)
-  const body = res.data
-  if (body && typeof body === 'object' && 'code' in body) {
-    if (body.code !== 200) {
-      throw new ApiError(body.msg || `接口返回错误（code=${body.code}）`, res.status, body.code)
-    }
-    return body.data
-  }
-  return body as unknown as T
+  const res = await http.request<T>(config)
+  return res.data
 }

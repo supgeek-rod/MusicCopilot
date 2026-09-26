@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { musicApi } from '@/api/music'
-import type { AlbumInfo, SongRecord } from '@/api/types'
+import type { AlbumInfo, AlbumRecord, SongRecord } from '@/api/types'
 import SongList from '@/components/SongList.vue'
 import {
   AlertDialog,
@@ -25,7 +25,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { albumSongToRecord } from '@/lib/adapter'
 import { brTypeLabel, parseBrType, sortBrTypes } from '@/lib/format'
 import { useSanitizedHtml } from '@/lib/sanitize'
 import { usePlayerStore } from '@/stores/player'
@@ -43,7 +42,7 @@ const loading = ref(false)
 const error = ref('')
 const expanded = ref(false)
 
-const describe = useSanitizedHtml(() => info.value?.albumDescribe)
+const describe = useSanitizedHtml(() => info.value?.description)
 
 const confirm = reactive<{
   open: boolean
@@ -63,8 +62,7 @@ const qualityOptions = computed(() => {
 })
 
 function trackOf(s: SongRecord): number {
-  const t = Number((s.dataInfo as Record<string, unknown> | undefined)?.track)
-  return Number.isFinite(t) ? t : 9999
+  return s.trackNo ?? 9999
 }
 
 // 卸载后丢弃迟到响应，避免与路由切换竞态；请求序号用于同组件路由复用（专辑 A→B）时丢弃旧结果
@@ -84,12 +82,10 @@ async function load() {
   error.value = ''
   loading.value = true
   try {
-    const data = await musicApi.albumInfoById(plug.value, albumId.value)
+    const data = await musicApi.albumShow(plug.value, albumId.value)
     if (disposed || seq !== loadSeq) return
     info.value = data
-    songs.value = (data.musics ?? [])
-      .map(albumSongToRecord)
-      .sort((a, b) => trackOf(a) - trackOf(b))
+    songs.value = (data.songs ?? []).slice().sort((a, b) => trackOf(a) - trackOf(b))
   } catch (e) {
     if (disposed || seq !== loadSeq) return
     error.value = e instanceof Error ? e.message : String(e)
@@ -128,26 +124,25 @@ async function runConfirm() {
 
 function queueAlbum(bit?: number) {
   if (!info.value) return
+  const album: AlbumRecord = {
+    id: info.value.id,
+    name: info.value.name,
+    artist: info.value.artist,
+    artistId: info.value.artistId,
+    pic: info.value.pic,
+    trackCount: info.value.trackCount,
+    publishTime: info.value.publishTime,
+    description: null,
+    plugName: plug.value,
+  }
   askConfirm(
     '下载整张专辑',
-    `将把「${info.value.albumName}」的全部 ${songs.value.length} 首歌曲加入服务器下载队列（${bit ? `${bit}K` : '默认音质'}）。`,
+    `将把「${info.value.name}」的全部 ${songs.value.length} 首歌曲加入服务器下载队列（${bit ? `${bit}K` : '默认音质'}）。`,
     async () => {
       try {
-        const res = await musicApi.downloadAlbum(
-          {
-            albumName: info.value!.albumName,
-            albumid: String(info.value!.albumId),
-            artistName: info.value!.albumArtist ?? null,
-            artistid: info.value!.albumArtistId ?? null,
-            pic: info.value!.albumImg ?? null,
-            plugName: plug.value,
-            total: songs.value.length,
-            dataInfo: info.value!.dataInfo,
-          },
-          bit,
-        )
-        const count = Array.isArray(res) ? res.length : songs.value.length
-        toast.success('专辑已加入下载队列', { description: `${info.value!.albumName} · ${count} 首` })
+        const res = await musicApi.downloadAlbum(album, bit)
+        const count = res.tasks?.length ?? songs.value.length
+        toast.success('专辑已加入下载队列', { description: `${info.value!.name} · ${count} 首` })
       } catch (e) {
         toast.error('加入下载队列失败', { description: e instanceof Error ? e.message : String(e) })
       }
@@ -188,9 +183,9 @@ function queueAlbum(bit?: number) {
       <div class="flex flex-col gap-6 sm:flex-row">
         <div class="size-44 shrink-0 overflow-hidden rounded-lg bg-muted shadow-lg sm:size-52">
           <img
-            v-if="info.albumImg"
-            :src="info.albumImg"
-            :alt="info.albumName"
+            v-if="info.pic"
+            :src="info.pic"
+            :alt="info.name"
             class="size-full object-cover"
             @error="hideImg"
           />
@@ -202,20 +197,19 @@ function queueAlbum(bit?: number) {
           <div class="flex items-center gap-2">
             <Badge variant="outline" class="shrink-0">专辑</Badge>
           </div>
-          <h1 class="mt-2 truncate text-2xl font-semibold" :title="info.albumName">
-            {{ info.albumName }}
+          <h1 class="mt-2 truncate text-2xl font-semibold" :title="info.name">
+            {{ info.name }}
           </h1>
           <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <template v-if="info.albumArtist">
+            <template v-if="info.artist">
               <RouterLink
-                v-if="info.albumArtistId"
-                :to="`/artist/${plug}/${info.albumArtistId}`"
+                v-if="info.artistId"
+                :to="`/artist/${plug}/${info.artistId}`"
                 class="font-medium text-foreground hover:underline"
-              >{{ info.albumArtist }}</RouterLink>
-              <span v-else class="font-medium text-foreground">{{ info.albumArtist }}</span>
+              >{{ info.artist }}</RouterLink>
+              <span v-else class="font-medium text-foreground">{{ info.artist }}</span>
             </template>
-            <span v-if="info.albumTime">· {{ info.albumTime.slice(0, 10) }}</span>
-            <span v-if="info.dataInfo?.company">· {{ info.dataInfo.company }}</span>
+            <span v-if="info.publishTime">· {{ info.publishTime.slice(0, 10) }}</span>
             <span v-if="songs.length">· {{ songs.length }} 首</span>
           </div>
           <div class="mt-4 flex flex-wrap gap-2">

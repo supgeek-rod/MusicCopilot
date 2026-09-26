@@ -1,95 +1,69 @@
-/** 后端统一响应包裹 */
-export interface ApiResponse<T> {
-  code: number
-  msg: string | null
-  data: T
-}
+/**
+ * 前端接口类型：全部由 packages/api-contract 的生成类型派生（API V2 契约，
+ * openapi-typescript 从 server/openapi.json 生成，勿手改其 index.d.ts）。
+ * 字段即后端响应形态——整数就是 number、分页统一 {items,total,page,pageSize}、
+ * 搜索条目与专辑曲目为同一 SongRecord（V2 起 adapter 不再需要形态适配）。
+ *
+ * 生成物更新：cd packages/api-contract && npm run gen
+ */
+import type { components } from '@musiccopilot/api-contract'
 
-/** 音源插件选项（getOption） */
-export interface PlugOption {
-  label: string
-  value: string
-}
+type Schemas = components['schemas']
 
-/** 音质枚举项（getPlugBrTypeList） */
-export interface BrTypeInfo {
-  id?: string
-  value?: string
-  type?: string
-  bit?: number | string
-  plugName?: string
-  springName?: string
-}
+/** 音源插件选项（/v2/config/options） */
+export type PlugOption = Schemas['PlugOptionResource']
 
-/** 搜索单曲返回的歌曲记录 */
-export interface SongRecord {
-  id: string
-  name: string
-  artistName: string[]
-  artistids?: string[]
-  pic?: string | null
-  albumName?: string | null
-  albumid?: string | null
-  lyric?: string | null
-  lyricId?: string | null
-  plugName: string
-  duration?: string | number | null
-  brTypes?: string[]
-  dataInfo?: Record<string, unknown>
-}
+/** 音质枚举项（/v2/config/br-types） */
+export type BrTypeInfo = Schemas['BrTypeResource']
 
-/** searchSong 分页响应 */
-export interface SongSearchPage {
-  searchKeyWork?: string
-  searchIndex?: number
-  searchSize?: number
-  searchTotal?: number
-  records: SongRecord[]
-}
-
-/** getDownloadUrl 返回 */
-export interface DownloadUrlInfo {
-  url: string
-  brType: string
-  size?: number
-  duration?: number
-  format?: string
-}
-
-export type TaskStatus = 'waiting' | 'downloading' | 'loading' | 'success' | 'error' | (string & {})
-
-/** 下载任务记录（task/list） */
-export interface TaskInfo {
+/**
+ * 统一歌曲形态（搜索条目 = 专辑曲目 = 下载创建入参）。
+ * id/artistIds/albumId 放宽为 number | string：在线音源（kw）为整数，
+ * fnOS 本地曲目用 guid 字符串，二者共用 SongRecord 走播放队列/列表组件；
+ * playcnt/trackNo 为在线源热度/曲目序（fnOS 记录缺省）。
+ */
+export type SongRecord = Omit<
+  Schemas['SongResource'],
+  'id' | 'artistIds' | 'albumId' | 'playcnt' | 'trackNo'
+> & {
   id: number | string
-  downloadGid?: string | null
-  downloadTime?: string | null
-  downloadFile?: string | null
-  downloadMusicId?: string | null
-  downloadPlugName?: string | null
-  downloadBrType?: string | null
-  downloadMusicname?: string | null
-  downloadArtistname?: string | null
-  downloadAlbumname?: string | null
-  downloadMsg?: string | null
-  /** 入队时的原始歌曲信息（JSON 字符串，各插件结构不同；kw 含 MINFO 音质清单可估大小） */
-  downloadMusicInfo?: string | null
-  downloadStatus: TaskStatus
-  springName?: string | null
-  audioBook?: string | null
-  downloadUpdateTime?: string | null
-  rewriteMp3tag?: string | null
-  downloadBits?: string | null
-  downloadBrTypes?: string[] | null
+  artistIds: Array<number | string>
+  albumId?: number | string | null
+  playcnt?: number | null
+  trackNo?: number | null
 }
 
-/** task/list 分页响应（MyBatis-Plus 风格） */
-export interface TaskPage {
-  records: TaskInfo[]
-  total: number
-  size: number
-  current: number
-  pages: number
-}
+/** 歌手搜索记录（/v2/search/artists） */
+export type ArtistRecord = Schemas['ArtistResource']
+
+/** 专辑搜索记录（/v2/search/albums；整张专辑下载创建入参） */
+export type AlbumRecord = Schemas['AlbumResource']
+
+/** 歌手详情 + 全部专辑（/v2/artists/{id}/albums） */
+export type ArtistInfo = Schemas['ArtistDetailResource']
+
+/** 专辑详情 + 曲目（/v2/albums/{id}；songs 为统一 SongRecord） */
+export type AlbumInfo = Schemas['AlbumDetailResource']
+
+/** 直链解析结果（/v2/songs/{id}/download-url；duration 统一毫秒） */
+export type DownloadUrlInfo = Schemas['DownloadUrlResource']
+
+/** 歌词响应体（/v2/songs/{id}/lyric） */
+export type LyricData = Schemas['LyricResource']
+
+/** 下载任务记录（/v2/downloads） */
+export type TaskInfo = Schemas['TaskResource']
+
+export type TaskStatus = TaskInfo['status']
+
+/** 统一分页形态 {items, total, page, pageSize} */
+export type SongSearchPage = Schemas['SongPageResource']
+export type ArtistSearchPage = Schemas['ArtistPageResource']
+export type AlbumSearchPage = Schemas['AlbumPageResource']
+export type TaskPage = Schemas['TaskPageResource']
+
+/** 下载创建结果（单曲 1 项 / 整张专辑 N 项） */
+export type TaskList = Schemas['TaskListResource']
 
 /** fnOS 音乐库接入配置（config.json 的 fnos 字段，MC_FNOS_* 变量生成） */
 export interface FnosAppConfig {
@@ -108,96 +82,9 @@ export interface AppConfig {
   fnos?: FnosAppConfig
 }
 
-/** 搜索歌手返回的记录 */
-export interface ArtistRecord {
-  artistName: string
-  artistid: string
-  pic?: string | null
-  plugName: string
-  /** 专辑数量（字符串数字） */
-  total?: string | null
-  dataInfo?: Record<string, unknown>
-}
-
-/** searchArtist 分页响应 */
-export interface ArtistSearchPage {
-  records: ArtistRecord[]
-  searchTotal?: number
-  searchIndex?: number
-  searchSize?: number
-}
-
-/** searchAlbum 返回的专辑记录（downloadAlbum 使用此结构） */
-export interface AlbumRecord {
-  albumName: string
-  albumid: string
-  artistName?: string | null
-  artistid?: string | null
-  pic?: string | null
-  plugName: string
-  total?: number | string | null
-  dataInfo?: Record<string, unknown>
-}
-
-/** searchAlbum 分页响应 */
-export interface AlbumSearchPage {
-  records: AlbumRecord[]
-  searchTotal?: number
-  searchIndex?: number
-  searchSize?: number
-}
-
-/** 歌手详情（artistAlbumById），albums 为该歌手全部专辑 */
-export interface ArtistInfo {
-  id: string
-  musicArtistsName: string
-  musicArtistsSex?: string | null
-  musicArtistsPhoto?: string | null
-  musicArtistsDescribe?: string | null
-  musicArtistsAlias?: string | null
-  /** 详情风格专辑记录，结构与 AlbumRecord 不同，需适配 */
-  albums?: AlbumDetailRecord[] | null
-}
-
-/** 专辑详情风格的专辑记录（artistAlbumById.albums 元素） */
-export interface AlbumDetailRecord {
-  albumId: string
-  albumName: string
-  albumTime?: string | null
-  albumDescribe?: string | null
-  albumArtist?: string | null
-  albumArtistId?: string | null
-  albumImg?: string | null
-  dataInfo?: Record<string, unknown>
-  /** 结构同 AlbumSong，但实测恒为空数组——歌手页曲目需逐专辑调 albumInfoById 获取 */
-  musics?: AlbumSong[] | null
-}
-
-/** 专辑详情（albumInfoById），musics 为专辑内曲目 */
-export interface AlbumInfo {
-  albumId: string
-  albumName: string
-  albumTime?: string | null
-  albumDescribe?: string | null
-  albumArtist?: string | null
-  albumArtistId?: string | null
-  albumImg?: string | null
-  dataInfo?: Record<string, unknown>
-  musics?: AlbumSong[] | null
-}
-
-/** 专辑详情返回的曲目结构（字段命名与搜索接口不同，需适配为 SongRecord） */
-export interface AlbumSong {
-  id: string
-  musicName: string
-  musicArtists?: string[] | null
-  musicAlbum?: string | null
-  musicImage?: string | null
-  /** 秒 */
-  musicDuration?: number | null
-  bits?: string[] | null
-  plugName: string
-  albumId?: string | null
-  artistsIds?: string[] | null
-  dataInfo?: Record<string, unknown>
+/** /api/healthcheck 响应：唯一保留历史 {code,msg,data} 信封的端点（探活消费方不变） */
+export interface HealthcheckBody {
+  code: number
+  msg: string | null
+  data: null
 }

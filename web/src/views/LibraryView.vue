@@ -315,7 +315,7 @@ function gridItemsFor(tab: TabKey): unknown[] {
 
 const gridItems = computed<unknown[]>(() => gridItemsFor(activeTab.value))
 
-function artistNames(a: FnosAlbum): string {
+function artistss(a: FnosAlbum): string {
   return (a.artists ?? []).map((x) => x.name).join(' / ') || '未知歌手'
 }
 
@@ -602,7 +602,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
                 </div>
                 <div class="mt-1.5 truncate text-sm font-medium" :title="s.name">{{ s.name }}</div>
                 <div class="truncate text-xs text-muted-foreground">
-                  {{ s.artistName?.join(' / ') || '未知歌手' }}
+                  {{ s.artists?.join(' / ') || '未知歌手' }}
                 </div>
               </button>
             </div>
@@ -652,7 +652,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
                 </div>
                 <div class="mt-1.5 truncate text-sm font-medium" :title="s.name">{{ s.name }}</div>
                 <div class="truncate text-xs text-muted-foreground">
-                  {{ s.artistName?.join(' / ') || '未知歌手' }}
+                  {{ s.artists?.join(' / ') || '未知歌手' }}
                 </div>
               </button>
             </div>
@@ -733,7 +733,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
                   </div>
                   <div class="mt-2 truncate text-sm font-medium" :title="a.name">{{ a.name }}</div>
                   <div class="truncate text-xs text-muted-foreground">
-                    {{ artistNames(a) }} · {{ a.trackCount ?? '?' }} 首
+                    {{ artistss(a) }} · {{ a.trackCount ?? '?' }} 首
                   </div>
                 </button>
               </div>
