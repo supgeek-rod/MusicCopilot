@@ -168,97 +168,140 @@ function close() {
         @ended="onEnded"
         @error="onError"
       />
-      <div class="mx-auto flex h-16 w-full max-w-5xl items-center gap-3 px-4">
-        <Avatar class="size-10 shrink-0 rounded-md">
-          <AvatarImage v-if="player.song.pic" :src="player.song.pic" />
-          <AvatarFallback class="rounded-md">
-            <Music2Icon class="size-4 text-muted-foreground" />
-          </AvatarFallback>
-        </Avatar>
+      <div class="mx-auto w-full max-w-5xl px-4">
+        <!-- 主行：封面 + 标题 + 走带控制；移动端时间/进度/模式/队列下沉到第二行 -->
+        <div class="flex h-14 items-center gap-3 sm:h-16">
+          <Avatar class="size-10 shrink-0 rounded-md">
+            <AvatarImage v-if="player.song.pic" :src="player.song.pic" />
+            <AvatarFallback class="rounded-md">
+              <Music2Icon class="size-4 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
 
-        <!-- 移动端 flex-1 占剩余空间（进度条与标题共享），sm 起固定 10rem 宽 -->
-        <div class="min-w-0 flex-1 sm:w-40 sm:shrink-0 sm:flex-none">
-          <div class="truncate text-sm font-medium" :title="player.song?.name">{{ player.song?.name }}</div>
-          <div class="truncate text-xs text-muted-foreground">
-            {{ player.song?.artists?.join(' / ') || '未知歌手' }}
-            <span v-if="player.queuePosition" class="ml-1 tabular-nums">{{ player.queuePosition }}</span>
+          <!-- 移动端 flex-1 独占剩余空间，sm 起固定 10rem 宽（进度条在第二行） -->
+          <div class="min-w-0 flex-1 sm:w-40 sm:shrink-0 sm:flex-none">
+            <div class="truncate text-sm font-medium" :title="player.song?.name">{{ player.song?.name }}</div>
+            <div class="truncate text-xs text-muted-foreground">
+              {{ player.song?.artists?.join(' / ') || '未知歌手' }}
+              <span v-if="player.queuePosition" class="ml-1 tabular-nums">{{ player.queuePosition }}</span>
+            </div>
           </div>
-        </div>
 
-        <Button
-          v-if="player.queue.length > 1"
-          variant="ghost"
-          size="icon-sm"
-          title="上一首（Ctrl+←）"
-          :disabled="!player.hasPrev"
-          @click="prev"
-        >
-          <SkipBackIcon class="size-4" />
-        </Button>
-        <Button variant="ghost" size="icon" title="播放 / 暂停" @click="togglePlay">
-          <PauseIcon v-if="player.isPlaying" class="size-5" />
-          <PlayIcon v-else class="size-5" />
-        </Button>
-        <Button
-          v-if="player.queue.length > 1"
-          variant="ghost"
-          size="icon-sm"
-          title="下一首（Ctrl+→）"
-          :disabled="!player.hasNext"
-          @click="next"
-        >
-          <SkipForwardIcon class="size-4" />
-        </Button>
+          <Button
+            v-if="player.queue.length > 1"
+            variant="ghost"
+            size="icon-sm"
+            title="上一首（Ctrl+←）"
+            :disabled="!player.hasPrev"
+            @click="prev"
+          >
+            <SkipBackIcon class="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" title="播放 / 暂停" @click="togglePlay">
+            <PauseIcon v-if="player.isPlaying" class="size-5" />
+            <PlayIcon v-else class="size-5" />
+          </Button>
+          <Button
+            v-if="player.queue.length > 1"
+            variant="ghost"
+            size="icon-sm"
+            title="下一首（Ctrl+→）"
+            :disabled="!player.hasNext"
+            @click="next"
+          >
+            <SkipForwardIcon class="size-4" />
+          </Button>
 
-        <span class="hidden w-10 text-right text-xs tabular-nums text-muted-foreground sm:block">
-          {{ formatSeconds(player.currentTime) }}
-        </span>
-        <Slider
-          :model-value="[pct]"
-          :max="100"
-          :step="0.1"
-          class="flex-1 cursor-pointer"
-          @update:model-value="onSeek"
-        />
-        <span class="hidden w-10 text-xs tabular-nums text-muted-foreground sm:block">
-          {{ formatSeconds(player.duration) }}
-        </span>
+          <span class="hidden w-10 text-right text-xs tabular-nums text-muted-foreground sm:block">
+            {{ formatSeconds(player.currentTime) }}
+          </span>
+          <Slider
+            :model-value="[pct]"
+            :max="100"
+            :step="0.1"
+            class="hidden flex-1 cursor-pointer sm:block"
+            @update:model-value="onSeek"
+          />
+          <span class="hidden w-10 text-xs tabular-nums text-muted-foreground sm:block">
+            {{ formatSeconds(player.duration) }}
+          </span>
 
-        <div class="hidden items-center gap-2 md:flex">
+          <div class="hidden items-center gap-2 md:flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              :title="player.volume === 0 ? '取消静音' : '静音'"
+              @click="toggleMute"
+            >
+              <VolumeXIcon v-if="player.volume === 0" class="size-4" />
+              <Volume2Icon v-else class="size-4" />
+            </Button>
+            <Slider
+              :model-value="[player.volume * 100]"
+              :max="100"
+              :step="1"
+              class="w-20 cursor-pointer"
+              @update:model-value="onVolume"
+            />
+          </div>
+
+          <!-- 播放模式：与队列面板顶部的切换按钮等同状态，点按循环 列表循环→随机→播完停止 -->
           <Button
             variant="ghost"
             size="icon-sm"
-            :title="player.volume === 0 ? '取消静音' : '静音'"
-            @click="toggleMute"
+            class="hidden sm:inline-flex"
+            :title="`播放模式：${playMode.label}（点击切换）`"
+            :disabled="!player.queue.length"
+            @click="cycleMode"
           >
-            <VolumeXIcon v-if="player.volume === 0" class="size-4" />
-            <Volume2Icon v-else class="size-4" />
+            <component :is="playMode.icon" class="size-4" />
           </Button>
-          <Slider
-            :model-value="[player.volume * 100]"
-            :max="100"
-            :step="1"
-            class="w-20 cursor-pointer"
-            @update:model-value="onVolume"
-          />
+
+          <div class="hidden sm:block">
+            <QueuePanel />
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="hidden sm:inline-flex"
+            title="关闭播放器"
+            @click="close"
+          >
+            <XIcon class="size-4" />
+          </Button>
         </div>
 
-        <!-- 播放模式：与队列面板顶部的切换按钮等同状态，点按循环 列表循环→随机→播完停止 -->
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          :title="`播放模式：${playMode.label}（点击切换）`"
-          :disabled="!player.queue.length"
-          @click="cycleMode"
-        >
-          <component :is="playMode.icon" class="size-4" />
-        </Button>
+        <!-- 移动端第二行：全宽进度条 + 模式/队列/关闭（桌面 sm 起隐藏，上述单行布局不变） -->
+        <div class="flex h-9 items-center gap-2 pb-2 sm:hidden">
+          <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
+            {{ formatSeconds(player.currentTime) }}
+          </span>
+          <Slider
+            :model-value="[pct]"
+            :max="100"
+            :step="0.1"
+            class="min-w-0 flex-1 cursor-pointer [&_[data-slot=slider-thumb]]:size-4"
+            @update:model-value="onSeek"
+          />
+          <span class="w-10 text-xs tabular-nums text-muted-foreground">
+            {{ formatSeconds(player.duration) }}
+          </span>
 
-        <QueuePanel />
-
-        <Button variant="ghost" size="icon-sm" title="关闭播放器" @click="close">
-          <XIcon class="size-4" />
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :title="`播放模式：${playMode.label}（点击切换）`"
+            :disabled="!player.queue.length"
+            @click="cycleMode"
+          >
+            <component :is="playMode.icon" class="size-4" />
+          </Button>
+          <QueuePanel />
+          <Button variant="ghost" size="icon-sm" title="关闭播放器" @click="close">
+            <XIcon class="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   </Transition>

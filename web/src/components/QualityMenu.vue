@@ -78,7 +78,7 @@ async function direct(brType: string) {
 <template>
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
-      <Button variant="ghost" size="icon-sm" title="更多操作" :disabled="busy || !qualities.length">
+      <Button variant="ghost" size="icon-sm" class="max-sm:size-9" title="更多操作" :disabled="busy || !qualities.length">
         <EllipsisIcon class="size-4" />
       </Button>
     </DropdownMenuTrigger>

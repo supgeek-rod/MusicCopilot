@@ -333,6 +333,7 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
                   v-if="t.status === 'error'"
                   variant="ghost"
                   size="icon-sm"
+                  class="max-sm:size-9"
                   title="重试"
                   :disabled="acting || busyTaskId === t.id"
                   @click="retryTask(t)"
@@ -343,6 +344,7 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
                   v-else-if="t.status === 'waiting' || t.status === 'loading'"
                   variant="ghost"
                   size="icon-sm"
+                  class="max-sm:size-9"
                   title="重新入队"
                   :disabled="acting || busyTaskId === t.id"
                   @click="refreshTask(t)"
@@ -354,7 +356,7 @@ onBeforeUnmount(() => clearTimeout(scrollTimer))
                   size="icon-sm"
                   title="删除"
                   :disabled="acting"
-                  class="text-destructive hover:text-destructive"
+                  class="max-sm:size-9 text-destructive hover:text-destructive"
                   @click="delTask(t)"
                 >
                   <Trash2Icon class="size-4" />

@@ -369,11 +369,11 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
           <div
             v-for="h in history"
             :key="h"
-            class="group flex items-center gap-0.5 text-xs text-muted-foreground"
+            class="group flex max-w-full min-w-0 items-center gap-0.5 text-xs text-muted-foreground"
           >
             <button
               type="button"
-              class="hover:text-foreground"
+              class="min-w-0 truncate hover:text-foreground"
               :title="`搜索「${h}」`"
               @click="searchTerm(h)"
             >
@@ -381,7 +381,7 @@ onBeforeUnmount(() => clearTimeout(listScrollTimer))
             </button>
             <button
               type="button"
-              class="rounded p-0.5 opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+              class="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
               title="删除该条"
               @click.stop="dropHistory(h)"
             >
